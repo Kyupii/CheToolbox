@@ -1,7 +1,7 @@
 #CheToolbox
 
 ## About
-CheToolbox or Chemical Engineer's Toolbox is a personal project designed to package the calculations I have learned from university for easy access.
+CheToolbox or Chemical Engineer's Toolbox is a personal project designed to package the calculations I have learned from university for easy access and time saving.
 ## License
 CheToolbox is distributed under GPL Liscense version 3 (GPLv3)
 ## Dependencies
