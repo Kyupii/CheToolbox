@@ -1,7 +1,9 @@
+LICENSE.txt
 README.md
+setup.cfg
 setup.py
-CheToolbox.egg-info/PKG-INFO
-CheToolbox.egg-info/SOURCES.txt
-CheToolbox.egg-info/dependency_links.txt
-CheToolbox.egg-info/requires.txt
-CheToolbox.egg-info/top_level.txt
+chetoolbox.egg-info/PKG-INFO
+chetoolbox.egg-info/SOURCES.txt
+chetoolbox.egg-info/dependency_links.txt
+chetoolbox.egg-info/requires.txt
+chetoolbox.egg-info/top_level.txt

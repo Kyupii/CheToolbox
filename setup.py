@@ -18,7 +18,7 @@ setup(
                         ],
 
     keywords = ["python", "chemical engineering"],
-    classifiers = ["Development Status :: 3 - Alpha" # Either "3 - Alpha", "4 - Beta" or "5 - Production/Stable"
+    classifiers = ["Development Status :: 3 - Alpha", # Either "3 - Alpha", "4 - Beta" or "5 - Production/Stable"
                    "Intended Audience :: Education",
                    "Programming Language :: Python :: 2",
                    "Programming Language :: Python :: 3",
