@@ -1,30 +1,29 @@
 import numpy as np
 from scipy.optimize import root
-# Calculate the pressure per unit length 
-# Inputs and outputs are in Metric
-#
-def PressureDrop(Q:float, mu:float, D:float, rho:float, epsilon : float = 0.10e-3, units : str= 'SI') -> float: 
-    r""" solve for the pressure drop of a straight pipe using DarcyWeisbach equation & Colebrook White equation
+
+def PressureDrop(Q: float, mu: float, D: float, rho: float, epsilon: float = 0.10e-3) -> float: 
+    r"""
+    Solve for the pressure drop of a straight pipe using the Darcy-Weisbach equation & Colebrook White equation.
+
     Parameters
     ----------
     Q : float
-        A float value of the volumetric flow rate in $m^3/s$
+        Volumetric flow rate in m^3/s (meters cubed per second).
     mu : float
-        a float value of the viscosity of the fluid in pascal * seconds
+        Viscosity of the fluid in Pa*s (pascal seconds).
     D : float
-        The diameter of the pipe in meters
+        Pipe diameter in m (meters).
+    mu : float
+        Density of the fluid in kg/m^3 (kilograms per meter cubed).
     epsilon : float
-        the absolute roughness value of the pipe in meters. It is .10e-3 m by default as the roughenss value of moderately corroded carbon steel pipe
-    units : str
-        an option to change the units of the function. it is SI by default.
+        Absolute roughness value of the pipe in m (meters). Default value of 0.10e-3 meters is the roughenss value of moderately-corroded carbon steel.
 
     Returns
     ----------
     PressureDrop : float
-        The amount of pressure drop per unit length. by default it is in Pascals/meter
+        Pressure drop per unit length in Pa/m (pascals per meter).
     """
-    
-    
+
     v = Q / (np.pi * ((D/2)**2))
     Re = rho * v * D / mu
     def ColebrookWhite(v):
@@ -37,4 +36,3 @@ def PressureDrop(Q:float, mu:float, D:float, rho:float, epsilon : float = 0.10e-
         f = root(ColebrookWhite,[0.03]).x[0]
     return -(f * (rho / 2) * (v**2 /D))
     
-

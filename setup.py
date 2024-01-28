@@ -1,27 +1,29 @@
 from setuptools import setup, find_packages
 
-VERSION = '1.1'
-DESCRIPTION = 'A library of commoon chemical engineering calculations'
+VERSION = '0.0.1'
+DESCRIPTION = 'A library of common chemical engineering calculations'
 LONG_DESCRIPTION = 'A personal project cataloging common chemical engineering calculations employing numerical methods'
 
 setup(
-    name = 'CheToolbox',
+    name = 'chetoolbox',
     version = VERSION,
     author = 'Quan Phan & Ethan Molnar',
     author_email = 'Phanqv@mail.uc.edu',
-    description= DESCRIPTION,
-    long_description=LONG_DESCRIPTION,
+    description = DESCRIPTION,
+    long_description = LONG_DESCRIPTION,
     packages = find_packages(),
     install_requires = ['numpy',
-                     'pandas'],
-    
-    keywords = ["python", "Chemical Engineering"],
-    classifiers= [
-    "Intended Audience :: Education",
-    "Programming Language :: Python :: 2",
-    "Programming Language :: Python :: 3",
-    "Operating System :: Microsoft :: Windows",
-    ]
+                        'pandas',
+                        'scipy',
+                        ],
+
+    keywords = ["python", "chemical engineering"],
+    classifiers = ["Development Status :: 3 - Alpha" # Either "3 - Alpha", "4 - Beta" or "5 - Production/Stable"
+                   "Intended Audience :: Education",
+                   "Programming Language :: Python :: 2",
+                   "Programming Language :: Python :: 3",
+                   "Operating System :: Microsoft :: Windows", 
+                ]
 
 
 )

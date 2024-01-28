@@ -1,35 +1,125 @@
 import numpy as np
-import pandas as pd
-import common
 import numpy.typing as npt
-# numb_comp, x = common.input_mol_frac()
-# 
-# ant_coeff = common.input_antoine(numb_comp)
-# 
-# P = common.input_P()
 
-# umb_comp, x, ant_coeff, P = common.testvars()
-def iterate_bubble(x: npt.ArrayLike, K: npt.ArrayLike) -> (npt.ArrayLike, float):
-   '''Bubble point calculation intended to be used with DePriester Charts
-   
-   Parameters
-   ---------
-   x: ArrayLike
-   Liquid mole fractions of the mixed phase feed
-   K: ArrayLike 
-   K values associated with the proposed temperature
-   Returns
-   ---------
-   y: ArrayLike
-   vapor mole fractions of the mixed phase feed
-   error: float
-   the associated error of proposed temperature
-   '''
-   y = np.c_[x] * K
-   error = np.sum(y) - 1
-   return y, error
+import common
 
-def antoine_bubble_point(x, ant_coeff, P, tol=.05):
+def raoult_XtoY(x: npt.ArrayLike, K: npt.ArrayLike) -> (npt.ArrayLike, float):
+  '''
+  Calculates the vapor mole fraction of a multi-component mixed phase feed (assuming liquid and gas ideality).
+
+  Parameters
+  ---------
+  x : ArrayLike
+    Component mole fractions of the feed's liquid phase. Must sum to 1.
+  K : ArrayLike 
+    Equalibrium constant for each component at a specific temperature and pressure. Must match x in size.
+  Returns
+  ---------
+  y : ArrayLike
+    Component mole fractions of the feed's vapor phase.
+  error : float
+    Error of calculated vapor phase component mole fractions.
+  '''
+  y = np.c_[x] * K
+  error = np.sum(y) - 1
+  return y, error
+
+def raoult_YtoX(y: npt.ArrayLike, K: npt.ArrayLike) -> (npt.ArrayLike, float):
+  '''
+  Calculates the liquid mole fraction of a multi-component mixed phase feed (assuming liquid and gas ideality).
+
+  Parameters
+  ---------
+  y : ArrayLike
+    Component mole fractions of the feed's vapor phase. Must sum to 1.
+  K : ArrayLike 
+    Equalibrium constant for each component at a specific temperature and pressure. Must match y in size.
+  Returns
+  ---------
+  x : ArrayLike
+    Component mole fractions of the feed's liquid phase.
+  error : float
+    Error of calculated liquid phase component mole fractions.
+  '''
+  x = np.c_[y] / K
+  error = np.sum(x) - 1
+  return x, error
+
+def psi_solver(x: npt.ArrayLike, K: npt.ArrayLike, psi: float, tol: float = 0.01) -> (float, npt.ArrayLike, npt.ArrayLike, float, int):
+  '''
+  Iteratively solves for the vapor/liquid output feed ratio psi (Ψ) of a multi-component liquid input stream entering a flash drum.  
+  
+  Parameters
+  ----------
+  x : ArrayLike
+    Component mole fractions of the liquid input feed. Must sum to 1.
+  K : ArrayLike
+    Equalibrium constant for each component at specific temperature and pressure. Must match x in size.
+  psi : float
+    Initial value of psi to begin iterating on. Must be 0 <= psi <= 1.
+  tol : float
+    Largest error value to stop iterating and return.
+
+  Returns
+  ----------
+  psi : float
+    Converged vapor/liquid output feed ratio psi (Ψ).
+  x_out : ArrayLike
+    Component mole fractions of the output liquid stream. 
+  y_out : ArrayLike
+    Component mole fractions of the output vapor stream.
+  error : float
+    Error at the final iteration.
+  i : int
+    Number of iterations to calculate to the specified tolerance.
+  '''
+  def f(psi):
+    return np.sum( (x * (1 - K)) / (1 + psi * (K - 1)) )
+  def f_prime(psi):
+    return np.sum( (x * (1 - K)**2) / (1 + psi * (K - 1))**2)
+  def psi_next(psi):
+    return psi - (f(psi) / f_prime(psi))
+  def error(psi):
+    return np.abs(f(psi))
+  
+  i = 0
+  while error(psi) > tol:
+    psi = psi_next(psi)
+    i += 1
+  x_out = x / (1 + psi * (K - 1))
+  y_out = (x * K) / (1 + psi * (K - 1))
+  return psi, x_out, y_out, error(psi), i
+
+def bubble_point(x: npt.ArrayLike, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> (float, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, float, int):
+  '''
+  Iteratively solves for the bubble point temperature of a multi-component liquid mixture.
+
+  Parameters
+  ----------
+  x : ArrayLike
+    Component mole fractions of the liquid mixture. Must sum to 1.
+  ant_coeff : ArrayLike
+    Two-dimensional numpy array of component coefficients for the Antoine Equation of State. First dimension (row) must match x in size.
+  P : float
+    Ambient pressure of the liquid mixture in mmHg (millimeters of mercury).
+  tol : float
+    Largest error value to stop iterating and return.
+
+  Returns
+  ----------
+  bubbleT : float
+    Temperature of the liquid mixture's bubble point in C (Celcius).
+  Pvap : ArrayLike
+    Vapor pressure for each component at the bubble point temperature. 
+  k : ArrayLike
+    Equalibrium constant for each component at the stated pressure and bubble point temperature. 
+  y : ArrayLike
+    Component mole fractions of the first bubble of vapor.
+  error : float
+    Error at the final iteration.
+  i : int
+    Number of iterations to calculate to the specified tolerance.
+  '''
   boil_points = common.antoine_T(ant_coeff, P)
   T = [np.max(boil_points), np.min(boil_points)]
 
@@ -53,124 +143,39 @@ def antoine_bubble_point(x, ant_coeff, P, tol=.05):
     error, T = iter(T)
     i += 1
 
-  bubbleP = T[np.argmin(error)]
-  Pvap, k, y, error = calcs(bubbleP)
-  return bubbleP, Pvap[:, 0], k[:, 0], y[:, 0], error[0], i
+  bubbleT = T[np.argmin(error)]
+  Pvap, k, y, error = calcs(bubbleT)
+  return bubbleT, Pvap[:, 0], k[:, 0], y[:, 0], error[0], i
 
-# bubbleP, Pvap, k, y, error, iters = bubble_point_iter(x, ant_coeff, P)
-
-# print('---')
-# print(f'The Bubble Temperature is {bubbleP} Celcius')
-# print(f'The Error of the Calculation is {error}')
-# print(f'The Calculation took {iters} iterations')
-# print('---')z
-# df = pd.DataFrame({'Liq Mol Fraction' : x ,
-#                    'Vap Mol Fraction' : y,
-#                    'Pvap (mmHg)' : Pvap,
-#                    'K' : k})
-# print(df)
-# TODO : If we want the function to return the as is right now, or a formatted dataframe... I dont see *too* much benefit to the dataframe approach
-
-def psi_solver(x: npt.ArrayLike, K: npt.ArrayLike, psi: float, tol: float = 0.01) -> (float, int, npt.ArrayLike) :
-    '''
-    Solves for vapor/liquid feed ratio (psi).
-    
-    Parameters
-    ----------
-    x : ArrayLike
-        An array of the incoming feed mole fractions. Must match the size of K.
-    K : ArrayLike
-        An array of the respective equilibrium constants, K.
-    psi : float
-        An intial guess of what the ratio will be.
-
-    Returns
-    ----------
-    psi : float
-        The final converged value of the vapor/liquid feed ratio.
-    err : float
-        The associated error of the final iteration.
-    x_out : ArrayLike
-        the mol fractions of the outgoing liquid stream. 
-    y_out : ArrayLike
-        the mol fractions of the outgoing vapor stream.
-    '''
-    def f(psi):
-        return np.sum( (x * (1- K)) / (1 + psi * (K - 1)) )
-    def f_prime(psi):
-        return np.sum( (x * (1 - K)**2) / (1 + psi * (K - 1))**2)
-    def psi_next(psi):
-        return psi - (f(psi) / f_prime(psi))
-    def error(psi):
-        return (psi_next(psi) - psi) / psi
-    
-    table = np.array([['psi', 'f', 'f_prime', 'psi_next', 'error']], dtype='object')
-    
-    i = 0
-    while tol < np.abs(f(psi)) :
-        psi = psi_next(psi)
-        i += 1
-    err = error(psi)
-    x_out = x / (1 + psi * (K - 1))
-    y_out = (x * K) / (1 + psi * (K - 1))
-    return psi, i, err, x_out, y_out
-    
-# numb_comp, x = common.input_mol_frac()
-
-# k = common.input_Kfac(numb_comp)
-
-# psi_i = float(input('Input an initial guess for psi : '))
-
-# psi, iterations, table = psi_solver(x, k, psi_i)
-# print(' ---- ')
-# print(f'The converged value of psi is : {psi}')
-# print(f'This was done in {iterations} iterations .')
-# print('----')
-# print(pd.DataFrame(table))
-
-# input('Exit? Y/N ')    
-
-# numb_comp, x = common.input_mol_frac()
-# 
-# ant_coeff = common.input_antoine(numb_comp)
-# 
-# P = common.input_P()
-
-# numb_comp, y, ant_coeff, P = common.testvars()
-def iterate_dew(y: npt.ArrayLike, K: npt.ArrayLike) -> (npt.ArrayLike, float):
-   '''Dew point calculation intended to be used with DePriester Charts
-   
-   Parameters
-   ---------
-   y: ArrayLike
-   Vapor mole fractions of the mixed phase feed.
-   K: ArrayLike 
-   K values associated with the proposed temperature.
-   Returns
-   ---------
-   x: ArrayLike
-   Liquid mole fractions of the mixed phase feed.
-   error: float
-   the associated error of proposed temperature.
-   '''
-   x = np.c_[y] / K
-   error = np.sum(x) - 1
-   return x, error
-
-def antoine_dew_point(y: npt.ArrayLike, ant_coeff: npt.ArrayLike, P: float, tol: float=.05):
+def dew_point(y: npt.ArrayLike, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> (float, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, float, int):
   '''
-  Numerical dew point calculation based on the antoine equation.
-  
+  Iteratively solves for the dew point temperature of a multi-component vapor mixture.
+
   Parameters
   ----------
   y : ArrayLike
-  Vapor mole fractions of the two phase condition.
+    Component mole fractions of the vapor mixture. Must sum to 1.
   ant_coeff : ArrayLike
-  array of antoine coefficients associated with the components.
+    Two-dimensional numpy array of component coefficients for the Antoine Equation of State. First dimension (row) must match y in size.
   P : float
-  System pressure.
+    Ambient pressure of the vapor mixture in mmHg (millimeters of mercury).
   tol : float
-  The required error the final iteration must be under.
+    Largest error value to stop iterating and return.
+
+  Returns
+  ----------
+  dewT : float
+    Temperature of the vapor mixture's dew point in C (Celcius).
+  Pvap : ArrayLike
+    Vapor pressure for each component at the dew point temperature. 
+  k : ArrayLike
+    Equalibrium constant for each component at the stated pressure and dew point temperature. 
+  x : ArrayLike
+    Component mole fractions of the first dew of liquid.
+  error : float
+    Error at the final iteration.
+  i : int
+    Number of iterations to calculate to the specified tolerance.
   '''
   boil_points = common.antoine_T(ant_coeff, P)
   T = [np.max(boil_points), np.min(boil_points)]
@@ -195,19 +200,6 @@ def antoine_dew_point(y: npt.ArrayLike, ant_coeff: npt.ArrayLike, P: float, tol:
     error, T = iter(T)
     i += 1
 
-  dewP = T[np.argmin(error)]
-  Pvap, k, x, error = calcs(dewP)
-  return dewP, Pvap[:, 0], k[:, 0], x[:, 0], error[0], i
-
-# dewP, Pvap, k, x, error, iters = dew_point_iter(y, ant_coeff, P)
-
-# print('---')
-# print(f'The Bubble Temperature is {dewP} Celcius')
-# print(f'The Error of the Calculation is {error}')
-# print(f'The Calculation took {iters} iterations')
-# print('---')
-# df = pd.DataFrame({'Liq Mol Fraction' : x ,
-#                    'Vap Mol Fraction' : y,
-#                    'Pvap (mmHg)' : Pvap,
-#                    'K' : k})
-# print(df)
+  dewT = T[np.argmin(error)]
+  Pvap, k, x, error = calcs(dewT)
+  return dewT, Pvap[:, 0], k[:, 0], x[:, 0], error[0], i

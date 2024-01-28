@@ -1,66 +1,22 @@
 import numpy as np
-import pandas as pd
+import numpy.typing as npt
 
-def testvars():
-  TEST_numb_comp = 3
-  TEST_mol_frac = np.array([.25, .40, .35])
-  TEST_x = np.array([.25, .40, .35])
-  TEST_y = np.array([0.576857, 0.312705, 0.102059])
-  TEST_ant_coeff = np.array([[6.82973, 813.2, 248.],
-                            [6.83029, 945.90, 240.],
-                            [6.85221, 1064.63, 232.]])
-  TEST_P = 10342.95
-
-  # numb_comp, x, ant_coeff, P = common.testvars()
-  return TEST_numb_comp, TEST_mol_frac, TEST_ant_coeff, TEST_P
-
-def input_mol_frac(phase = "l"):
-  # promt for component quantity
-  numb_comp = int(input ('Total Number of Components? : '))
-  print("")
-  v = np.zeros(numb_comp)
-
-  # ask for input of the incoming feed composition
-  abbrev = {
-    "s": "Solid",
-    "l": "Liquid",
-    "v": "Vapor"
-  }
-  print(f" --- Composition of the {abbrev[phase]} Feed --- ")
-  # print('---')
-  for i,item in enumerate(v):
-    v[i] = float(input(f'Enter Mol Fraction of Component {i + 1} : '))
-  print('')
-  return numb_comp, v
-
-def input_Kfac(numb_comp):
-  k = np.zeros(numb_comp)
-  for i, _ in enumerate(k):
-    k[i] = float(input(f'Enter K Factor of Component {i + 1} : '))
-  print('\n')
-  return k
-
-def input_antoine(numb_comp, numb_coeff = 3):
-  ant_coeff = np.zeros((numb_comp, numb_coeff)) 
-  #numb_coeff must be <= 25
-  coeffs = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-  for i, components in enumerate(ant_coeff):
-    for j, _ in enumerate(components):
-      ant_coeff[i, j] = float(input(f'Enter Antoine Coefficient {coeffs[j]} for Component {i + 1} : '))
-    print('')
-  return ant_coeff
-
-def input_P(vessel = "fd"):
-  abbrev = {
-    "fd": "Flash Drum",
-    "t": "Tank",
-  }
-  P = float(input(f'Enter the pressure of the {abbrev[vessel]} in mmHg : '))
-  print('')
-  return P
+class TESTVARS:
+  def __init__(self) -> None:
+    pass
+  numb_comp = 3
+  mol_frac = np.array([.25, .40, .35])
+  x = np.array([.25, .40, .35])
+  y = np.array([0.576857, 0.312705, 0.102059])
+  ant_coeff = np.array([[6.82973, 813.2, 248.],
+                        [6.83029, 945.90, 240.],
+                        [6.85221, 1064.63, 232.]])
+  P = 10342.95
 
 def antoine_T(v, P):
-  # T in C, P in mmHg
+  '''
+  Calculates the temperature of every component for each pressure.
+  '''
   v = np.atleast_1d(v); P = np.atleast_1d(P)
 
   def antoine_T_3(v, P):
@@ -76,8 +32,10 @@ def antoine_T(v, P):
         T[i_comp, j_temp] = -b / (np.log10(press) - a) - c
     return T
 
-def antoine_P (v, T):
-  # T in C, P in mmHg
+def antoine_P(v, T):
+  '''
+  Calculates the pressure of every component for each temperature.
+  '''
   v = np.atleast_1d(v); T = np.atleast_1d(T)
 
   def antoine_P_3(v, T):
@@ -94,4 +52,7 @@ def antoine_P (v, T):
     return P
 
 def lin_estimate_error(x_pair, y_pair):
+  '''
+  Calculates the x-intercept (x=0) for a given pair of x and y points. Assumes linearity.
+  '''
   return x_pair[0] - y_pair[0] * ((x_pair[1]-x_pair[0])/(y_pair[1]-y_pair[0]))
