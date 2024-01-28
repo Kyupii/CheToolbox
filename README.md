@@ -10,3 +10,4 @@ The following dependencies will be necessary for CheToolbox to build properly,
 - PIP >= 7.0: https://pip.pypa.io/ (Not required in some scenarios but never bad to have.)
 - SciPy >= 0.11.0: http://www.scipy.org/
 - NumPy >= 1.16.0: http://www.numpy.org/
+## Usage
