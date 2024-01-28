@@ -12,3 +12,22 @@ The following dependencies will be necessary for CheToolbox to build properly,
 - NumPy >= 1.16.0: http://www.numpy.org/
 - pandas
 ## Usage
+```py
+import numpy as np
+from chetoolbox import separations
+```
+```py
+x = np.array([0.1,0.2,0.3,0.4]) # mol fraction of incoming stream
+K = np.array([4.2,1.75,.74,.34]) # corresponding K values
+psi_init = 0.5 # an initial guess for psi
+```
+```py
+separations.psi_solver(x,K,psi_init)
+```
+```py
+(0.12109169497141782,
+ array([0.07207241, 0.18334851, 0.30975219, 0.43474505]),
+ array([0.30270414, 0.3208599 , 0.22921662, 0.14781332]),
+ 0.000675806754791175,
+ 2)
+ ```
