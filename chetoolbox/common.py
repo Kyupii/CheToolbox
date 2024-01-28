@@ -13,7 +13,7 @@ class TESTVARS:
                         [6.85221, 1064.63, 232.]])
   P = 10342.95
 
-def antoine_T(v, P):
+def antoine_T(v: npt.ArrayLike, P: npt.ArrayLike) -> npt.ArrayLike:
   '''
   Calculates the temperature of every component for each pressure.
   '''
@@ -32,7 +32,7 @@ def antoine_T(v, P):
         T[i_comp, j_temp] = -b / (np.log10(press) - a) - c
     return T
 
-def antoine_P(v, T):
+def antoine_P(v: npt.ArrayLike, T: npt.ArrayLike) -> npt.ArrayLike:
   '''
   Calculates the pressure of every component for each temperature.
   '''
@@ -51,7 +51,7 @@ def antoine_P(v, T):
         P[i_comp, j_temp] = 10 ** (a - (b) / (temp + c))
     return P
 
-def lin_estimate_error(x_pair, y_pair):
+def lin_estimate_error(x_pair: list, y_pair: list) -> float:
   '''
   Calculates the x-intercept (x=0) for a given pair of x and y points. Assumes linearity.
   '''

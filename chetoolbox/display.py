@@ -2,9 +2,7 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
-import common
-
-# Old Input Code
+# region Old Input Code
 def input_mol_frac(phase = "l"):
   # promt for component quantity
   numb_comp = int(input ('Total Number of Components? : '))
@@ -49,6 +47,7 @@ def input_P(vessel = "fd"):
   P = float(input(f'Enter the pressure of the {abbrev[vessel]} in mmHg : '))
   print('')
   return P
+# endregion
 
 # region Old print to display code
 # numb_comp, x = common.input_mol_frac()
