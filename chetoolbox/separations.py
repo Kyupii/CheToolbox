@@ -1,7 +1,6 @@
 import numpy as np
 import numpy.typing as npt
-
-import common
+from chetoolbox import common
 
 def raoult_XtoY(x: npt.ArrayLike, K: npt.ArrayLike) -> (npt.ArrayLike, float):
   '''

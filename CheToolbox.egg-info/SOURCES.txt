@@ -2,6 +2,11 @@ LICENSE.txt
 README.md
 setup.cfg
 setup.py
+chetoolbox/__init__.py
+chetoolbox/common.py
+chetoolbox/display.py
+chetoolbox/fluids.py
+chetoolbox/separations.py
 chetoolbox.egg-info/PKG-INFO
 chetoolbox.egg-info/SOURCES.txt
 chetoolbox.egg-info/dependency_links.txt

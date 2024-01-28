@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: chetoolbox
-Version: 0.0.1
+Version: 0.0.4
 Summary: A library of common chemical engineering calculations
 Author: Quan Phan & Ethan Molnar
 Author-email: Phanqv@mail.uc.edu
@@ -11,5 +11,8 @@ Classifier: Programming Language :: Python :: 2
 Classifier: Programming Language :: Python :: 3
 Classifier: Operating System :: Microsoft :: Windows
 License-File: LICENSE.txt
+Requires-Dist: numpy
+Requires-Dist: pandas
+Requires-Dist: scipy
 
 A personal project cataloging common chemical engineering calculations employing numerical methods
