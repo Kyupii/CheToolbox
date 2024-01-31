@@ -80,9 +80,9 @@ def pvap_liq_est(T: float, T_b: float, K_F: float)-> float:
   A = K_F * (8.75 + R * np.log( T_b ))
   return np.e ** ( (A * (T_b - C)**2 / (0.97 * R * T_b)) * ( 1 / (T_b - C) - 1 / (T-C)))
 
-def Kow_est(f: npt.ArrayLike, c: npt.ArrayLike = np.array([[0],[0]])) -> float:
+def Kow_est(f: npt.ArrayLike) -> float:
   '''
-  Estimate the octanol / water equilibrium constant of a compound via the group contribution method.
+  Estimates the octanol / water equilibrium constant of a compound via the group contribution method.
 
   Parameters:
   -----------
@@ -96,3 +96,65 @@ def Kow_est(f: npt.ArrayLike, c: npt.ArrayLike = np.array([[0],[0]])) -> float:
     Estimated octanol / water equilibrium constant.
   '''
   return 0.229 + np.sum(f[:,0] * f[:,1]) + np.sum(f[:,0] * f[:,2])
+
+def bioconc_est(K_ow: float, c: list = None) -> (float, str):
+  '''
+  Estimates the tissue / water bioconcentration factor of a compound.
+
+  Parameters:
+  -----------
+  K_ow : float
+    Octanol / water equilibrium constant.
+  c : list
+    Correction factors for specific structral groups present in the compound. 
+  
+  Returns:
+  --------
+  bcf : float
+    Estimated bioconcentration factor in L/kg (liters per kilogram).
+  pot : float
+    Qualitative potential for tissue accumulation.
+  '''
+  if c == None:
+    bcf = 10.**(.79 * np.log10(K_ow) - .4)
+  else:
+    bcf = 10.**(.77 * np.log10(K_ow) + np.sum(c) - .7)
+  if bcf <= 250: pot = "Low Potential for Tissue Accumulation"
+  elif bcf <= 1000: pot = "Moderate Potential for Tissue Accumulation"
+  else: pot = "High Potential for Tissue Accumulation"
+  return bcf, pot
+  
+def water_sol_est(K_ow: float, c: list = None, T_m: float = None, MW: float = None) -> float:
+  '''
+  Estimates the water solubility of a compound. Either T_m, MW, or both are required.
+
+  Parameters:
+  -----------
+  K_ow : float
+    Octanol / water equilibrium constant.
+  c : list
+    Correction factors for specific structral groups present in the compound. 
+  T_m : float
+    Melting point temperature in K (Kelvin).
+  MW : float
+    Molecular weight in kg/kmol (kilograms per kilomole). 
+  
+  Returns:
+  --------
+  sol : float
+    Estimated water solubility in mol/L (moles per liter).
+  pot : float
+    Qualitative potential for tissue accumulation.
+  '''
+  if T_m == None:
+    sol = 10.**(.796  - .854 * np.log10(K_ow) - .00728 * MW + np.sum(c))
+  elif MW == None:
+    sol = 10.**(.342 - 1.0374 * np.log10(K_ow) - .0108 * (T_m - 298.15) + np.sum(c))
+  else:
+    sol = 10.**(.693 - .96 * np.log10(K_ow) - .0092 * (T_m - 298.15) - .00314 * MW + np.sum(c))
+  ppm = sol * 35500
+  # TODO finish this
+  if ppm <= 250: pot = "Low Potential for Tissue Accumulation"
+  elif ppm <= 1000: pot = "Moderate Potential for Tissue Accumulation"
+  else: ppm = "High Potential for Tissue Accumulation"
+  return sol, pot
