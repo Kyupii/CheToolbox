@@ -2,6 +2,22 @@ import numpy as np
 import numpy.typing as npt
 
 class TESTVARS:
+  '''
+  <Function/Class Description>.
+
+  Parameters:
+  -----------
+  A : <Variable Type>
+    <Variable Description> in <Unit Abbreviation/Symbols> (<Unit In Spoken English>).
+  B : <Variable Type>
+    <Variable Description>.
+      Ex) <Optional Example of Variable Shape, Formatting, Etc.>.
+  
+  Retruns:
+  -----------
+  C : <Variable Type>
+    <Variable Description> in <Unit Abbreviation/Symbols> (<Unit In Spoken English>).
+  '''
   def __init__(self) -> None:
     pass
   numb_comp = 3

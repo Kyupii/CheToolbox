@@ -12,6 +12,7 @@ def raoult_XtoY(x: npt.ArrayLike, K: npt.ArrayLike) -> (npt.ArrayLike, float):
     Component mole fractions of the feed's liquid phase. Must sum to 1.
   K : ArrayLike 
     Equalibrium constant for each component at a specific temperature and pressure. Must match x in size.
+  
   Returns
   ---------
   y : ArrayLike
@@ -33,6 +34,7 @@ def raoult_YtoX(y: npt.ArrayLike, K: npt.ArrayLike) -> (npt.ArrayLike, float):
     Component mole fractions of the feed's vapor phase. Must sum to 1.
   K : ArrayLike 
     Equalibrium constant for each component at a specific temperature and pressure. Must match y in size.
+    
   Returns
   ---------
   x : ArrayLike
