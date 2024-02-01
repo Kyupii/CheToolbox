@@ -158,3 +158,22 @@ def water_sol_est(K_ow: float, c: list = None, T_m: float = None, MW: float = No
   elif ppm <= 1000: pot = "Moderate Potential for Tissue Accumulation"
   else: ppm = "High Potential for Tissue Accumulation"
   return sol, pot
+def henry_est(h : npt.ArrayLike, c : npt.ArrayLike) -> float: 
+
+  '''
+  Estimate Henry's law constant by group contribution method.
+
+  Parameters:
+  -----------
+  h : ArrayLike
+    The frequency of a group's appearance and the group's contribution value. Shape must be N x 2.
+      Ex) For a molecule containing 4 groups: np.array([[3, 1.233], [1, 23.5], [2, 44.6], [7, 103.6]])
+  B : ArrayLike
+    The frequency of a group's appearance and the group's correction value. Shape must be N x 2
+      Ex) For a molecule containing 4 groups: np.array([[3, 1.233], [1, 23.5], [2, 44.6], [7, 103.6]])
+
+  Returns:
+  -----------
+  H : float
+    Henry's law constant of a given species (dimensionless)'''
+  return 10 ** -(np.sum(h[:,0] * h[:,1]) + np.sum(c[:,0] * c[:,1]))
