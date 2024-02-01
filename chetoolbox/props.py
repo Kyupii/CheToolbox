@@ -236,7 +236,7 @@ def cp_est(const: list, T: float) -> float:
   return const[0] + const[1]*T + const[2]*T**2 + const[3] / T**2
 
 # TODO finish this, not sure how you want it to work
-def deltaH_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T, H_0) -> float:
+def deltaH_est(prod: npt.ArrayLike, reac: npt.ArrayLike, H_0: float, T: float, T_0= 298) -> float:
   '''
   Estimates specific heat for a particular species.
 
@@ -248,17 +248,76 @@ def deltaH_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T, H_0) -> float:
   reac : ArrayLike
     array of reactants' stoichiometric coefficients & their corresponding a, b, c, and d constants.
       Ex)  np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
+  H_0 : float
+    Standard heat of reaction for a particular reaction at T_0 in KJ/mol (Kilojoules per mole).
   T : float
-    Temperature at which the specific heat is to be calculated.
+    Temperature at which Gibbs free energy is to be estimated at in K (Kelvin)
+  T_0 : float (optional)
+    Standard reference temperature. usually 298 K (Kelvin)
 
   Returns:
   -----------
   deltaH : float
     KJ/mol (kilojoules per mole)
   '''
-  phi = T / 298
+  phi = T / T_0
   delta = np.array([np.sum(prod[:,0]*prod[:,0]) - np.sum(reac[:,0]*reac[:,0]), # delta A
                     np.sum(prod[:,0]*prod[:,1]) - np.sum(reac[:,0]*reac[:,1]), # delta B
                     np.sum(prod[:,0]*prod[:,2]) - np.sum(reac[:,0]*reac[:,2]), # delta C
                     np.sum(prod[:,0]*prod[:,3]) - np.sum(reac[:,0]*reac[:,3])]) # delta D
-  return H_0 + delta[0] * (T - 298) + delta[1] / 2 * (T**2 - 298**2) + delta[3] / 3 *(T**3 - 298**3) + delta[3] / 298 * ((phi - 1) / phi)
+  return H_0 + delta[0] * (T - T_0) + delta[1] / 2 * (T**2 - T_0**2) + delta[3] / 3 *(T**3 - T_0**3) + delta[3] / T_0 * ((phi - 1) / phi)
+
+def deltaG_est(prod: npt.ArrayLike, reac: npt.ArrayLike, H_0: float, G_0: float,T: float, T_0:float = 298) -> float:
+  '''
+  Estimates the Gibbs free energy for a particular reaction.
+
+  Parameters:
+  -----------
+  prod : ArrayLike
+    array of products' stoichiometric coefficients & their corresponding a, b, c, and d constants.
+      Ex)  np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
+  reac : ArrayLike
+    array of reactants' stoichiometric coefficients & their corresponding a, b, c, and d constants.
+      Ex)  np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
+  H_0 : float
+    Standard heat of reaction for a particular reaction at T_0 in KJ/mol (Kilojoules per mole).
+  G_0 : float
+    Standard Gibbs free energy for a particular reaction at T_0 in KJ/mol (Kilojoules per mole).
+  T : float
+    Temperature at which Gibbs free energy is to be estimated at in K (Kelvin)
+  T_0 : float (optional)
+    Standard reference temperature. usually 298 K (Kelvin)
+
+  Returns:
+  -----------
+  deltaG : float
+    KJ/mol (kilojoules per mole)
+  '''
+  phi = T / T_0
+  delta = np.array([np.sum(prod[:,0]*prod[:,0]) - np.sum(reac[:,0]*reac[:,0]), # delta A
+                    np.sum(prod[:,0]*prod[:,1]) - np.sum(reac[:,0]*reac[:,1]), # delta B
+                    np.sum(prod[:,0]*prod[:,2]) - np.sum(reac[:,0]*reac[:,2]), # delta C
+                    np.sum(prod[:,0]*prod[:,3]) - np.sum(reac[:,0]*reac[:,3])]) # delta D
+  return H_0 + (G_0 - H_0) * phi + T_0 * (delta[0]) * (phi - 1 + phi*np.log(phi)) - (T_0**2) / 2 * delta[1] * (phi**2 - 2*phi + 1) - (T_0**2)*delta[2] / 6 * (phi**3 - 3*phi + 2) - delta[3] / (2*T_0) * ( (phi**2 + 2*phi +1)/phi)
+
+def k_est_gibbs(G,T):
+  '''
+  Estimates equilibrium constant from Gibbs free energy.
+
+  Parameters:
+  -----------
+  prod : ArrayLike
+    array of products' stoichiometric coefficients & their corresponding a, b, c, and d constants.
+      Ex)  np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
+  reac : ArrayLike
+    array of reactants' stoichiometric coefficients & their corresponding a, b, c, and d constants.
+      Ex)  np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
+  G : float
+    Gibbs free energy the temperature K is to be estimated in KJ/mol (kilojoules per mole)
+
+  Returns:
+  -----------
+  K : float
+    Equilibrium Constant (Units vary)
+  '''
+  return (-G) / (8.314 * T)
