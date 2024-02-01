@@ -267,7 +267,7 @@ def deltaH_est(prod: npt.ArrayLike, reac: npt.ArrayLike, H_0: float, T: float, T
                     np.sum(prod[:,0]*prod[:,3]) - np.sum(reac[:,0]*reac[:,3])]) # delta D
   return H_0 + delta[0] * (T - T_0) + delta[1] / 2 * (T**2 - T_0**2) + delta[3] / 3 *(T**3 - T_0**3) + delta[3] / T_0 * ((phi - 1) / phi)
 
-def deltaG_est(prod: npt.ArrayLike, reac: npt.ArrayLike, H_0: float, G_0: float,T: float, T_0:float = 298) -> float:
+def gibbs_est_cp(prod: npt.ArrayLike, reac: npt.ArrayLike, H_0: float, G_0: float,T: float, T_0:float = 298) -> float:
   '''
   Estimates the Gibbs free energy for a particular reaction.
 
@@ -300,7 +300,41 @@ def deltaG_est(prod: npt.ArrayLike, reac: npt.ArrayLike, H_0: float, G_0: float,
                     np.sum(prod[:,0]*prod[:,3]) - np.sum(reac[:,0]*reac[:,3])]) # delta D
   return H_0 + (G_0 - H_0) * phi + T_0 * (delta[0]) * (phi - 1 + phi*np.log(phi)) - (T_0**2) / 2 * delta[1] * (phi**2 - 2*phi + 1) - (T_0**2)*delta[2] / 6 * (phi**3 - 3*phi + 2) - delta[3] / (2*T_0) * ( (phi**2 + 2*phi +1)/phi)
 
-def k_est_gibbs(G,T):
+# TODO : Not totally happy with this name....
+def gibbs_est_changes(prod: npt.ArrayLike, reac: npt.ArrayLike, H_0, S_0, T, T_0 = 298):
+  '''
+  Estimate gibbs free energy from enthalpy and entropy changes.
+
+  Parameters:
+  -----------
+  prod : ArrayLike
+    array of products' stoichiometric coefficients & their corresponding a, b, c, and d constants.
+      Ex)  np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
+  reac : ArrayLike
+    array of reactants' stoichiometric coefficients & their corresponding a, b, c, and d constants.
+      Ex)  np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
+  H_0 : float
+    Standard change of enthalpy at T_0 in KJ/mol (kilojoules per mole)
+  S_0 : float
+    Standard change of entropy at T_0 in KJ/mol (kilojoules per mole)
+  T : float
+    Temperature at which Gibbs free energy is to be estimated at in K (Kelvin)
+  T_0 : float (optional)
+    Standard reference temperature. usually 298 K (Kelvin)
+
+  Returns:
+  -----------
+  G : float
+    Gibbs free energy in KJ/mol (Kilojoules per mole)
+  '''
+  delta = np.array([np.sum(prod[:,0]*prod[:,0]) - np.sum(reac[:,0]*reac[:,0]), # delta A
+            np.sum(prod[:,0]*prod[:,1]) - np.sum(reac[:,0]*reac[:,1]), # delta B
+            np.sum(prod[:,0]*prod[:,2]) - np.sum(reac[:,0]*reac[:,2])]) # delta C
+  H = H_0 + delta[0] * (T - T_0) + delta[1] / 2 * (T**2 - T_0**2) + delta[2] / 3 * (T**3 - T_0**3)
+  S = S_0 + delta[0] * np.log(T/T_0) + delta[1]*(T-T_0) + delta[2] / 2 * (T**2 - T_0*2)
+  return H - T * S
+
+def k_est(G,T):
   '''
   Estimates equilibrium constant from Gibbs free energy.
 
