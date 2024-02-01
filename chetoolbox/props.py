@@ -123,8 +123,8 @@ def bioconc_est(K_ow: float, c: list = None) -> (float, str):
   elif bcf <= 1000: pot = "Moderate Potential for Tissue Accumulation"
   else: pot = "High Potential for Tissue Accumulation"
   return bcf, pot
-  
-def water_sol_est(K_ow: float, c: list = None, T_m: float = None, MW: float = None) -> float:
+  # TODO : Wrap water_sol_est up
+def water_sol_est(K_ow: float, c: list = None, T_m: float = None, MW: float = None) -> float: 
   '''
   Estimates the water solubility of a compound. Either T_m, MW, or both are required.
 
@@ -159,7 +159,6 @@ def water_sol_est(K_ow: float, c: list = None, T_m: float = None, MW: float = No
   else: ppm = "High Potential for Tissue Accumulation"
   return sol, pot
 def henry_est(h : npt.ArrayLike, c : npt.ArrayLike) -> float: 
-
   '''
   Estimate Henry's law constant by group contribution method.
 
@@ -177,3 +176,45 @@ def henry_est(h : npt.ArrayLike, c : npt.ArrayLike) -> float:
   H : float
     Henry's law constant of a given species (dimensionless)'''
   return 10 ** -(np.sum(h[:,0] * h[:,1]) + np.sum(c[:,0] * c[:,1]))
+def cp_est(const: npt.ArrayLike, T: float) -> float:
+  '''
+  Estimates specific heat for a particular species.
+
+  Parameters:
+  -----------
+  const : ArrayLike
+    a,b,c,d constants for a particular species.
+  T : float
+    Temperature at which the specific heat is to be calculated.
+
+  Returns:
+  -----------
+  H : float
+    Henry's law constant of a given species (dimensionless)'''
+  return const[0] + const[1]*T + const[2]*T**2 + const[3] / T**2
+
+def deltaH_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T, H_0) -> float:
+  '''
+  Estimates specific heat for a particular species.
+
+  Parameters:
+  -----------
+  prod : ArrayLike
+    array of products' coefficients & their corresponding a,b,c,d constants.
+      Ex)  np.array([coeff1, a, b, c, d],
+                    [coeff2, a, b, c, d],
+                    [coeff3, a, b, c, d])
+  T : float
+    Temperature at which the specific heat is to be calculated.
+
+  Returns:
+  -----------
+  deltaH : float
+    KJ/mol (kilojoules per mole)'''
+  phi = T / 298
+  delta = np.array([np.sum(prod[:,0]*prod[:,0]) - np.sum(reac[:,0]*reac[:,0]), # delta A
+                    np.sum(prod[:,0]*prod[:,1]) - np.sum(reac[:,0]*reac[:,1]), # delta B
+                    np.sum(prod[:,0]*prod[:,2]) - np.sum(reac[:,0]*reac[:,2]), # delta C
+                    np.sum(prod[:,0]*prod[:,3]) - np.sum(reac[:,0]*reac[:,3])]) # delta D
+  return H_0 + delta[0] * (T - 298) + delta[1] / 2 * (T**2 - 298**2) + delta[3] / 3 *(T**3 - 298**3) + delta[3] / 298 * ((phi - 1) / phi)
+
