@@ -16,6 +16,7 @@ def bp_est(g : npt.ArrayLike) -> float:
   T_b : float
     Estimated boiling point temperature in K (Kelvin).
   '''
+  g = g.reshape(-1, 2)
   T_b = 198.2 + np.sum(g[:,0] * g[:,1])
   if T_b < 700:
     return T_b - 94.84 + 0.5577 * T_b - 0.0007705 * T_b**2
@@ -93,7 +94,7 @@ def Kow_est(f: npt.ArrayLike) -> float:
   Returns:
   --------
   K_ow : float
-    Estimated octanol / water equilibrium constant.
+    Estimated octanol / water equilibrium constant (unitless).
   '''
   return 0.229 + np.sum(f[:,0] * f[:,1]) + np.sum(f[:,0] * f[:,2])
 
@@ -112,19 +113,19 @@ def bioconc_est(K_ow: float, c: list = None) -> (float, str):
   --------
   bcf : float
     Estimated bioconcentration factor in L/kg (liters per kilogram).
-  pot : float
+  cat : float
     Qualitative potential for tissue accumulation.
   '''
   if c == None:
     bcf = 10.**(.79 * np.log10(K_ow) - .4)
   else:
     bcf = 10.**(.77 * np.log10(K_ow) + np.sum(c) - .7)
-  if bcf <= 250: pot = "Low Potential for Tissue Accumulation"
-  elif bcf <= 1000: pot = "Moderate Potential for Tissue Accumulation"
-  else: pot = "High Potential for Tissue Accumulation"
-  return bcf, pot
-  # TODO : Wrap water_sol_est up
-def water_sol_est(K_ow: float, c: list = None, T_m: float = None, MW: float = None) -> float: 
+  if bcf <= 250:    cat = "Low Potential for Tissue Accumulation"
+  elif bcf <= 1000: cat = "Moderate Potential for Tissue Accumulation"
+  else:             cat = "High Potential for Tissue Accumulation"
+  return bcf, cat
+
+def water_sol_est(K_ow: float, c: list = None, T_m: float = None, MW: float = None) -> (float, str): 
   '''
   Estimates the water solubility of a compound. Either T_m, MW, or both are required.
 
@@ -143,8 +144,8 @@ def water_sol_est(K_ow: float, c: list = None, T_m: float = None, MW: float = No
   --------
   sol : float
     Estimated water solubility in mol/L (moles per liter).
-  pot : float
-    Qualitative potential for tissue accumulation.
+  cat : float
+    Qualitative solubility in water.
   '''
   if T_m == None:
     sol = 10.**(.796  - .854 * np.log10(K_ow) - .00728 * MW + np.sum(c))
@@ -153,46 +154,88 @@ def water_sol_est(K_ow: float, c: list = None, T_m: float = None, MW: float = No
   else:
     sol = 10.**(.693 - .96 * np.log10(K_ow) - .0092 * (T_m - 298.15) - .00314 * MW + np.sum(c))
   ppm = sol * 35500
-  # TODO finish this
-  if ppm <= 250: pot = "Low Potential for Tissue Accumulation"
-  elif ppm <= 1000: pot = "Moderate Potential for Tissue Accumulation"
-  else: ppm = "High Potential for Tissue Accumulation"
-  return sol, pot
-def henry_est(h : npt.ArrayLike, c : npt.ArrayLike) -> float: 
+  if ppm <= .1 :      cat = "Insoluable in Water"
+  elif ppm <= 100:    cat = "Slightly Soluable in Water"
+  elif ppm <= 1000:   cat = "Moderately Soluable in Water"
+  elif ppm <= 10000:  cat = "Soluable in Water"
+  else:               cat = "Very Soluable in Water"
+  return sol, cat
+
+def henry_est(g : npt.ArrayLike, T: float = None) -> (float, str | None): 
   '''
-  Estimate Henry's law constant by group contribution method.
+  Estimates the Henry's Law constant of a compound by group contribution method.
 
   Parameters:
   -----------
-  h : ArrayLike
+  g : ArrayLike
+    The frequency of a group's appearance, the group's contribution value, and the group's correction factor if necessary (0 for no correction). Shape must be N x 3.
+      Ex) For a molecule containing 4 groups: np.array([[3, 1.233, 0], [1, 23.5, 0], [2, 44.6, 8.6], [7, 103.6, 13]])
+  T : float
+    Current temperature of the compound in K (Kelvin).
+
+  Returns:
+  -----------
+  H : float
+    Estimated Henry's Law constant of the compound (unitless).
+  '''
+  g = g.reshape(-1, 3)
+  H = 10 ** -(np.sum(g[:,0] * g[:,1]) + np.sum(g[:,0] * g[:,2])) #this is unitless H
+  if T == None: return H, None
+
+  R = 8.20575e-5 # atm*m^3/mol*K
+  H_units = H*R*T
+  if H_units <= 1.e-7 :   cat = "Non-volatile"
+  elif H_units <= 1.e-5:  cat = "Slightly Volatile"
+  elif H_units <= 1.e-3:  cat = "Moderately Volatile"
+  elif H_units <= 1.e-1:  cat = "Volatile"
+  else:                   cat = "Very Volatile"
+  return H, cat
+
+def soil_sorb_est(g: npt.ArrayLike, mole_con: npt.ArrayLike | float) -> float:
+  '''
+  Estimates the soil sobrtion coefficient of a compound via the group contribution method.
+
+  Parameters:
+  -----------
+  g : ArrayLike
     The frequency of a group's appearance and the group's contribution value. Shape must be N x 2.
       Ex) For a molecule containing 4 groups: np.array([[3, 1.233], [1, 23.5], [2, 44.6], [7, 103.6]])
-  B : ArrayLike
-    The frequency of a group's appearance and the group's correction value. Shape must be N x 2
-      Ex) For a molecule containing 4 groups: np.array([[3, 1.233], [1, 23.5], [2, 44.6], [7, 103.6]])
-
-  Returns:
+  mole_con: npt.ArrayLike | float
+    First order molecular connectivity index of the compound. Must be precomputed (float) or of shape 1 x 2N.
+      Ex) np.array([1, 3, 1, 3, 2, 3, 2, 1]) or 2.68
+  
+  Retruns:
   -----------
-  H : float
-    Henry's law constant of a given species (dimensionless)'''
-  return 10 ** -(np.sum(h[:,0] * h[:,1]) + np.sum(c[:,0] * c[:,1]))
-def cp_est(const: npt.ArrayLike, T: float) -> float:
+  K_oc : float
+    Estimated soil sobrtion coefficient in ug*mL/g*mg (the mass ratio of compound to organic carbon in soil [mg/g] divided by the concentration of the compound in water [mg/mL]).
   '''
-  Estimates specific heat for a particular species.
+  if type(mole_con) == npt.ArrayLike:
+    mole_con = mole_con.reshape(-1, 2)
+    mole_con = np.sum( (1. / (mole_con[:,0]*mole_con[:,1]) )**.5 )
+  
+  g = g.reshape(-1, 2)
+  return .53 * mole_con + .62 + np.sum( g[:,0] * g[:,1] )
+
+# TODO check units
+def cp_est(const: list, T: float) -> float:
+  '''
+  Estimates the specific heat of a compound.
 
   Parameters:
   -----------
-  const : ArrayLike
-    a,b,c,d constants for a particular species.
+  const : list
+    a, b, c, and d constants of the compound.
   T : float
-    Temperature at which the specific heat is to be calculated.
+    Current temperature of the compound in K (Kelvin)??.
 
   Returns:
   -----------
-  H : float
-    Henry's law constant of a given species (dimensionless)'''
+  Cp : float
+    Estimated specific heat constant of the compound in kJ/mol (kilojoules per mole)??.
+  '''
   return const[0] + const[1]*T + const[2]*T**2 + const[3] / T**2
 
+# TODO finish this, not sure how you want it to work
 def deltaH_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T, H_0) -> float:
   '''
   Estimates specific heat for a particular species.
@@ -200,21 +243,22 @@ def deltaH_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T, H_0) -> float:
   Parameters:
   -----------
   prod : ArrayLike
-    array of products' coefficients & their corresponding a,b,c,d constants.
-      Ex)  np.array([coeff1, a, b, c, d],
-                    [coeff2, a, b, c, d],
-                    [coeff3, a, b, c, d])
+    array of products' stoichiometric coefficients & their corresponding a, b, c, and d constants.
+      Ex)  np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
+  reac : ArrayLike
+    array of reactants' stoichiometric coefficients & their corresponding a, b, c, and d constants.
+      Ex)  np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
   T : float
     Temperature at which the specific heat is to be calculated.
 
   Returns:
   -----------
   deltaH : float
-    KJ/mol (kilojoules per mole)'''
+    KJ/mol (kilojoules per mole)
+  '''
   phi = T / 298
   delta = np.array([np.sum(prod[:,0]*prod[:,0]) - np.sum(reac[:,0]*reac[:,0]), # delta A
                     np.sum(prod[:,0]*prod[:,1]) - np.sum(reac[:,0]*reac[:,1]), # delta B
                     np.sum(prod[:,0]*prod[:,2]) - np.sum(reac[:,0]*reac[:,2]), # delta C
                     np.sum(prod[:,0]*prod[:,3]) - np.sum(reac[:,0]*reac[:,3])]) # delta D
   return H_0 + delta[0] * (T - 298) + delta[1] / 2 * (T**2 - 298**2) + delta[3] / 3 *(T**3 - 298**3) + delta[3] / 298 * ((phi - 1) / phi)
-
