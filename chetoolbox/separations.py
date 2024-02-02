@@ -2,16 +2,16 @@ import numpy as np
 import numpy.typing as npt
 from chetoolbox import common
 
-def raoult_XtoY(x: npt.ArrayLike, K: npt.ArrayLike) -> (npt.ArrayLike, float):
+def raoult_XtoY(x: list, K: list) -> (npt.ArrayLike, float):
   '''
   Calculates the vapor mole fraction of a multi-component mixed phase feed (assuming liquid and gas ideality).
 
   Parameters
   ---------
-  x : ArrayLike
+  x : list
     Component mole fractions of the feed's liquid phase. Must sum to 1.
-  K : ArrayLike 
-    Equalibrium constant for each component at a specific temperature and pressure. Must match x in size.
+  K : list 
+    Equalibrium constant for each component at a specific temperature and pressure. Length must equal x.
   
   Returns
   ---------
@@ -20,20 +20,22 @@ def raoult_XtoY(x: npt.ArrayLike, K: npt.ArrayLike) -> (npt.ArrayLike, float):
   error : float
     Error of calculated vapor phase component mole fractions.
   '''
+  x = np.atleast_1d(x)
+  K = np.atleast_1d(K)
   y = np.c_[x] * K
   error = np.sum(y) - 1
   return y, error
 
-def raoult_YtoX(y: npt.ArrayLike, K: npt.ArrayLike) -> (npt.ArrayLike, float):
+def raoult_YtoX(y: list, K: list) -> (npt.ArrayLike, float):
   '''
   Calculates the liquid mole fraction of a multi-component mixed phase feed (assuming liquid and gas ideality).
 
   Parameters
   ---------
-  y : ArrayLike
+  y : list
     Component mole fractions of the feed's vapor phase. Must sum to 1.
-  K : ArrayLike 
-    Equalibrium constant for each component at a specific temperature and pressure. Must match y in size.
+  K : list 
+    Equalibrium constant for each component at a specific temperature and pressure. Length must equal y.
     
   Returns
   ---------
@@ -42,20 +44,22 @@ def raoult_YtoX(y: npt.ArrayLike, K: npt.ArrayLike) -> (npt.ArrayLike, float):
   error : float
     Error of calculated liquid phase component mole fractions.
   '''
+  y = np.atleast_1d(y)
+  K = np.atleast_1d(K)
   x = np.c_[y] / K
   error = np.sum(x) - 1
   return x, error
 
-def psi_solver(x: npt.ArrayLike, K: npt.ArrayLike, psi: float, tol: float = 0.01) -> (float, npt.ArrayLike, npt.ArrayLike, float, int):
+def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> (float, npt.ArrayLike, npt.ArrayLike, float, int):
   '''
   Iteratively solves for the vapor/liquid output feed ratio psi (Ψ) of a multi-component liquid input stream entering a flash drum.  
   
   Parameters
   ----------
-  x : ArrayLike
+  x : list
     Component mole fractions of the liquid input feed. Must sum to 1.
-  K : ArrayLike
-    Equalibrium constant for each component at specific temperature and pressure. Must match x in size.
+  K : list
+    Equalibrium constant for each component at specific temperature and pressure. Length must equal x.
   psi : float
     Initial value of psi to begin iterating on. Must be 0 <= psi <= 1.
   tol : float
@@ -74,6 +78,8 @@ def psi_solver(x: npt.ArrayLike, K: npt.ArrayLike, psi: float, tol: float = 0.01
   i : int
     Number of iterations to calculate to the specified tolerance.
   '''
+  x = np.atleast_1d(x)
+  K = np.atleast_1d(K)
   def f(psi):
     return np.sum( (x * (1 - K)) / (1 + psi * (K - 1)) )
   def f_prime(psi):
@@ -91,16 +97,16 @@ def psi_solver(x: npt.ArrayLike, K: npt.ArrayLike, psi: float, tol: float = 0.01
   y_out = (x * K) / (1 + psi * (K - 1))
   return psi, x_out, y_out, error(psi), i
 
-def bubble_point(x: npt.ArrayLike, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> (float, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, float, int):
+def bubble_point(x: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> (float, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, float, int):
   '''
   Iteratively solves for the bubble point temperature of a multi-component liquid mixture.
 
   Parameters
   ----------
-  x : ArrayLike
+  x : list
     Component mole fractions of the liquid mixture. Must sum to 1.
   ant_coeff : ArrayLike
-    Two-dimensional numpy array of component coefficients for the Antoine Equation of State. First dimension (row) must match x in size.
+    Components' coefficients for the Antoine Equation of State. Shape must be N x 3.
   P : float
     Ambient pressure of the liquid mixture in mmHg (millimeters of mercury).
   tol : float
@@ -112,7 +118,7 @@ def bubble_point(x: npt.ArrayLike, ant_coeff: npt.ArrayLike, P: float, tol: floa
     Temperature of the liquid mixture's bubble point in C (Celcius).
   Pvap : ArrayLike
     Vapor pressure for each component at the bubble point temperature. 
-  k : ArrayLike
+  K : ArrayLike
     Equalibrium constant for each component at the stated pressure and bubble point temperature. 
   y : ArrayLike
     Component mole fractions of the first bubble of vapor.
@@ -121,6 +127,8 @@ def bubble_point(x: npt.ArrayLike, ant_coeff: npt.ArrayLike, P: float, tol: floa
   i : int
     Number of iterations to calculate to the specified tolerance.
   '''
+  x = np.atleast_1d(x)
+  ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
   boil_points = common.antoine_T(ant_coeff, P)
   T = [np.max(boil_points), np.min(boil_points)]
 
@@ -148,16 +156,16 @@ def bubble_point(x: npt.ArrayLike, ant_coeff: npt.ArrayLike, P: float, tol: floa
   Pvap, k, y, error = calcs(bubbleT)
   return bubbleT, Pvap[:, 0], k[:, 0], y[:, 0], error[0], i
 
-def dew_point(y: npt.ArrayLike, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> (float, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, float, int):
+def dew_point(y: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> (float, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, float, int):
   '''
   Iteratively solves for the dew point temperature of a multi-component vapor mixture.
 
   Parameters
   ----------
-  y : ArrayLike
+  y : list
     Component mole fractions of the vapor mixture. Must sum to 1.
   ant_coeff : ArrayLike
-    Two-dimensional numpy array of component coefficients for the Antoine Equation of State. First dimension (row) must match y in size.
+    Components' coefficients for the Antoine Equation of State. Shape must be N x 3.
   P : float
     Ambient pressure of the vapor mixture in mmHg (millimeters of mercury).
   tol : float
@@ -169,7 +177,7 @@ def dew_point(y: npt.ArrayLike, ant_coeff: npt.ArrayLike, P: float, tol: float =
     Temperature of the vapor mixture's dew point in C (Celcius).
   Pvap : ArrayLike
     Vapor pressure for each component at the dew point temperature. 
-  k : ArrayLike
+  K : ArrayLike
     Equalibrium constant for each component at the stated pressure and dew point temperature. 
   x : ArrayLike
     Component mole fractions of the first dew of liquid.
@@ -178,6 +186,8 @@ def dew_point(y: npt.ArrayLike, ant_coeff: npt.ArrayLike, P: float, tol: float =
   i : int
     Number of iterations to calculate to the specified tolerance.
   '''
+  y = np.atleast_1d(y)
+  ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
   boil_points = common.antoine_T(ant_coeff, P)
   T = [np.max(boil_points), np.min(boil_points)]
 

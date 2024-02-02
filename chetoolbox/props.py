@@ -16,7 +16,7 @@ def bp_est(g : npt.ArrayLike) -> float:
   T_b : float
     Estimated boiling point temperature in K (Kelvin).
   '''
-  g = g.reshape(-1, 2)
+  g = np.atleast_1d(g).reshape(-1, 2)
   T_b = 198.2 + np.sum(g[:,0] * g[:,1])
   if T_b < 700:
     return T_b - 94.84 + 0.5577 * T_b - 0.0007705 * T_b**2
@@ -178,7 +178,7 @@ def henry_est(g : npt.ArrayLike, T: float = None) -> (float, str | None):
   H : float
     Estimated Henry's Law constant of the compound (unitless).
   '''
-  g = g.reshape(-1, 3)
+  g = np.atleast_1d(g).reshape(-1, 3)
   H = 10 ** -(np.sum(g[:,0] * g[:,1]) + np.sum(g[:,0] * g[:,2])) #this is unitless H
   if T == None: return H, None
 
@@ -210,148 +210,178 @@ def soil_sorb_est(g: npt.ArrayLike, mole_con: npt.ArrayLike | float) -> float:
     Estimated soil sobrtion coefficient in ug*mL/g*mg (the mass ratio of compound to organic carbon in soil [mg/g] divided by the concentration of the compound in water [mg/mL]).
   '''
   if type(mole_con) == npt.ArrayLike:
-    mole_con = mole_con.reshape(-1, 2)
+    mole_con = np.atleast_1d(mole_con).reshape(-1, 2)
     mole_con = np.sum( (1. / (mole_con[:,0]*mole_con[:,1]) )**.5 )
   
-  g = g.reshape(-1, 2)
+  g = np.atleast_1d(g).reshape(-1, 2)
   return .53 * mole_con + .62 + np.sum( g[:,0] * g[:,1] )
 
-# TODO check units
+# TODO name ABCD constants, propagate across other ABCD funcs
 def cp_est(const: list, T: float) -> float:
   '''
-  Estimates the specific heat of a compound.
+  Estimates the specific heat capacity of a compound.
 
   Parameters:
   -----------
   const : list
-    a, b, c, and d constants of the compound.
+    a, b, c, and d constants of the compound. Length must be 4.
   T : float
-    Current temperature of the compound in K (Kelvin)??.
+    Current temperature of the compound in K (Kelvin).
 
   Returns:
   -----------
   Cp : float
-    Estimated specific heat constant of the compound in kJ/mol (kilojoules per mole)??.
+    Estimated specific heat capacity of the compound in kJ/mol*K (kilojoules per mole kelvin).
   '''
   return const[0] + const[1]*T + const[2]*T**2 + const[3] / T**2
 
-# TODO finish this, not sure how you want it to work
-def deltaH_est(prod: npt.ArrayLike, reac: npt.ArrayLike, H_0: float, T: float, T_0= 298) -> float:
+# TODO do we want/need a way to calculate deltaH_0 and deltaS_0?
+# ie Hess' Law and "the thing for S"
+
+def deltaH_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0: float, T_0: float = 298.) -> float:
   '''
-  Estimates specific heat for a particular species.
+  Estimates enthalpy of a balanced chemical reaction. A negative value indicates a net energy release.
 
   Parameters:
   -----------
   prod : ArrayLike
-    array of products' stoichiometric coefficients & their corresponding a, b, c, and d constants.
-      Ex)  np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
+    The species' stoichiometric coefficient and the species' a, b, c, and d constants. Shape must be N x 5.
+      Ex) np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
   reac : ArrayLike
-    array of reactants' stoichiometric coefficients & their corresponding a, b, c, and d constants.
-      Ex)  np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
-  H_0 : float
-    Standard heat of reaction for a particular reaction at T_0 in KJ/mol (Kilojoules per mole).
+    The species' stoichiometric coefficient and the species' a, b, c, and d constants. Shape must be N x 5.
+      Ex) np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
   T : float
-    Temperature at which Gibbs free energy is to be estimated at in K (Kelvin)
-  T_0 : float (optional)
-    Standard reference temperature. usually 298 K (Kelvin)
+    Current temperature of the reaction in K (Kelvin).
+  deltaH_0 : float
+    Standard heat of reaction in kJ/mol (kilojoules per mole).
+  T_0 : float
+    Standard reference temperature in K (Kelvin). Most standard heat of formation tables are calcualted at 298 K (Kelvin).
 
   Returns:
   -----------
   deltaH : float
-    KJ/mol (kilojoules per mole)
+    Estimated enthalpy of the reaction in kJ/mol (kilojoules per mole).
   '''
   phi = T / T_0
-  delta = np.array([np.sum(prod[:,0]*prod[:,0]) - np.sum(reac[:,0]*reac[:,0]), # delta A
-                    np.sum(prod[:,0]*prod[:,1]) - np.sum(reac[:,0]*reac[:,1]), # delta B
-                    np.sum(prod[:,0]*prod[:,2]) - np.sum(reac[:,0]*reac[:,2]), # delta C
-                    np.sum(prod[:,0]*prod[:,3]) - np.sum(reac[:,0]*reac[:,3])]) # delta D
-  return H_0 + delta[0] * (T - T_0) + delta[1] / 2 * (T**2 - T_0**2) + delta[3] / 3 *(T**3 - T_0**3) + delta[3] / T_0 * ((phi - 1) / phi)
+  prod = np.atleast_1d(prod).reshape(-1, 5)
+  reac = np.atleast_1d(reac).reshape(-1, 5)
+  delta = np.sum(np.c_[prod[:, 0]]*prod[:, 1:], axis=0) - np.sum(np.c_[reac[:, 0]]*reac[:, 1:], axis=0)
+  return deltaH_0 + delta[0] * (T - T_0) + delta[1] / 2 * (T**2 - T_0**2) + delta[3] / 3 * (T**3 - T_0**3) + delta[3] / T_0 * ((phi - 1) / phi)
 
-def gibbs_est_cp(prod: npt.ArrayLike, reac: npt.ArrayLike, H_0: float, G_0: float,T: float, T_0:float = 298) -> float:
+def deltaS_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaS_0: float, T_0: float = 298.) -> float:
   '''
-  Estimates the Gibbs free energy for a particular reaction.
+  Estimates entropy of a balanced chemical reaction. A negative value indicates a net increase in order.
 
   Parameters:
   -----------
   prod : ArrayLike
-    array of products' stoichiometric coefficients & their corresponding a, b, c, and d constants.
-      Ex)  np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
+    The species' stoichiometric coefficient and the species' a, b, c, and d constants. Shape must be N x 5.
+      Ex) np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
   reac : ArrayLike
-    array of reactants' stoichiometric coefficients & their corresponding a, b, c, and d constants.
-      Ex)  np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
-  H_0 : float
-    Standard heat of reaction for a particular reaction at T_0 in KJ/mol (Kilojoules per mole).
-  G_0 : float
-    Standard Gibbs free energy for a particular reaction at T_0 in KJ/mol (Kilojoules per mole).
+    The species' stoichiometric coefficient and the species' a, b, c, and d constants. Shape must be N x 5.
+      Ex) np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
   T : float
-    Temperature at which Gibbs free energy is to be estimated at in K (Kelvin)
-  T_0 : float (optional)
-    Standard reference temperature. usually 298 K (Kelvin)
+    Current temperature of the reaction in K (Kelvin).
+  deltaS_0 : float
+    Standard heat of reaction in kJ/mol (kilojoules per mole).
+  T_0 : float
+    Standard reference temperature in K (Kelvin). Most standard heat of formation tables are calcualted at 298 K (Kelvin).
+
+  Returns:
+  -----------
+  deltaS : float
+    Estimated enthalpy of the reaction in kJ/mol (kilojoules per mole).
+  '''
+  prod = np.atleast_1d(prod).reshape(-1, 5)
+  reac = np.atleast_1d(reac).reshape(-1, 5)
+  delta = np.sum(np.c_[prod[:, 0]]*prod[:, 1:], axis=0) - np.sum(np.c_[reac[:, 0]]*reac[:, 1:], axis=0)
+  # TODO should we use another reaction that actually uses the fourth term?
+  return deltaS_0 + delta[0] * np.log(T/T_0) + delta[1]*(T-T_0) + delta[2] / 2 * (T**2 - T_0*2)
+
+def gibbs_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0: float, G_0: float, T_0: float = 298.) -> float:
+  '''
+  Estimates Gibbs free energy of a balanced chemical reaction via standard Gibbs free energy. A negative value indicates a spontaneous reaction.
+
+  Parameters:
+  -----------
+  prod : ArrayLike
+    The species' stoichiometric coefficient and the species' a, b, c, and d constants. Shape must be N x 5.
+      Ex) np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
+  reac : ArrayLike
+    The species' stoichiometric coefficient and the species' a, b, c, and d constants. Shape must be N x 5.
+      Ex) np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
+  T : float
+    Current temperature of the reaction in K (Kelvin).
+  deltaH_0 : float
+    Standard heat of reaction in kJ/mol (kilojoules per mole).
+  deltaG_0 : float
+    Standard Gibbs free energy in kJ/mol (kilojoules per mole).
+  T_0 : float
+    Standard reference temperature in K (Kelvin). Most standard heat of formation tables are calcualted at 298 K (Kelvin).
 
   Returns:
   -----------
   deltaG : float
-    KJ/mol (kilojoules per mole)
+    Estimated Gibbs free energy of the reaction in kJ/mol (kilojoules per mole).
   '''
   phi = T / T_0
-  delta = np.array([np.sum(prod[:,0]*prod[:,0]) - np.sum(reac[:,0]*reac[:,0]), # delta A
-                    np.sum(prod[:,0]*prod[:,1]) - np.sum(reac[:,0]*reac[:,1]), # delta B
-                    np.sum(prod[:,0]*prod[:,2]) - np.sum(reac[:,0]*reac[:,2]), # delta C
-                    np.sum(prod[:,0]*prod[:,3]) - np.sum(reac[:,0]*reac[:,3])]) # delta D
-  return H_0 + (G_0 - H_0) * phi + T_0 * (delta[0]) * (phi - 1 + phi*np.log(phi)) - (T_0**2) / 2 * delta[1] * (phi**2 - 2*phi + 1) - (T_0**2)*delta[2] / 6 * (phi**3 - 3*phi + 2) - delta[3] / (2*T_0) * ( (phi**2 + 2*phi +1)/phi)
+  prod = np.atleast_1d(prod).reshape(-1, 5)
+  reac = np.atleast_1d(reac).reshape(-1, 5)
+  delta = np.sum(np.c_[prod[:, 0]]*prod[:, 1:], axis=0) - np.sum(np.c_[reac[:, 0]]*reac[:, 1:], axis=0)
+  return deltaH_0 + (G_0 - deltaH_0) * phi + T_0 * (delta[0]) * (phi - 1 + phi*np.log(phi)) - (T_0**2) / 2 * delta[1] * (phi**2 - 2*phi + 1) - (T_0**2)*delta[2] / 6 * (phi**3 - 3*phi + 2) - delta[3] / (2*T_0) * ( (phi**2 + 2*phi +1)/phi)
 
-# TODO : Not totally happy with this name....
-def gibbs_est_changes(prod: npt.ArrayLike, reac: npt.ArrayLike, H_0, S_0, T, T_0 = 298):
+def gibbs_est_HandS(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0: float, deltaS_0: float, T_0: float = 298.) -> float:
   '''
-  Estimate gibbs free energy from enthalpy and entropy changes.
+  Estimates Gibbs free energy of a balanced chemical reaction via standard entropy. A negative value indicates a spontaneous reaction.
 
   Parameters:
   -----------
   prod : ArrayLike
-    array of products' stoichiometric coefficients & their corresponding a, b, c, and d constants.
-      Ex)  np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
+    The species' stoichiometric coefficient and the species' a, b, c, and d constants. Shape must be N x 5.
+      Ex) np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
   reac : ArrayLike
-    array of reactants' stoichiometric coefficients & their corresponding a, b, c, and d constants.
-      Ex)  np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
-  H_0 : float
-    Standard change of enthalpy at T_0 in KJ/mol (kilojoules per mole)
-  S_0 : float
-    Standard change of entropy at T_0 in KJ/mol (kilojoules per mole)
+    The species' stoichiometric coefficient and the species' a, b, c, and d constants. Shape must be N x 5.
+      Ex) np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
   T : float
-    Temperature at which Gibbs free energy is to be estimated at in K (Kelvin)
-  T_0 : float (optional)
-    Standard reference temperature. usually 298 K (Kelvin)
+    Current temperature of the reaction in K (Kelvin).
+  deltaH_0 : float
+    Standard heat of reaction in kJ/mol (kilojoules per mole).
+  deltaS_0 : float
+    Standard entropy in kJ/mol (kilojoules per mole).
+  T_0 : float
+    Standard reference temperature in K (Kelvin). Most standard heat of formation tables are calcualted at 298 K (Kelvin).
 
   Returns:
   -----------
-  G : float
-    Gibbs free energy in KJ/mol (Kilojoules per mole)
+  deltaG : float
+    Estimated Gibbs free energy of the reaction in kJ/mol (kilojoules per mole).
   '''
-  delta = np.array([np.sum(prod[:,0]*prod[:,0]) - np.sum(reac[:,0]*reac[:,0]), # delta A
-            np.sum(prod[:,0]*prod[:,1]) - np.sum(reac[:,0]*reac[:,1]), # delta B
-            np.sum(prod[:,0]*prod[:,2]) - np.sum(reac[:,0]*reac[:,2])]) # delta C
-  H = H_0 + delta[0] * (T - T_0) + delta[1] / 2 * (T**2 - T_0**2) + delta[2] / 3 * (T**3 - T_0**3)
-  S = S_0 + delta[0] * np.log(T/T_0) + delta[1]*(T-T_0) + delta[2] / 2 * (T**2 - T_0*2)
+  prod = np.atleast_1d(prod).reshape(-1, 5)
+  reac = np.atleast_1d(reac).reshape(-1, 5)
+  delta = np.sum(np.c_[prod[:, 0]]*prod[:, 1:], axis=0) - np.sum(np.c_[reac[:, 0]]*reac[:, 1:], axis=0)
+  H = deltaH_0 + delta[0] * (T - T_0) + delta[1] / 2 * (T**2 - T_0**2) + delta[2] / 3 * (T**3 - T_0**3)
+  S = deltaS_0 + delta[0] * np.log(T/T_0) + delta[1]*(T-T_0) + delta[2] / 2 * (T**2 - T_0*2)
   return H - T * S
 
-def k_est(G,T):
+# TODO finish this
+def k_est(G, T):
   '''
   Estimates equilibrium constant from Gibbs free energy.
 
   Parameters:
   -----------
   prod : ArrayLike
-    array of products' stoichiometric coefficients & their corresponding a, b, c, and d constants.
-      Ex)  np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
+    The species' stoichiometric coefficient and the species' a, b, c, and d constants. Shape must be N x 5.
+      Ex) np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
   reac : ArrayLike
-    array of reactants' stoichiometric coefficients & their corresponding a, b, c, and d constants.
-      Ex)  np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
+    The species' stoichiometric coefficient and the species' a, b, c, and d constants. Shape must be N x 5.
+      Ex) np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
   G : float
-    Gibbs free energy the temperature K is to be estimated in KJ/mol (kilojoules per mole)
+    Gibbs free energy the temperature K is to be estimated in KJ/mol (kilojoules per mole).
 
   Returns:
   -----------
   K : float
-    Equilibrium Constant (Units vary)
+    Equilibrium Constant (units vary).
   '''
-  return (-G) / (8.314 * T)
+  return G / (-8.314 * T)
