@@ -266,7 +266,7 @@ def deltaH_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0: flo
   prod = np.atleast_1d(prod).reshape(-1, 5)
   reac = np.atleast_1d(reac).reshape(-1, 5)
   delta = np.sum(np.c_[prod[:, 0]]*prod[:, 1:], axis=0) - np.sum(np.c_[reac[:, 0]]*reac[:, 1:], axis=0)
-  return deltaH_0 + delta[0] * (T - T_0) + delta[1] / 2 * (T**2 - T_0**2) + delta[3] / 3 * (T**3 - T_0**3) + delta[3] / T_0 * ((phi - 1) / phi)
+  return deltaH_0 + delta[0] * (T - T_0) + delta[1] / 2 * (T**2 - T_0**2) + delta[2] / 3 * (T**3 - T_0**3) + delta[3] / T_0 * ((phi - 1) / phi)
 
 def deltaS_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaS_0: float, T_0: float = 298.) -> float:
   '''
