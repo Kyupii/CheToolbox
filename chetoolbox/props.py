@@ -295,7 +295,7 @@ def deltaS_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaS_0: flo
   prod = np.atleast_1d(prod).reshape(-1, 5)
   reac = np.atleast_1d(reac).reshape(-1, 5)
   delta = np.sum(np.c_[prod[:, 0]]*prod[:, 1:], axis=0) - np.sum(np.c_[reac[:, 0]]*reac[:, 1:], axis=0)
-  # TODO should we use another reaction that actually uses the fourth term?
+  # TODO should we use another equation that actually uses the fourth term?
   return deltaS_0 + delta[0] * np.log(T/T_0) + delta[1]*(T-T_0) + delta[2] / 2 * (T**2 - T_0*2)
 
 def gibbs_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0: float, G_0: float, T_0: float = 298.) -> float:
@@ -363,21 +363,16 @@ def gibbs_est_HandS(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0
   S = deltaS_0 + delta[0] * np.log(T/T_0) + delta[1]*(T-T_0) + delta[2] / 2 * (T**2 - T_0*2)
   return H - T * S
 
-# TODO finish this
-def k_est(G, T):
+def k_est(G: float, T: float) -> float:
   '''
-  Estimates equilibrium constant from Gibbs free energy.
+  Estimates equilibrium constant of a reaction from Gibbs free energy.
 
   Parameters:
   -----------
-  prod : ArrayLike
-    The species' stoichiometric coefficient and the species' a, b, c, and d constants. Shape must be N x 5.
-      Ex) np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
-  reac : ArrayLike
-    The species' stoichiometric coefficient and the species' a, b, c, and d constants. Shape must be N x 5.
-      Ex) np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
   G : float
-    Gibbs free energy the temperature K is to be estimated in KJ/mol (kilojoules per mole).
+    Gibbs free energy of the reaction in kJ/mol (kilojoules per mole).
+  T : float
+    Current temperature of the reaction in K (Kelvin).
 
   Returns:
   -----------
