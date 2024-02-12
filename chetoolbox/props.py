@@ -98,7 +98,7 @@ def Kow_est(f: npt.ArrayLike) -> float:
   '''
   return 0.229 + np.sum(f[:,0] * f[:,1]) + np.sum(f[:,0] * f[:,2])
 
-def bioconc_est(K_ow: float, c: list = None) -> (float, str):
+def bioconc_est(K_ow: float, c: list = None) -> tuple[float, str]:
   '''
   Estimates the tissue / water bioconcentration factor of a compound.
 
@@ -125,7 +125,7 @@ def bioconc_est(K_ow: float, c: list = None) -> (float, str):
   else:             cat = "High Potential for Tissue Accumulation"
   return bcf, cat
 
-def water_sol_est(K_ow: float, c: list = None, T_m: float = None, MW: float = None) -> (float, str): 
+def water_sol_est(K_ow: float, c: list = None, T_m: float = None, MW: float = None) -> tuple[float, str]: 
   '''
   Estimates the water solubility of a compound. Either T_m, MW, or both are required.
 
@@ -161,7 +161,7 @@ def water_sol_est(K_ow: float, c: list = None, T_m: float = None, MW: float = No
   else:               cat = "Very Soluable in Water"
   return sol, cat
 
-def henry_est(g : npt.ArrayLike, T: float = None) -> (float, str | None): 
+def henry_est(g : npt.ArrayLike, T: float = None) -> tuple[float, str | None]: 
   '''
   Estimates the Henry's Law constant of a compound by group contribution method.
 
