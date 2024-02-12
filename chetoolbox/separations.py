@@ -2,7 +2,7 @@ import numpy as np
 import numpy.typing as npt
 from chetoolbox import common
 
-def raoult_XtoY(x: list, K: list) -> (npt.ArrayLike, float):
+def raoult_XtoY(x: list, K: list) -> tuple[npt.ArrayLike, float]:
   '''
   Calculates the vapor mole fraction of a multi-component mixed phase feed (assuming liquid and gas ideality).
 
@@ -26,7 +26,7 @@ def raoult_XtoY(x: list, K: list) -> (npt.ArrayLike, float):
   error = np.sum(y) - 1
   return y, error
 
-def raoult_YtoX(y: list, K: list) -> (npt.ArrayLike, float):
+def raoult_YtoX(y: list, K: list) -> tuple[npt.ArrayLike, float]:
   '''
   Calculates the liquid mole fraction of a multi-component mixed phase feed (assuming liquid and gas ideality).
 
@@ -50,7 +50,7 @@ def raoult_YtoX(y: list, K: list) -> (npt.ArrayLike, float):
   error = np.sum(x) - 1
   return x, error
 
-def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> (float, npt.ArrayLike, npt.ArrayLike, float, int):
+def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> tuple[float, npt.ArrayLike, npt.ArrayLike, float, int]:
   '''
   Iteratively solves for the vapor/liquid output feed ratio psi (Ψ) of a multi-component liquid input stream entering a flash drum.  
   
@@ -97,7 +97,7 @@ def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> (float, npt.A
   y_out = (x * K) / (1 + psi * (K - 1))
   return psi, x_out, y_out, error(psi), i
 
-def bubble_point(x: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> (float, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, float, int):
+def bubble_point(x: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> tuple[float, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, float, int]:
   '''
   Iteratively solves for the bubble point temperature of a multi-component liquid mixture.
 
@@ -156,7 +156,7 @@ def bubble_point(x: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) 
   Pvap, k, y, error = calcs(bubbleT)
   return bubbleT, Pvap[:, 0], k[:, 0], y[:, 0], error[0], i
 
-def dew_point(y: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> (float, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, float, int):
+def dew_point(y: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> tuple[float, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, float, int]:
   '''
   Iteratively solves for the dew point temperature of a multi-component vapor mixture.
 
@@ -214,3 +214,68 @@ def dew_point(y: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> 
   dewT = T[np.argmin(error)]
   Pvap, k, x, error = calcs(dewT)
   return dewT, Pvap[:, 0], k[:, 0], x[:, 0], error[0], i
+
+def liq_frac_subcooled(Cpl: float, heatvap: float, Tf: float, Tb: float) -> float:
+  '''
+  Calculates the liquid fraction of a subcooled bianary liquid mixture feed.
+
+  Parameters:
+  -----------
+  Cpl : float
+    Specific heat of the liquid feed in kJ/mol*K (kilojoules per mole Kelvin).
+  heatvap : float
+    Heat of vaporization of the liquid feed in kJ/mol (kilojoules per mole).
+  Tf : float
+    Temperature of the liquid feed in K (Kelvin).
+  Tb : float
+    Bubble temperature of the liquid feed in K (Kelvin).
+
+  Returns:
+  -----------
+  q : float
+    Liquid fraction of the feed.
+  '''
+  return 1. + Cpl * (Tb - Tf) / heatvap
+
+def liq_frac_superheated(Cpv: float, heatvap: float, Tf: float, Td: float) -> float:
+  '''
+  Calculates the liquid fraction of a superheated bianary vapor mixture feed.
+
+  Parameters:
+  -----------
+  Cpv : float
+    Specific heat of the vapor feed in kJ/mol*K (kilojoules per mole Kelvin).
+  heatvap : float
+    Heat of vaporization of the vapor feed in kJ/mol (kilojoules per mole).
+  Tf : float
+    Temperature of the vapor feed in K (Kelvin).
+  Td : float
+    Dew temperature of the vapor feed in K (Kelvin).
+
+  Returns:
+  -----------
+  q : float
+    Liquid fraction of the feed.
+  '''
+  return 1. + Cpv * (Tf - Td) / heatvap
+
+#TODO start and finish this
+def mccabe_thiel():
+  '''
+  Calculates various design parameters of a bianary mixture distilation column using McCabe Thiel Diagram analysis.
+
+  Parameters:
+  -----------
+  F : float
+    Feed molar flowrate in kmol/hr (kilomoles per hour).
+  xf : float
+    Concentration of the lower boiling boint species in the feed.
+  T : float
+    Current temperature of the reaction in K (Kelvin).
+
+  Returns:
+  -----------
+  K : float
+    Equilibrium Constant (units vary).
+  '''
+  return
