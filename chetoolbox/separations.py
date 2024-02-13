@@ -1,6 +1,7 @@
 import numpy as np
 import numpy.typing as npt
 from chetoolbox import common
+from common import LinearEq
 
 def raoult_XtoY(x: list, K: list) -> tuple[npt.ArrayLike, float]:
   '''
@@ -9,14 +10,14 @@ def raoult_XtoY(x: list, K: list) -> tuple[npt.ArrayLike, float]:
   Parameters
   ---------
   x : list
-    Component mole fractions of the feed's liquid phase. Must sum to 1.
+    Component mole fractions of the feed's liquid phase (unitless). Must sum to 1.
   K : list 
-    Equalibrium constant for each component at a specific temperature and pressure. Length must equal x.
+    Equalibrium constant for each component at a specific temperature and pressure (units vary). Length must equal x.
   
   Returns
   ---------
   y : ArrayLike
-    Component mole fractions of the feed's vapor phase.
+    Component mole fractions of the feed's vapor phase (unitless).
   error : float
     Error of calculated vapor phase component mole fractions.
   '''
@@ -33,14 +34,14 @@ def raoult_YtoX(y: list, K: list) -> tuple[npt.ArrayLike, float]:
   Parameters
   ---------
   y : list
-    Component mole fractions of the feed's vapor phase. Must sum to 1.
+    Component mole fractions of the feed's vapor phase (unitless). Must sum to 1.
   K : list 
-    Equalibrium constant for each component at a specific temperature and pressure. Length must equal y.
+    Equalibrium constant for each component at a specific temperature and pressure (units vary). Length must equal y.
     
   Returns
   ---------
   x : ArrayLike
-    Component mole fractions of the feed's liquid phase.
+    Component mole fractions of the feed's liquid phase (unitless).
   error : float
     Error of calculated liquid phase component mole fractions.
   '''
@@ -57,22 +58,22 @@ def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> tuple[float, 
   Parameters
   ----------
   x : list
-    Component mole fractions of the liquid input feed. Must sum to 1.
+    Component mole fractions of the liquid input feed (unitless). Must sum to 1.
   K : list
-    Equalibrium constant for each component at specific temperature and pressure. Length must equal x.
+    Equalibrium constant for each component at specific temperature and pressure (units vary). Length must equal x.
   psi : float
-    Initial value of psi to begin iterating on. Must be 0 <= psi <= 1.
+    Initial value of psi to begin iterating on (unitless). Must be 0 <= psi <= 1.
   tol : float
     Largest error value to stop iterating and return.
 
   Returns
   ----------
   psi : float
-    Converged vapor/liquid output feed ratio psi (Ψ).
+    Converged vapor/liquid output feed ratio psi (Ψ) (unitless).
   x_out : ArrayLike
-    Component mole fractions of the output liquid stream. 
+    Component mole fractions of the output liquid stream (unitless). 
   y_out : ArrayLike
-    Component mole fractions of the output vapor stream.
+    Component mole fractions of the output vapor stream (unitless).
   error : float
     Error at the final iteration.
   i : int
@@ -104,9 +105,9 @@ def bubble_point(x: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) 
   Parameters
   ----------
   x : list
-    Component mole fractions of the liquid mixture. Must sum to 1.
+    Component mole fractions of the liquid mixture (unitless). Must sum to 1.
   ant_coeff : ArrayLike
-    Components' coefficients for the Antoine Equation of State. Shape must be N x 3.
+    Components' coefficients for the Antoine Equation of State (unitless). Shape must be N x 3.
   P : float
     Ambient pressure of the liquid mixture in mmHg (millimeters of mercury).
   tol : float
@@ -117,11 +118,11 @@ def bubble_point(x: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) 
   bubbleT : float
     Temperature of the liquid mixture's bubble point in C (Celcius).
   Pvap : ArrayLike
-    Vapor pressure for each component at the bubble point temperature. 
+    Vapor pressure for each component at the bubble point temperature in mmHg (millimeters of mercury). 
   K : ArrayLike
-    Equalibrium constant for each component at the stated pressure and bubble point temperature. 
+    Equalibrium constant for each component at the stated pressure and bubble point temperature (units vary). 
   y : ArrayLike
-    Component mole fractions of the first bubble of vapor.
+    Component mole fractions of the first bubble of vapor (unitless).
   error : float
     Error at the final iteration.
   i : int
@@ -163,9 +164,9 @@ def dew_point(y: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> 
   Parameters
   ----------
   y : list
-    Component mole fractions of the vapor mixture. Must sum to 1.
+    Component mole fractions of the vapor mixture (unitless). Must sum to 1.
   ant_coeff : ArrayLike
-    Components' coefficients for the Antoine Equation of State. Shape must be N x 3.
+    Components' coefficients for the Antoine Equation of State (unitless). Shape must be N x 3.
   P : float
     Ambient pressure of the vapor mixture in mmHg (millimeters of mercury).
   tol : float
@@ -176,11 +177,11 @@ def dew_point(y: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> 
   dewT : float
     Temperature of the vapor mixture's dew point in C (Celcius).
   Pvap : ArrayLike
-    Vapor pressure for each component at the dew point temperature. 
+    Vapor pressure for each component at the dew point temperature in mmHg (millimeters of mercury). 
   K : ArrayLike
-    Equalibrium constant for each component at the stated pressure and dew point temperature. 
+    Equalibrium constant for each component at the stated pressure and dew point temperature (units vary). 
   x : ArrayLike
-    Component mole fractions of the first dew of liquid.
+    Component mole fractions of the first dew of liquid (unitless).
   error : float
     Error at the final iteration.
   i : int
@@ -233,7 +234,7 @@ def liq_frac_subcooled(Cpl: float, heatvap: float, Tf: float, Tb: float) -> floa
   Returns:
   -----------
   q : float
-    Liquid fraction of the feed.
+    Liquid fraction of the feed (unitless).
   '''
   return 1. + Cpl * (Tb - Tf) / heatvap
 
@@ -255,21 +256,118 @@ def liq_frac_superheated(Cpv: float, heatvap: float, Tf: float, Td: float) -> fl
   Returns:
   -----------
   q : float
-    Liquid fraction of the feed.
+    Liquid fraction of the feed (unitless).
   '''
   return 1. + Cpv * (Tf - Td) / heatvap
 
-#TODO start and finish this
-def mccabe_thiel():
+def tops_bottom_split(F: float, xf: float, xd: float, xb: float) -> float:
   '''
-  Calculates various design parameters of a bianary mixture distilation column using McCabe Thiel Diagram analysis.
+  Calculates the distilate and bottoms flow rates out of a bianary mixture distilation column.
 
   Parameters:
   -----------
   F : float
     Feed molar flowrate in kmol/hr (kilomoles per hour).
   xf : float
-    Concentration of the lower boiling boint species in the feed.
+    Liquid fraction of the lower boiling boint species in the feed (unitless).
+  xd : float
+    Liquid fraction of the lower boiling boint species in the distilate (unitless).
+  xb : float
+    Liquid fraction of the lower boiling boint species in the bottoms (unitless).
+
+  Returns:
+  -----------
+  D : float
+    Distilate molar flowrate in kmol/hr (kilomoles per hour).
+  B : float
+    Bottoms molar flowrate in kmol/hr (kilomoles per hour).
+  '''
+  D = F*(xf - xd)/(xd - xb)
+  return D, F - D
+
+def feedline_graph(q: float, xf: float) -> LinearEq:
+  '''
+  Calculates the slope and intercepts of the feed line on a McCabe Thiel Diagram for a bianary mixture distilation column.
+
+  Parameters:
+  -----------
+  q : float
+    Feed liquid fraction (unitless).
+
+  Returns:
+  -----------
+  m : float
+    Slope of the feed line (unitless).
+  y_int : float
+    Y-intercept of the feed line (unitless).
+  x_int : float
+    X-intercept of the feed line (unitless).
+  '''
+  if q == 1: # vertical feed line
+    m = np.NaN
+    y_int = np.NaN
+    x_int = xf
+  else:
+    m = -q / (1. - q)
+    y_int = m*xf + xf
+    x_int = -y_int / m
+  return LinearEq(m, y_int, x_int)
+
+# TODO under construction
+def mccabe_thiel_graph(feedline: LinearEq, feedpoint_eq: tuple, xf: float, xd: float, xb: float, Rmin_mult: float) -> tuple[float, float, LinearEq]:
+  # TODO complete this
+  '''
+  Calculates a McCabe Thiel Diagram for a bianary mixture distilation column.
+
+  Parameters:
+  -----------
+  feedEQ : tuple
+    Point of intersection between the feed line and the equalibrium line on a McCabe Thiel Diagram (unitless, unitless). Bounded [0, 1]. Length must equal 2.
+  xf : float
+    Liquid fraction of the lower boiling boint species in the feed (unitless).
+  xd : float
+    Liquid fraction of the lower boiling boint species in the distilate (unitless).
+  xb : float
+    Liquid fraction of the lower boiling boint species in the bottoms (unitless).
+
+  Returns:
+  -----------
+
+  '''
+  xf_eq, yf_eq = feedpoint_eq
+  # "distilate to feed at equalibrium" line
+  m = (xd - yf_eq) / (xd - xf_eq) 
+
+  # "distilate to feedpoint" line
+  Rmin = m / (1. - m)
+  R = Rmin_mult * Rmin
+  m = R / (1. + R)
+  y_int = xd / (1. + R)
+  x_int = -y_int / m
+  distline = LinearEq(m, y_int, x_int)
+
+  # feedpoint
+  feedpoint = common.linear_intersect(feedline, distline)
+
+  # bottoms to feed point
+  m = (x - xb) / (y - xb) 
+
+
+  return
+
+  
+
+# TODO under construction
+def mccabe_thiel(F: float, xf: float, xd: float, xb: float, q: float, yf_eq: float, Rmin_mult: float,):
+  '''
+  Calculates various design parameters of a bianary mixture distilation column using McCabe Thiel Diagram analysis. Assumes equal molar heats of vaporization.
+
+  Parameters:
+  -----------
+  F : float
+    Feed molar flowrate in kmol/hr (kilomoles per hour).
+  xf : float
+    Concentration of the lower boiling boint species in the feed (unitless).
   T : float
     Current temperature of the reaction in K (Kelvin).
 
@@ -278,4 +376,9 @@ def mccabe_thiel():
   K : float
     Equilibrium Constant (units vary).
   '''
+  D, B = tops_bottom_split(F, xf, xd, xb)
+  if q == 1: Sf = np.NaN
+  else: Sf = -q / (1. - q)
+
+
   return

@@ -28,6 +28,19 @@ class TESTVARS:
                         [6.83029, 945.90, 240.],
                         [6.85221, 1064.63, 232.]])
   P = 10342.95
+class LinearEq:
+  '''
+  m : float
+    Slope of the line.
+  y_int : float
+    Y-intercept of the line.
+  x_int : float
+    X-intercept of the line.
+  '''
+  def __init__(self, m: float, y: float, x: float) -> None:
+    self.m = m   
+    self.y = y
+    self.x = x
 
 def antoine_T(v: npt.ArrayLike, P: npt.ArrayLike) -> npt.ArrayLike:
   '''
@@ -49,3 +62,11 @@ def lin_estimate_error(x_pair: list, y_pair: list) -> float:
   Calculates the x-intercept (x=0) for a given pair of x and y points. Assumes linearity.
   '''
   return x_pair[0] - y_pair[0] * ((x_pair[1]-x_pair[0])/(y_pair[1]-y_pair[0]))
+
+def linear_intersect(line1: LinearEq, line2: LinearEq) -> tuple[float, float]:
+  # TODO make docstrings!
+  if line2.m == line1.m and line1.y != line2.y:
+    return None, None
+  x = (line1.y - line2.y)/(line2.m - line1.m)
+  y = line1.m * x + line1.y
+  return x, y
