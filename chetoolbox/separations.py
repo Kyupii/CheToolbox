@@ -348,37 +348,10 @@ def mccabe_thiel_graph(feedline: LinearEq, feedpoint_eq: tuple, xf: float, xd: f
 
   # feedpoint
   feedpoint = common.linear_intersect(feedline, distline)
+  x, y = feedpoint
 
   # bottoms to feed point
   m = (x - xb) / (y - xb) 
-
-
-  return
-
-  
-
-# TODO under construction
-def mccabe_thiel(F: float, xf: float, xd: float, xb: float, q: float, yf_eq: float, Rmin_mult: float,):
-  '''
-  Calculates various design parameters of a bianary mixture distilation column using McCabe Thiel Diagram analysis. Assumes equal molar heats of vaporization.
-
-  Parameters:
-  -----------
-  F : float
-    Feed molar flowrate in kmol/hr (kilomoles per hour).
-  xf : float
-    Concentration of the lower boiling boint species in the feed (unitless).
-  T : float
-    Current temperature of the reaction in K (Kelvin).
-
-  Returns:
-  -----------
-  K : float
-    Equilibrium Constant (units vary).
-  '''
-  D, B = tops_bottom_split(F, xf, xd, xb)
-  if q == 1: Sf = np.NaN
-  else: Sf = -q / (1. - q)
 
 
   return
