@@ -260,31 +260,6 @@ def liq_frac_superheated(Cpv: float, heatvap: float, Tf: float, Td: float) -> fl
   '''
   return 1. + Cpv * (Tf - Td) / heatvap
 
-def tops_bottom_split(F: float, xf: float, xd: float, xb: float) -> float:
-  '''
-  Calculates the distilate and bottoms flow rates out of a bianary mixture distilation column.
-
-  Parameters:
-  -----------
-  F : float
-    Feed molar flowrate in kmol/hr (kilomoles per hour).
-  xf : float
-    Liquid fraction of the lower boiling boint species in the feed (unitless).
-  xd : float
-    Liquid fraction of the lower boiling boint species in the distilate (unitless).
-  xb : float
-    Liquid fraction of the lower boiling boint species in the bottoms (unitless).
-
-  Returns:
-  -----------
-  D : float
-    Distilate molar flowrate in kmol/hr (kilomoles per hour).
-  B : float
-    Bottoms molar flowrate in kmol/hr (kilomoles per hour).
-  '''
-  D = F*(xf - xd)/(xd - xb)
-  return D, F - D
-
 def feedline_graph(q: float, xf: float) -> LinearEq:
   '''
   Calculates the slope and intercepts of the feed line on a McCabe Thiel Diagram for a bianary mixture distilation column.
@@ -293,15 +268,13 @@ def feedline_graph(q: float, xf: float) -> LinearEq:
   -----------
   q : float
     Feed liquid fraction (unitless).
-
+  xf : float
+    Liquid fraction of the feed's lower boiling boint species (unitless).
+  
   Returns:
   -----------
-  m : float
-    Slope of the feed line (unitless).
-  y_int : float
-    Y-intercept of the feed line (unitless).
-  x_int : float
-    X-intercept of the feed line (unitless).
+  feedline : LinearEq
+    Feed line of a McCabe Thiel Diagram.
   '''
   if q == 1: # vertical feed line
     m = np.NaN
@@ -313,26 +286,33 @@ def feedline_graph(q: float, xf: float) -> LinearEq:
     x_int = -y_int / m
   return LinearEq(m, y_int, x_int)
 
-# TODO under construction
-def mccabe_thiel_graph(feedline: LinearEq, feedpoint_eq: tuple, xf: float, xd: float, xb: float, Rmin_mult: float) -> tuple[float, float, LinearEq]:
-  # TODO complete this
+def mccabe_thiel_graph(feedline: LinearEq, feedpoint_eq: tuple, xd: float, xb: float, Rmin_mult: float = 1.2) -> tuple[float, float, LinearEq]:
   '''
   Calculates a McCabe Thiel Diagram for a bianary mixture distilation column.
 
   Parameters:
   -----------
+  feedline : LinearEq
+    Feed line of a McCabe Thiel Diagram.
   feedEQ : tuple
     Point of intersection between the feed line and the equalibrium line on a McCabe Thiel Diagram (unitless, unitless). Bounded [0, 1]. Length must equal 2.
-  xf : float
-    Liquid fraction of the lower boiling boint species in the feed (unitless).
   xd : float
-    Liquid fraction of the lower boiling boint species in the distilate (unitless).
+    Liquid fraction of the distilate's lower boiling boint species (unitless).
   xb : float
-    Liquid fraction of the lower boiling boint species in the bottoms (unitless).
+    Liquid fraction of the bottoms' lower boiling boint species (unitless).
+  Rmin_mult : float
+    Factor by which to excede the minimum reflux ratio, Rmin (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf)
 
   Returns:
   -----------
-
+  rectline : LinearEq
+    Rectifying section operating line of a McCabe Thiel Diagram.
+  stripline : LinearEq
+    Stripping section operating line of a McCabe Thiel Diagram.
+  feedpoint : tuple
+    Point of intersection between the feed line and the equalibrium line of a McCabe Thiel Diagram (unitless, unitless).
+  R : float
+    Reflux ratio of the rectifying section (unitless).
   '''
   xf_eq, yf_eq = feedpoint_eq
   # "distilate to feed at equalibrium" line
@@ -344,14 +324,61 @@ def mccabe_thiel_graph(feedline: LinearEq, feedpoint_eq: tuple, xf: float, xd: f
   m = R / (1. + R)
   y_int = xd / (1. + R)
   x_int = -y_int / m
-  distline = LinearEq(m, y_int, x_int)
+  rectline = LinearEq(m, y_int, x_int)
 
   # feedpoint
-  feedpoint = common.linear_intersect(feedline, distline)
+  feedpoint = common.linear_intersect(feedline, rectline)
   x, y = feedpoint
 
   # bottoms to feed point
   m = (x - xb) / (y - xb) 
+  y_int = m*xb + xb
+  x_int = -y_int / m
+  stripline = LinearEq(m, y_int, x_int)
 
+  return rectline, stripline, feedpoint, R, 
 
-  return
+def distilation_stream_split(F: float, xf: float, xd: float, xb: float, R: float = None, q: float = None) -> tuple[float, float, float | None, float | None, float | None, float | None]:
+  '''
+  Calculates the distilate and bottom flow rates out of a bianary mixture distilation column. Optionally calculates the internal flows between the feed tray, rectifying, and stripping sections of the distilation column.
+
+  Parameters:
+  -----------
+  F : float
+    Feed molar flowrate in kmol/hr (kilomoles per hour).
+  xf : float
+    Liquid fraction of the lower boiling boint species in the feed (unitless).
+  xd : float
+    Liquid fraction of the lower boiling boint species in the distilate (unitless).
+  xb : float
+    Liquid fraction of the lower boiling boint species in the bottoms (unitless).
+  q : float
+    Feed liquid fraction (unitless).
+
+  Returns:
+  -----------
+  D : float
+    Distilate molar flowrate in kmol/hr (kilomoles per hour).
+  B : float
+    Bottoms molar flowrate in kmol/hr (kilomoles per hour).
+  V : float
+    Vapor molar flowrate from the feed tray to the rectifying section in kmol/hr (kilomoles per hour).
+  L : float
+    Liquid molar flowrate from the rectifying section to the feed tray in kmol/hr (kilomoles per hour).
+  Vprime : float
+    Vapor molar flowrate from the stripping section to the feed tray in kmol/hr (kilomoles per hour).
+  Lprime : float
+    Liquid molar flowrate from the feed tray to the stripping section in kmol/hr (kilomoles per hour).
+  '''
+  D = F*(xf - xd)/(xd - xb)
+  B = F - D
+  V = None; Vprime = None
+  L = None; Lprime = None
+  if R != None:
+    V = D * (1. + R)
+    L = V - D
+    if q != None:
+      Vprime = V - F*(1. - q)
+      Lprime = Vprime + B
+
+  return D, B, V, L, Vprime, Lprime

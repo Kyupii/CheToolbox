@@ -56,7 +56,6 @@ def antoine_P(v: npt.ArrayLike, T: npt.ArrayLike) -> npt.ArrayLike:
   v = np.atleast_1d(v); T = np.atleast_1d(T)
   return 10 ** (np.c_[v[:, 0]] - np.c_[v[:, 1]] / (T + np.c_[v[:, 2]]))
 
-
 def lin_estimate_error(x_pair: list, y_pair: list) -> float:
   '''
   Calculates the x-intercept (x=0) for a given pair of x and y points. Assumes linearity.
