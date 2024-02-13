@@ -258,7 +258,7 @@ def liq_frac_superheated(Cpv: float, heatvap: float, Tf: float, Td: float) -> fl
   q : float
     Liquid fraction of the feed (unitless).
   '''
-  return 1. + Cpv * (Tf - Td) / heatvap
+  return -Cpv * (Tf - Td) / heatvap
 
 def feedline_graph(q: float, xf: float) -> LinearEq:
   '''
