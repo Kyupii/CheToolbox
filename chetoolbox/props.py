@@ -235,8 +235,7 @@ def cp_est(const: list, T: float) -> float:
   '''
   return const[0] + const[1]*T + const[2]*T**2 + const[3] / T**2
 
-# TODO do we want/need a way to calculate deltaH_0 and deltaS_0?
-# ie Hess' Law and "the thing for S"
+# TODO #6 do we want/need a way to calculate deltaH_0 and deltaS_0 ie Hess' Law?
 
 def deltaH_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0: float, T_0: float = 298.) -> float:
   '''
