@@ -63,9 +63,21 @@ def lin_estimate_error(x_pair: list, y_pair: list) -> float:
   return x_pair[0] - y_pair[0] * ((x_pair[1]-x_pair[0])/(y_pair[1]-y_pair[0]))
 
 def linear_intersect(line1: LinearEq, line2: LinearEq) -> tuple[float, float]:
-  # TODO make docstrings!
+  '''
+  Calculates the intersection points of two straight lines. Uses LinearEq objects.
+  '''
   if line2.m == line1.m and line1.y != line2.y:
     return None, None
   x = (line1.y - line2.y)/(line2.m - line1.m)
   y = line1.m * x + line1.y
   return x, y
+
+def quadratic_formula(coeff: npt.ArrayLike) -> npt.ArrayLike | None:
+  '''
+  Calculates the roots of a quadratic equation. Ignores imaginary roots.
+  '''
+  coeff = np.atleast_1d(coeff)
+  descrim = coeff[1]**2 - 4*coeff[0]*coeff[2]
+  if descrim < 0:
+    return None
+  return (np.sqrt(np.array([descrim])).repeat(2) * np.array([1, -1]) - coeff[1]) / (2. * coeff[0])

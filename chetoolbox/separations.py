@@ -301,7 +301,7 @@ def mccabe_thiel_graph(feedline: LinearEq, feedpoint_eq: tuple, xd: float, xb: f
   xb : float
     Liquid fraction of the bottoms' lower boiling boint species (unitless).
   Rmin_mult : float
-    Factor by which to excede the minimum reflux ratio, Rmin (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf)
+    Factor by which to excede the minimum reflux ratio, Rmin (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf).
 
   Returns:
   -----------
@@ -382,3 +382,34 @@ def distilation_stream_split(F: float, xf: float, xd: float, xb: float, R: float
       Lprime = Vprime + B
 
   return D, B, V, L, Vprime, Lprime
+
+def mccabe_thiel_equalibrium_simple(feedline: LinearEq, alpha: float) -> tuple[function, tuple[float, float] | None]:
+  '''
+  Calculates the point of intersection between the feed line and the equalibrium line on a McCabe Thiel Diagram for a bianary mixture distilation column.
+
+  Parameters:
+  -----------
+  feedline : LinearEq
+    Feed line of a McCabe Thiel Diagram.
+  alpha : float
+    Relative volatility of the two species equalibrium constants (K) (unitless).
+
+  Returns:
+  -----------
+  eq_line : function
+    Equation for the equalibrium line on a McCabe Thiel Diagram, which accepts 1 input (x) and returns 1 output (y(x)).
+  feedEQ : tuple
+    Point of intersection between the feed line and the equalibrium line on a McCabe Thiel Diagram (unitless, unitless).
+  '''
+  def eq_line(x):
+    return alpha * x / (1. + (alpha - 1.) * x)
+
+  a = (alpha - 1.) * feedline.m
+  b = feedline.y * (alpha - 1.) - alpha + feedline.m
+  c = feedline.y
+  sol = common.quadratic_formula([a, b, c])
+  if sol == None:
+    return None
+  x = sol[(sol >= 0) & (sol <= 1)] # only one valid intersection
+  y = eq_line(x)
+  return eq_line, (x, y)

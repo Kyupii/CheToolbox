@@ -294,7 +294,7 @@ def deltaS_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaS_0: flo
   prod = np.atleast_1d(prod).reshape(-1, 5)
   reac = np.atleast_1d(reac).reshape(-1, 5)
   delta = np.sum(np.c_[prod[:, 0]]*prod[:, 1:], axis=0) - np.sum(np.c_[reac[:, 0]]*reac[:, 1:], axis=0)
-  # TODO should we use another equation that actually uses the fourth term?
+  # TODO use an equation that considers uses the fourth term
   return deltaS_0 + delta[0] * np.log(T/T_0) + delta[1]*(T-T_0) + delta[2] / 2 * (T**2 - T_0*2)
 
 def gibbs_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0: float, G_0: float, T_0: float = 298.) -> float:
