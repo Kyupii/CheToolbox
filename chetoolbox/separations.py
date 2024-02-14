@@ -406,27 +406,39 @@ def mccabe_thiel_equalibrium_simple(feedline: LinearEq, alpha: float) -> tuple[f
   y = eq_line(x)
   return eq_line, (x, y)
 
-def pochon_savarit(spec: npt.ArrayLike):
+def ponchon_savarit_feedpoint_iter():
+  return
+
+def ponchon_savarit(props: npt.ArrayLike, xf: float, yf: float, feedliq: bool = True):
   '''
   Calculates the pochon_savarit Diagram for a bianary mixture distilation column.
 
   Parameters:
   -----------
-  spec : ArrayLike
-    Boiling point temperature in Kelvin (K), average molar heat capactity in kilojoules per mol degree Celcius (kJ/mol*C), and molar heat of vaporization in kilojoules per mol (kJ/mol) of both species. Shape must be 2 x 3.
-
+  props : ArrayLike
+    Chemical properties of the compounds being analyzed. Shape must be 2 x 3.
+      Ex) np.array([Boiling Point Temperature (K), Average Molar Heat Capactity (kJ/mol*C), Molar Heat of Vaporization (kJ/mol) ])
+  xf : float
+    Liquid fraction of the lower boiling boint species in the feed (unitless).
+  yf : float
+    Vapor fraction of the lower boiling boint species in the feed (unitless). Corresponding y-value of xf on the equalibrium curve.
+  feedliq : bool  # TODO #9 check if q is a valid substitute for this var
+    Whether the feed's phase is entirely liquid. False means the feed's phase is entirely vapor.=
   Returns:
   -----------
-  eq_line : function
-    Equation for the equalibrium line on a McCabe Thiel Diagram, which accepts 1 input (x) and returns 1 output (y(x)).
-  feedEQ : tuple
-    Point of intersection between the feed line and the equalibrium line on a McCabe Thiel Diagram (unitless, unitless).
+  
   '''
-  spec = np.atleast_1d(spec).reshape((-1, 2))
-  if spec[0, 0] > spec[1, 0]:
-    spec = spec[::-1]
-  liqlineH = common.point_slope((1., 0.), (0., spec[1, 1] * (spec[1, 0] - spec[0, 0])))
-  vaplineH = common.point_slope((1., spec[0, 2]), (0., spec[1, 1] * (spec[1, 0] - spec[0, 0]) + spec[1, 2]))
+  props = np.atleast_1d(props).reshape((-1, 3))
+  if props[0, 0] > props[1, 0]:
+    props = props[::-1]
+  liqlineH = common.point_slope((1., 0.), (0., props[1, 1] * (props[1, 0] - props[0, 0])))
+  vaplineH = common.point_slope((1., props[0, 2]), (0., props[1, 1] * (props[1, 0] - props[0, 0]) + props[1, 2]))
 
+  if feedliq:
+    feedpoint = (xf, liqlineH.eval(xf))
+  elif not feedliq:
+    feedpoint = (yf, vaplineH.eval(yf))
+  else:
+    return liqlineH, vaplineH #manual guess-and-check for feedpoint required
 
   return
