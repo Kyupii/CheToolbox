@@ -378,4 +378,4 @@ def k_est(G: float, T: float) -> float:
   K : float
     Equilibrium Constant (units vary).
   '''
-  return G / (-8.314 * T)
+  return np.e ** (G / (-8.314 * T))
