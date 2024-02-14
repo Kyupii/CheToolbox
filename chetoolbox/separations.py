@@ -276,17 +276,15 @@ def feedline_graph(q: float, xf: float) -> LinearEq:
   feedline : LinearEq
     Feed line of a McCabe Thiel Diagram.
   '''
-  if q == 1: # vertical feed line
-    m = np.NaN
-    y_int = np.NaN
-    x_int = xf
+  if q == 1:
+    line = common.vertical_line(xf)
   else:
     m = -q / (1. - q)
     y_int = m*xf + xf
-    x_int = -y_int / m
-  return LinearEq(m, y_int, x_int)
+    line = LinearEq(m, y_int)
+  return line
 
-def mccabe_thiel_graph(feedline: LinearEq, feedpoint_eq: tuple, xd: float, xb: float, Rmin_mult: float = 1.2) -> tuple[float, float, LinearEq]:
+def mccabe_thiel_graph(feedline: LinearEq, eq_feedpoint: tuple, xd: float, xb: float, Rmin_mult: float = 1.2) -> tuple[float, float, LinearEq]:
   '''
   Calculates a McCabe Thiel Diagram for a bianary mixture distilation column.
 
@@ -294,7 +292,7 @@ def mccabe_thiel_graph(feedline: LinearEq, feedpoint_eq: tuple, xd: float, xb: f
   -----------
   feedline : LinearEq
     Feed line of a McCabe Thiel Diagram.
-  feedEQ : tuple
+  eq_feedpoint : tuple
     Point of intersection between the feed line and the equalibrium line on a McCabe Thiel Diagram (unitless, unitless). Bounded [0, 1]. Length must equal 2.
   xd : float
     Liquid fraction of the distilate's lower boiling boint species (unitless).
@@ -305,7 +303,7 @@ def mccabe_thiel_graph(feedline: LinearEq, feedpoint_eq: tuple, xd: float, xb: f
 
   Returns:
   -----------
-  rectline : LinearEq
+  rectifyline : LinearEq
     Rectifying section operating line of a McCabe Thiel Diagram.
   stripline : LinearEq
     Stripping section operating line of a McCabe Thiel Diagram.
@@ -314,29 +312,23 @@ def mccabe_thiel_graph(feedline: LinearEq, feedpoint_eq: tuple, xd: float, xb: f
   R : float
     Reflux ratio of the rectifying section (unitless).
   '''
-  xf_eq, yf_eq = feedpoint_eq
   # "distilate to feed at equalibrium" line
-  m = (xd - yf_eq) / (xd - xf_eq) 
+  eq_rectifyline = common.point_slope(eq_feedpoint, (xd, xd))
 
   # "distilate to feedpoint" line
-  Rmin = m / (1. - m)
+  Rmin = eq_rectifyline.m / (1. - eq_rectifyline.m)
   R = Rmin_mult * Rmin
   m = R / (1. + R)
   y_int = xd / (1. + R)
-  x_int = -y_int / m
-  rectline = LinearEq(m, y_int, x_int)
+  rectifyline = LinearEq(m, y_int)
 
   # feedpoint
-  feedpoint = common.linear_intersect(feedline, rectline)
-  x, y = feedpoint
+  feedpoint = common.linear_intersect(feedline, rectifyline)
 
   # bottoms to feed point
-  m = (x - xb) / (y - xb) 
-  y_int = m*xb + xb
-  x_int = -y_int / m
-  stripline = LinearEq(m, y_int, x_int)
+  stripline = common.point_slope(feedpoint, (xb, xb))
 
-  return rectline, stripline, feedpoint, R, 
+  return rectifyline, stripline, feedpoint, R, 
 
 def distilation_stream_split(F: float, xf: float, xd: float, xb: float, R: float = None, q: float = None) -> tuple[float, float, float | None, float | None, float | None, float | None]:
   '''
@@ -405,8 +397,8 @@ def mccabe_thiel_equalibrium_simple(feedline: LinearEq, alpha: float) -> tuple[f
     return alpha * x / (1. + (alpha - 1.) * x)
 
   a = (alpha - 1.) * feedline.m
-  b = feedline.y * (alpha - 1.) - alpha + feedline.m
-  c = feedline.y
+  b = feedline.b * (alpha - 1.) - alpha + feedline.m
+  c = feedline.b
   sol = common.quadratic_formula([a, b, c])
   if sol == None:
     return None

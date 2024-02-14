@@ -32,15 +32,20 @@ class LinearEq:
   '''
   m : float
     Slope of the line.
-  y_int : float
+  b : float
     Y-intercept of the line.
   x_int : float
     X-intercept of the line.
+  eval : function
+    Return the output of the function (y) when evaluated at an input (x).
   '''
-  def __init__(self, m: float, y: float, x: float) -> None:
+  def __init__(self, m: float, b: float) -> None:
     self.m = m   
-    self.y = y
-    self.x = x
+    self.b = b
+    self.x_int = -m/b
+  
+  def eval(self, x):
+    return self.m * x + self.b
 
 def antoine_T(v: npt.ArrayLike, P: npt.ArrayLike) -> npt.ArrayLike:
   '''
@@ -58,18 +63,35 @@ def antoine_P(v: npt.ArrayLike, T: npt.ArrayLike) -> npt.ArrayLike:
 
 def lin_estimate_error(x_pair: list, y_pair: list) -> float:
   '''
-  Calculates the x-intercept (x=0) for a given pair of x and y points. Assumes linearity.
+  Calculates the x-intercept (x=0) for a given pair of x and y distances. Assumes linearity.
   '''
   return x_pair[0] - y_pair[0] * ((x_pair[1]-x_pair[0])/(y_pair[1]-y_pair[0]))
 
-def linear_intersect(line1: LinearEq, line2: LinearEq) -> tuple[float, float]:
+def vertical_line(x) -> LinearEq:
+  line = LinearEq(0, 1)
+  line.m = np.NaN
+  line.b = np.NaN
+  line.x_int = x
+  return line
+
+def point_slope(point1: tuple, point2: tuple) -> LinearEq:
   '''
-  Calculates the intersection points of two straight lines. Uses LinearEq objects.
+  Calculates equation of a line from two points.
+  '''
+  if point1[0] == point2[0]:
+    return vertical_line(point1[0])
+  m = (point1[1]-point2[1])/(point1[0]-point2[0])
+  b = point1[1] - m * point1[0]
+  return LinearEq(m, b)
+  
+def linear_intersect(line1: LinearEq, line2: LinearEq) -> tuple[float, float] | None:
+  '''
+  Calculates the intersection points of two straight lines or None if no intersect exists. Uses LinearEq objects.
   '''
   if line2.m == line1.m and line1.y != line2.y:
-    return None, None
-  x = (line1.y - line2.y)/(line2.m - line1.m)
-  y = line1.m * x + line1.y
+    return None
+  x = (line1.b - line2.b)/(line2.m - line1.m)
+  y = line1.eval(x)
   return x, y
 
 def quadratic_formula(coeff: npt.ArrayLike) -> npt.ArrayLike | None:
