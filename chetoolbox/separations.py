@@ -402,6 +402,31 @@ def mccabe_thiel_equalibrium_simple(feedline: LinearEq, alpha: float) -> tuple[f
   sol = common.quadratic_formula([a, b, c])
   if sol == None:
     return None
-  x = sol[(sol >= 0) & (sol <= 1)] # only one valid intersection
+  x = sol[(sol >= 0) & (sol <= 1)] # assume only one valid intersection
   y = eq_line(x)
   return eq_line, (x, y)
+
+def pochon_savarit(spec: npt.ArrayLike):
+  '''
+  Calculates the pochon_savarit Diagram for a bianary mixture distilation column.
+
+  Parameters:
+  -----------
+  spec : ArrayLike
+    Boiling point temperature in Kelvin (K), average molar heat capactity in kilojoules per mol degree Celcius (kJ/mol*C), and molar heat of vaporization in kilojoules per mol (kJ/mol) of both species. Shape must be 2 x 3.
+
+  Returns:
+  -----------
+  eq_line : function
+    Equation for the equalibrium line on a McCabe Thiel Diagram, which accepts 1 input (x) and returns 1 output (y(x)).
+  feedEQ : tuple
+    Point of intersection between the feed line and the equalibrium line on a McCabe Thiel Diagram (unitless, unitless).
+  '''
+  spec = np.atleast_1d(spec).reshape((-1, 2))
+  if spec[0, 0] > spec[1, 0]:
+    spec = spec[::-1]
+  liqlineH = common.point_slope((1., 0.), (0., spec[1, 1] * (spec[1, 0] - spec[0, 0])))
+  vaplineH = common.point_slope((1., spec[0, 2]), (0., spec[1, 1] * (spec[1, 0] - spec[0, 0]) + spec[1, 2]))
+
+
+  return

@@ -78,6 +78,7 @@ def point_slope(point1: tuple, point2: tuple) -> LinearEq:
   '''
   Calculates equation of a line from two points.
   '''
+  point1 = np.atleast_1d(point1); point2 = np.atleast_1d(point2)
   if point1[0] == point2[0]:
     return vertical_line(point1[0])
   m = (point1[1]-point2[1])/(point1[0]-point2[0])
