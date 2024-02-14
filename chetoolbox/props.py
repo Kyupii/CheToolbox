@@ -379,3 +379,47 @@ def k_est(G: float, T: float) -> float:
     Equilibrium Constant (units vary).
   '''
   return np.e ** (G / (-8.314 * T))
+
+def fate_analysis(env: npt.ArrayLike, env_props: npt.ArrayLike, chem_props: npt.ArrayLike) -> npt.NDArray:
+  '''
+  Calculates the fate of a chemical species in the environment based on its properties or estimated properties.
+
+  Parameters:
+  -----------
+  env : ArrayLike
+    Volumes of each phase in the model of the environment being used. Shape must be 1x7.
+      Ex) np.array([Air, Water, Soil, Bottom Sediment, Suspended Sediment, Fish, Aerosols]) (all in m^3)
+
+  env_props : ArrayLike
+    Values for the environmental properties of the chemical, based on estimates or measured values. Shape must be 1x4.
+      Ex) [Mass Fraction of organic carbon in suspended sediment,
+           Mass fraction of organic carbon in soil,
+           Mass fraction of organic carbon in bottom sediment,
+           Lipid Content of Fish] (All unitless)
+
+  chem_props : ArrayLike
+    General properties of the chemical being analyzed. Shape must be 1x8.
+      Ex) np.array([Mass released (kg), molecular weight (g/mol), aqueous solubility (g/m^3),
+                    Henry's Law constant (moles/m^3*Pa), Kow, Koc,Temperature (K), Liquid Vapor Pressure (Pa)])
+                    (Required units given in example)
+
+  Returns
+  -------
+  2x7 Array containing the amounts of chemical in each environmental phase.
+  The first array gives mass in kg, the second array gives moles. Phases are in the same order as env input.
+  [Air, Water, Soil, Bottom Sediment, Suspended Sediment, Fish, Aerosols]
+  '''
+
+  env_cap = np.empty(7)
+  env_cap[0] = (1 / (chem_props[6]*8.314))
+  env_cap[1] = chem_props[3]
+  env_cap[2] = env_cap[1]*2400*env_props[1]*(chem_props[5]/1000)
+  env_cap[3] = env_cap[1]*2400*env_props[2]*(chem_props[5]/1000)
+  env_cap[4] = env_cap[1]*1000*env_props[0]*(chem_props[5]/1000)
+  env_cap[5] = env_cap[1]*1000*env_props[3]*(chem_props[4]/1000)
+  env_cap[6] = env_cap[0]*6e6/chem_props[7]
+
+  fate = np.ones((2, 7))
+  fate[0] = env_cap*(((chem_props[0] * 1000) / chem_props[1])/ np.sum(env_cap*env))
+  fate[1] = fate[0]*env
+  return fate
