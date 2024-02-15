@@ -1,7 +1,6 @@
 import numpy as np
 import numpy.typing as npt
 from chetoolbox import common
-from common import LinearEq
 
 def raoult_XtoY(x: list, K: list) -> tuple[npt.ArrayLike, float]:
   '''
@@ -240,9 +239,9 @@ def liq_frac_superheated(Cpv: float, heatvap: float, Tf: float, Td: float) -> fl
   '''
   return -Cpv * (Tf - Td) / heatvap
 
-def eq_curve_estim(points: npt.ArrayLike, alpha: float = None) -> tuple[function, float]:
+def eq_curve_estim(points: npt.ArrayLike, alpha: float = None) -> common.EqualibEq:
   '''
-  Estimates an equalibrium curve. Assumes constant equalibrium ratio (K1 / K2) between the two species.
+  Estimates an equalibrium curve for a bianary mixture. Assumes constant equalibrium ratio (K1 / K2) between the two species.
 
   Parameters:
   -----------
@@ -254,23 +253,18 @@ def eq_curve_estim(points: npt.ArrayLike, alpha: float = None) -> tuple[function
 
   Returns:
   -----------
-  equalibrium_line : function
-    Equation for the equalibrium line on a McCabe Thiel Diagram, which accepts 1 input (x) and returns 1 output (y(x)).
-  alpha : float
-    Relative volatility of the two species equalibrium constants (K) (unitless).
+  equalibrium_curve : EqualibEq
+    Equation for an equalibrium curve of a bianary mixture.
   '''
   points = np.atleast_1d(points).reshape((-1, 2))
   if alpha == None:
     alpha = np.average( points[:, 1] * (1. - points[:, 0]) / points[:, 0] * (1. - points[:, 1]) )
 
-  def equalibrium_line(x): # numpy compatible
-    return alpha * x / (1. + (1. - alpha) * x)
+  return common.EqualibEq(alpha)
 
-  return equalibrium_line, alpha
-
-def mccabe_thiel_feedline(q: float, xf: float) -> LinearEq:
+def mccabe_thiel_feedline(q: float, xf: float) -> common.LinearEq:
   '''
-  Calculates the slope and intercepts of the feed line on a McCabe Thiel Diagram for a bianary mixture distilation column.
+  Calculates the feed line on a McCabe Thiel Diagram for a bianary mixture distilation column. Assumes equal molar heats of vaporization.
 
   Parameters:
   -----------
@@ -285,16 +279,16 @@ def mccabe_thiel_feedline(q: float, xf: float) -> LinearEq:
     Feed line of a McCabe Thiel Diagram.
   '''
   if q == 1:
-    line = common.vertical_line(xf)
+    feedline = common.vertical_line(xf)
   else:
     m = -q / (1. - q)
     y_int = m*xf + xf
-    line = LinearEq(m, y_int)
-  return line
+    feedline = common.LinearEq(m, y_int)
+  return feedline
 
-def mccabe_thiel_otherlines(feedline: LinearEq, eq_feedpoint: tuple, xd: float, xb: float, Rmin_mult: float = 1.2) -> tuple[LinearEq, LinearEq, tuple[float, float], float]:
+def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: float, xb: float, Rmin_mult: float = 1.2) -> tuple[common.LinearEq, common.LinearEq, tuple[float, float], float]:
   '''
-  Calculates a McCabe Thiel Diagram for a bianary mixture distilation column.
+  Calculates the rectifying and stripping operating lines of a McCabe Thiel Diagram for a bianary mixture distilation column. Assumes equal molar heats of vaporization.
 
   Parameters:
   -----------
@@ -317,6 +311,8 @@ def mccabe_thiel_otherlines(feedline: LinearEq, eq_feedpoint: tuple, xd: float, 
     Stripping section operating line of a McCabe Thiel Diagram.
   feedpoint : tuple
     Point of intersection between the feed line and the equalibrium line of a McCabe Thiel Diagram (unitless, unitless).
+  Rmin : float
+    Minimum reflux ratio of the rectifying section (unitless).
   R : float
     Reflux ratio of the rectifying section (unitless).
   '''
@@ -328,7 +324,7 @@ def mccabe_thiel_otherlines(feedline: LinearEq, eq_feedpoint: tuple, xd: float, 
   R = Rmin_mult * Rmin
   m = R / (1. + R)
   y_int = xd / (1. + R)
-  rectifyline = LinearEq(m, y_int)
+  rectifyline = common.LinearEq(m, y_int)
 
   # feedpoint
   feedpoint = common.linear_intersect(feedline, rectifyline)
@@ -336,20 +332,76 @@ def mccabe_thiel_otherlines(feedline: LinearEq, eq_feedpoint: tuple, xd: float, 
   # bottoms to feed point
   stripline = common.point_slope(feedpoint, (xb, xb))
 
-  return rectifyline, stripline, feedpoint, R, 
+  return rectifyline, stripline, feedpoint, Rmin, R
 
-def mccabe_thiel_full_est(eq_curve: function, q: float, xf: float, xd: float, xb: float, Rmin_mult: float = 1.2, tol: float = .00001):
+def mccabe_thiel_full_est(eq_curve: common.EqualibEq, q: float, xf: float, xd: float, xb: float, Rmin_mult: float = 1.2, tol: float = .00001):
+  '''
+  Calculates the reflux ratio and ideal stages of a bianary mixture distilation column, as well as thier ideal minimums. Uses a McCabe Thiel Diagram and assumes equal molar heats of vaporization.
+
+  Parameters:
+  -----------
+  equalibrium_curve : EqualibEq
+    Equation for an equalibrium curve of a bianary mixture.
+  q : float
+    Feed liquid fraction (unitless).
+  xf : float
+    Liquid fraction of the feed's lower boiling boint species (unitless).
+  xd : float
+    Liquid fraction of the distilate's lower boiling boint species (unitless).
+  xb : float
+    Liquid fraction of the bottoms' lower boiling boint species (unitless).
+  Rmin_mult : float
+    Factor by which to excede the minimum reflux ratio, Rmin (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf).
+  tol : float
+    Largest error value to stop iterating and return.
+
+  Returns:
+  -----------
+  Rmin : float
+    Minimum reflux ratio of the rectifying section (unitless).
+  R : float
+    Reflux ratio of the rectifying section (unitless).
+  min_stages : float
+    Minimum number of ideal stages (includes reboiler and partial condensor if applicable).
+  ideal_stages : float
+    Number of ideal stages (includes reboiler and partial condensor if applicable).
+  '''
   feedline = mccabe_thiel_feedline(q, xf)
 
   def err(x):
-    return eq_curve(x) - feedline.eval(x)
+    return eq_curve.eval(x) - feedline.eval(x)
 
   x, error, i = common.iter(err, [xb, xd], tol)
 
-  eq_feedpoint = (x, eq_curve(x))
+  eq_feedpoint = (x, eq_curve.eval(x))
 
-  mccabe_thiel_otherlines(feedline, eq_feedpoint, xd, xb, Rmin_mult)
+  rectifyline, stripline, feedpoint, Rmin, R = mccabe_thiel_otherlines(feedline, eq_feedpoint, xd, xb, Rmin_mult)
 
+  def equalibrium_line_walker(y_piecewise: function, xd: float):
+    y = xd
+    x = eq_curve.inv(xd)
+    i = 1
+    while x > xb:
+      y = y_piecewise(x)
+      x = eq_curve.inv(y)
+      i += 1
+    xprev = stripline.inv(y)
+    return (i - 1.) + (xprev - xb) / (xprev - x)
+
+  def y_reflect(x):
+    return x
+
+  def y_operlines(x):
+    if x >= feedpoint[0]:
+      y = rectifyline.eval(x)
+    else:
+      y = stripline.eval(x)
+    return y
+  
+  min_stages = equalibrium_line_walker(y_reflect, xd)
+  ideal_stages = equalibrium_line_walker(y_operlines, xd)
+
+  return Rmin, R, min_stages, ideal_stages
 
 def distilation_stream_split(F: float, xf: float, xd: float, xb: float, R: float = None, q: float = None) -> tuple[float, float, float | None, float | None, float | None, float | None]:
   '''
@@ -398,6 +450,7 @@ def distilation_stream_split(F: float, xf: float, xd: float, xb: float, R: float
 
   return D, B, V, L, Vprime, Lprime
 
+# TODO #10 finish ponchon_savarit
 def ponchon_savarit_graph(props: npt.ArrayLike, xf: float, yf: float, xd: float, xb: float, feedSatLiq: bool = True):
   '''
   Calculates the pochon_savarit Diagram for a bianary mixture distilation column.

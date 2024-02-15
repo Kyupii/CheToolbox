@@ -38,14 +38,39 @@ class LinearEq:
     X-intercept of the line.
   eval : function
     Return the output of the function (y) when evaluated at an input (x).
+  inv : function
+    Return the input of the function (x) that evaluates to an output (y).
   '''
   def __init__(self, m: float, b: float) -> None:
     self.m = m   
     self.b = b
     self.x_int = -m/b
   
-  def eval(self, x): # numpy compatible
+  def eval(self, x: float) -> float: # numpy compatible
     return self.m * x + self.b
+  
+  def inv(self, y: float) -> float: # numpy compatible
+    return (y - self.b) / self.m
+  
+class EqualibEq:
+  '''
+  alpha : float
+    Equalibrium ratio (K1 / K2) between two species.
+  eval : function
+    Return the output of the function (y) when evaluated at an input (x).
+  inv : function
+    Return the input of the function (x) that evaluates to an output (y).
+  '''
+  def __init__(self, alpha: float) -> None:
+    self.alpha = alpha
+  
+  def eval(self, x: float) -> float: # numpy compatible
+    # breaks if x = -1. / (1. - self.alpha)
+    return self.alpha * x / (1. + (1. - self.alpha) * x)
+  
+  def inv(self, y: float) -> float: # numpy compatible
+    # breaks if y = -self.alpha / (1. - self.alpha)
+    return y / (self.alpha + y * (1. - self.alpha))
 
 def antoine_T(v: npt.ArrayLike, P: npt.ArrayLike) -> npt.ArrayLike:
   '''
