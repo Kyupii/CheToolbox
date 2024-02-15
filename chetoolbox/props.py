@@ -387,7 +387,7 @@ def fate_analysis(env_vol: list, env_props: list, m: float, props: list) -> npt.
   Parameters:
   -----------
   env_vol : list
-    Volume of each environmental retention phase in cubic meters (m^3). Length must be 7.
+    Volume of each environmental retention phase in cubic meters (m^3). Length must be 7. Input 0. for ignored phases.
       Ex) np.array([Air, Water, Soil, Bottom Sediment, Suspended Sediment, Fish, Aerosols])
   env_props : list
     Environmental properties of the compound (unitless). Length must be 4.
@@ -414,7 +414,10 @@ def fate_analysis(env_vol: list, env_props: list, m: float, props: list) -> npt.
   env_cap[3] = env_cap[1]*2400*env_props[2]*(props[4]/1000)
   env_cap[4] = env_cap[1]*1000*env_props[0]*(props[4]/1000)
   env_cap[5] = env_cap[1]*1000*env_props[3]*(props[3]/1000)
-  env_cap[6] = env_cap[0]*6e6/props[6]
+  if props[6] == 0.:
+    env_cap[6] = 0.
+  else:
+    env_cap[6] = env_cap[0]*6e6/props[6]
 
   fate = np.ones((2, 7))
   fate[0] = env_cap*(((m * 1000) / props[0])/ np.sum(env_cap*env_vol))
