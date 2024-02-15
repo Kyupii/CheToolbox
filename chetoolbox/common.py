@@ -1,5 +1,6 @@
 import numpy as np
 import numpy.typing as npt
+from typing import Callable
 
 class TESTVARS:
   '''
@@ -36,9 +37,9 @@ class LinearEq:
     Y-intercept of the line.
   x_int : float
     X-intercept of the line.
-  eval : function
+  eval : Callable
     Return the output of the function (y) when evaluated at an input (x).
-  inv : function
+  inv : Callable
     Return the input of the function (x) that evaluates to an output (y).
   '''
   def __init__(self, m: float, b: float) -> None:
@@ -56,9 +57,9 @@ class EqualibEq:
   '''
   alpha : float
     Equalibrium ratio (K1 / K2) between two species.
-  eval : function
+  eval : Callable
     Return the output of the function (y) when evaluated at an input (x).
-  inv : function
+  inv : Callable
     Return the input of the function (x) that evaluates to an output (y).
   '''
   def __init__(self, alpha: float) -> None:
@@ -93,7 +94,7 @@ def lin_estimate_error(x_pair: npt.ArrayLike, y_pair: npt.ArrayLike) -> float:
   x_pair = np.atleast_1d(x_pair); y_pair = np.atleast_1d(y_pair)
   return x_pair[0] - y_pair[0] * ((x_pair[1]-x_pair[0])/(y_pair[1]-y_pair[0]))
 
-def err_reduc(err_calc: function, x: npt.ArrayLike) -> tuple[npt.ArrayLike, npt.ArrayLike]:
+def err_reduc(err_calc: Callable[[float], float], x: npt.ArrayLike) -> tuple[npt.ArrayLike, npt.ArrayLike]:
   '''
   Evaluates an error calculation for a pair of inputs and returns a new set of inputs with a smaller average error.
   '''
@@ -104,7 +105,7 @@ def err_reduc(err_calc: function, x: npt.ArrayLike) -> tuple[npt.ArrayLike, npt.
   x[np.argmin(err)] = xnew
   return x, err
 
-def iter(err_calc: function, x: npt.ArrayLike, tol: float = .001) -> tuple[float, float, int]:
+def iter(err_calc: Callable[[float], float], x: npt.ArrayLike, tol: float = .001) -> tuple[float, float, int]:
   '''
   Accepts a pair of inputs and an error function. Returns an input with tolerable error, the error, and the iterations required.
   '''

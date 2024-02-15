@@ -1,5 +1,6 @@
 import numpy as np
 import numpy.typing as npt
+from typing import Callable
 from chetoolbox import common
 
 def raoult_XtoY(x: list, K: list) -> tuple[npt.ArrayLike, float]:
@@ -377,7 +378,7 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, q: float, xf: float, xd: f
 
   rectifyline, stripline, feedpoint, Rmin, R = mccabe_thiel_otherlines(feedline, eq_feedpoint, xd, xb, Rmin_mult)
 
-  def equalibrium_line_walker(y_piecewise: function, xd: float):
+  def equalibrium_line_walker(y_piecewise: Callable[[float], float], xd: float):
     y = xd
     x = eq_curve.inv(xd)
     i = 1
