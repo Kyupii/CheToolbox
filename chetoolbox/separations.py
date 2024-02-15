@@ -53,7 +53,7 @@ def raoult_YtoX(y: list, K: list) -> tuple[npt.ArrayLike, float]:
 
 def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> tuple[float, npt.ArrayLike, npt.ArrayLike, float, int]:
   '''
-  Iteratively solves for the vapor/liquid output feed ratio psi (Ψ) of a multi-component liquid input stream entering a flash drum.  
+  Iteratively solves for the vapor/liquid output feed ratio psi (Ψ) of a multi-component fluid stream.  
   
   Parameters
   ----------
@@ -133,29 +133,26 @@ def bubble_point(x: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) 
   boil_points = common.antoine_T(ant_coeff, P)
   T = [np.max(boil_points), np.min(boil_points)]
 
-  def calcs(T):
+  def TtoY(T):
     Pvap = common.antoine_P(ant_coeff, T)
     k = Pvap / P
     y = np.c_[x] * k
-    error =  np.sum(y, axis=0) - 1
-    return Pvap, k, y, error
-
-  def iter(T):
-    _, _, _, error = calcs(T)
-    Tnew = common.lin_estimate_error(T, error)
-    error = np.abs(error)
-    T[np.argmin(error)] = Tnew
-    return error, T
+    return Pvap, k, y
   
-  error = 10000
+  def err(T):
+    _, _, y = TtoY(T)
+    return np.sum(y, axis=0) - 1.
+  
+  error = 10000.
   i = 0
   while np.min(error) > tol:
-    error, T = iter(T)
+    error, T = common.iter(err, T)
     i += 1
 
   bubbleT = T[np.argmin(error)]
-  Pvap, k, y, error = calcs(bubbleT)
-  return bubbleT, Pvap[:, 0], k[:, 0], y[:, 0], error[0], i
+  error = np.min(error)
+  Pvap, k, y = TtoY(bubbleT)
+  return bubbleT, Pvap[:, 0], k[:, 0], y[:, 0], error, i
 
 def dew_point(y: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> tuple[float, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, float, int]:
   '''
@@ -192,29 +189,26 @@ def dew_point(y: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> 
   boil_points = common.antoine_T(ant_coeff, P)
   T = [np.max(boil_points), np.min(boil_points)]
 
-  def calcs(T):
+  def TtoX(T):
     Pvap = common.antoine_P(ant_coeff, T)
     k = Pvap / P
     x = np.c_[y] / k
-    error =  np.sum(x, axis=0) - 1
-    return Pvap, k, x, error
+    return Pvap, k, x
   
-  def iter(T):
-    _, _, _, error = calcs(T)
-    Tnew = common.lin_estimate_error(T, error)
-    error = np.abs(error)
-    T[np.argmin(error)] = Tnew
-    return error, T
+  def err(T):
+    _, _, x = TtoX(T)
+    return np.sum(x, axis=0) - 1.
   
-  error = 10000
+  error = 10000.
   i = 0
   while np.min(error) > tol:
-    error, T = iter(T)
+    error, T = common.iter(err, T)
     i += 1
 
   dewT = T[np.argmin(error)]
-  Pvap, k, x, error = calcs(dewT)
-  return dewT, Pvap[:, 0], k[:, 0], x[:, 0], error[0], i
+  error = np.min(error)
+  Pvap, k, x = TtoX(dewT)
+  return dewT, Pvap[:, 0], k[:, 0], x[:, 0], error, i
 
 def liq_frac_subcooled(Cpl: float, heatvap: float, Tf: float, Tb: float) -> float:
   '''
@@ -260,7 +254,35 @@ def liq_frac_superheated(Cpv: float, heatvap: float, Tf: float, Td: float) -> fl
   '''
   return -Cpv * (Tf - Td) / heatvap
 
-def feedline_graph(q: float, xf: float) -> LinearEq:
+def eq_curve_estim(points: npt.ArrayLike, alpha: float = None) -> tuple[function, float]:
+  '''
+  Estimates an equalibrium curve. Assumes constant equalibrium ratio (K1 / K2) between the two species.
+
+  Parameters:
+  -----------
+  points : ArrayLike
+    Points on an equalibrium curve. Bounded (0, 1). Shape must be N x 2.
+      Ex) np.array([ [.2, .1], [.3, .23], [.4, .5] ])
+  alpha : float (Optional)
+    Relative volatility of the two species equalibrium constants (K) (unitless). Takes priority over point-based estimation.
+
+  Returns:
+  -----------
+  equalibrium_line : function
+    Equation for the equalibrium line on a McCabe Thiel Diagram, which accepts 1 input (x) and returns 1 output (y(x)).
+  alpha : float
+    Relative volatility of the two species equalibrium constants (K) (unitless).
+  '''
+  points = np.atleast_1d(points).reshape((-1, 2))
+  if alpha == None:
+    alpha = np.average( points[:, 1] * (1. - points[:, 0]) / points[:, 0] * (1. - points[:, 1]) )
+
+  def equalibrium_line(x): # numpy compatible
+    return alpha * x / (1. + (1. - alpha) * x)
+
+  return equalibrium_line, alpha
+
+def mccabe_thiel_feedline(q: float, xf: float) -> LinearEq:
   '''
   Calculates the slope and intercepts of the feed line on a McCabe Thiel Diagram for a bianary mixture distilation column.
 
@@ -284,7 +306,7 @@ def feedline_graph(q: float, xf: float) -> LinearEq:
     line = LinearEq(m, y_int)
   return line
 
-def mccabe_thiel_graph(feedline: LinearEq, eq_feedpoint: tuple, xd: float, xb: float, Rmin_mult: float = 1.2) -> tuple[float, float, LinearEq]:
+def mccabe_thiel_otherlines(feedline: LinearEq, eq_feedpoint: tuple, xd: float, xb: float, Rmin_mult: float = 1.2) -> tuple[LinearEq, LinearEq, tuple[float, float], float]:
   '''
   Calculates a McCabe Thiel Diagram for a bianary mixture distilation column.
 
@@ -330,6 +352,21 @@ def mccabe_thiel_graph(feedline: LinearEq, eq_feedpoint: tuple, xd: float, xb: f
 
   return rectifyline, stripline, feedpoint, R, 
 
+def mccabe_thiel_full_est(eq_curve: function, q: float, xf: float, xd: float, xb: float, Rmin_mult: float = 1.2, tol: float = .00001):
+  feedline = mccabe_thiel_feedline(q, xf)
+
+  def err(x):
+    return eq_curve(x) - feedline.eval(x)
+
+  error = 10000.
+  i = 0
+  while np.min(error) >= tol:
+    x, error = common.iter(err, x)
+    i += 1 
+  x = x[np.argmin(error)]
+  eq_feedpoint = (x, eq_curve(x))
+
+
 def distilation_stream_split(F: float, xf: float, xd: float, xb: float, R: float = None, q: float = None) -> tuple[float, float, float | None, float | None, float | None, float | None]:
   '''
   Calculates the distilate and bottom flow rates out of a bianary mixture distilation column. Optionally calculates the internal flows between the feed tray, rectifying, and stripping sections of the distilation column.
@@ -344,7 +381,9 @@ def distilation_stream_split(F: float, xf: float, xd: float, xb: float, R: float
     Liquid fraction of the lower boiling boint species in the distilate (unitless).
   xb : float
     Liquid fraction of the lower boiling boint species in the bottoms (unitless).
-  q : float
+  R : float (Optional)
+    Reflux ratio of the rectifying section (unitless).
+  q : float (Optional)
     Feed liquid fraction (unitless).
 
   Returns:
@@ -375,41 +414,7 @@ def distilation_stream_split(F: float, xf: float, xd: float, xb: float, R: float
 
   return D, B, V, L, Vprime, Lprime
 
-def mccabe_thiel_equalibrium_simple(feedline: LinearEq, alpha: float) -> tuple[function, tuple[float, float] | None]:
-  '''
-  Calculates the point of intersection between the feed line and the equalibrium line on a McCabe Thiel Diagram for a bianary mixture distilation column.
-
-  Parameters:
-  -----------
-  feedline : LinearEq
-    Feed line of a McCabe Thiel Diagram.
-  alpha : float
-    Relative volatility of the two species equalibrium constants (K) (unitless).
-
-  Returns:
-  -----------
-  eq_line : function
-    Equation for the equalibrium line on a McCabe Thiel Diagram, which accepts 1 input (x) and returns 1 output (y(x)).
-  feedEQ : tuple
-    Point of intersection between the feed line and the equalibrium line on a McCabe Thiel Diagram (unitless, unitless).
-  '''
-  def eq_line(x):
-    return alpha * x / (1. + (alpha - 1.) * x)
-
-  a = (alpha - 1.) * feedline.m
-  b = feedline.b * (alpha - 1.) - alpha + feedline.m
-  c = feedline.b
-  sol = common.quadratic_formula([a, b, c])
-  if sol == None:
-    return None
-  x = sol[(sol >= 0) & (sol <= 1)] # assume only one valid intersection
-  y = eq_line(x)
-  return eq_line, (x, y)
-
-def ponchon_savarit_feedpoint_iter():
-  return
-
-def ponchon_savarit(props: npt.ArrayLike, xf: float, yf: float, feedliq: bool = True):
+def ponchon_savarit_graph(props: npt.ArrayLike, xf: float, yf: float, xd: float, xb: float, feedSatLiq: bool = True):
   '''
   Calculates the pochon_savarit Diagram for a bianary mixture distilation column.
 
@@ -422,8 +427,13 @@ def ponchon_savarit(props: npt.ArrayLike, xf: float, yf: float, feedliq: bool = 
     Liquid fraction of the lower boiling boint species in the feed (unitless).
   yf : float
     Vapor fraction of the lower boiling boint species in the feed (unitless). Corresponding y-value of xf on the equalibrium curve.
-  feedliq : bool  # TODO #9 check if q is a valid substitute for this var
-    Whether the feed's phase is entirely liquid. False means the feed's phase is entirely vapor.=
+  xd : float
+    Liquid fraction of the lower boiling boint species in the distilate (unitless).
+  xb : float
+    Liquid fraction of the lower boiling boint species in the bottoms (unitless).
+  feedSatLiq : bool  # TODO #9 check if q is a valid substitute for this var
+    Whether the feed is saturated liquid (vaporless / at its bubble point). False means the feed is saturated vapor (liquidless / at its dew point).
+
   Returns:
   -----------
   
@@ -434,11 +444,19 @@ def ponchon_savarit(props: npt.ArrayLike, xf: float, yf: float, feedliq: bool = 
   liqlineH = common.point_slope((1., 0.), (0., props[1, 1] * (props[1, 0] - props[0, 0])))
   vaplineH = common.point_slope((1., props[0, 2]), (0., props[1, 1] * (props[1, 0] - props[0, 0]) + props[1, 2]))
 
-  if feedliq:
+  if feedSatLiq:
     feedpoint = (xf, liqlineH.eval(xf))
-  elif not feedliq:
+    tiepoint = (yf, vaplineH.eval(yf))
+  elif not feedSatLiq:
     feedpoint = (yf, vaplineH.eval(yf))
+    tiepoint = (xf, liqlineH.eval(xf))
   else:
     return liqlineH, vaplineH #manual guess-and-check for feedpoint required
+
+  tieline = common.point_slope(feedpoint, tiepoint)
+  hd = (xd, liqlineH.eval(xd))
+  hv1 = (xd, vaplineH.eval(xd))
+  hdqcd = (xd, tieline.eval(xd))
+  Rmin = (hdqcd - hv1) / (hv1 - hd)
 
   return

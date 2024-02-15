@@ -44,7 +44,7 @@ class LinearEq:
     self.b = b
     self.x_int = -m/b
   
-  def eval(self, x):
+  def eval(self, x): # numpy compatible
     return self.m * x + self.b
 
 def antoine_T(v: npt.ArrayLike, P: npt.ArrayLike) -> npt.ArrayLike:
@@ -66,6 +66,16 @@ def lin_estimate_error(x_pair: list, y_pair: list) -> float:
   Calculates the x-intercept (x=0) for a given pair of x and y distances. Assumes linearity.
   '''
   return x_pair[0] - y_pair[0] * ((x_pair[1]-x_pair[0])/(y_pair[1]-y_pair[0]))
+
+def iter(err_calc: function, x: npt.ArrayLike) -> tuple[npt.ArrayLike, npt.ArrayLike]:
+  '''
+  Evaluates an error calculation for a pair of inputs and returns a new set of inputs with a smaller average error.
+  '''
+  error = err_calc(x)
+  xnew = lin_estimate_error(x, error)
+  error = np.abs(error)
+  x[np.argmin(error)] = xnew
+  return x, error
 
 def vertical_line(x) -> LinearEq:
   line = LinearEq(0, 1)
