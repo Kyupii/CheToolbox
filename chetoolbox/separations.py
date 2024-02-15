@@ -143,16 +143,10 @@ def bubble_point(x: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) 
     _, _, y = TtoY(T)
     return np.sum(y, axis=0) - 1.
   
-  error = 10000.
-  i = 0
-  while np.min(error) > tol:
-    error, T = common.iter(err, T)
-    i += 1
+  bubbleT, error, i = common.iter(err, T, tol)
 
-  bubbleT = T[np.argmin(error)]
-  error = np.min(error)
   Pvap, k, y = TtoY(bubbleT)
-  return bubbleT, Pvap[:, 0], k[:, 0], y[:, 0], error, i
+  return bubbleT, Pvap, k, y, error, i
 
 def dew_point(y: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> tuple[float, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, float, int]:
   '''
@@ -199,16 +193,10 @@ def dew_point(y: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> 
     _, _, x = TtoX(T)
     return np.sum(x, axis=0) - 1.
   
-  error = 10000.
-  i = 0
-  while np.min(error) > tol:
-    error, T = common.iter(err, T)
-    i += 1
-
-  dewT = T[np.argmin(error)]
-  error = np.min(error)
-  Pvap, k, x = TtoX(dewT)
-  return dewT, Pvap[:, 0], k[:, 0], x[:, 0], error, i
+  dewT, error, i = common.iter(err, T, tol)
+  
+  Pvap, k, y = TtoX(dewT)
+  return dewT, Pvap, k, y, error, i
 
 def liq_frac_subcooled(Cpl: float, heatvap: float, Tf: float, Tb: float) -> float:
   '''

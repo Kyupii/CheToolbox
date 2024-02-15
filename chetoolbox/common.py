@@ -67,15 +67,26 @@ def lin_estimate_error(x_pair: list, y_pair: list) -> float:
   '''
   return x_pair[0] - y_pair[0] * ((x_pair[1]-x_pair[0])/(y_pair[1]-y_pair[0]))
 
-def iter(err_calc: function, x: npt.ArrayLike) -> tuple[npt.ArrayLike, npt.ArrayLike]:
+def err_reduc(err_calc: function, x: npt.ArrayLike) -> tuple[npt.ArrayLike, npt.ArrayLike]:
   '''
   Evaluates an error calculation for a pair of inputs and returns a new set of inputs with a smaller average error.
   '''
-  error = err_calc(x)
-  xnew = lin_estimate_error(x, error)
-  error = np.abs(error)
-  x[np.argmin(error)] = xnew
-  return x, error
+  err = err_calc(x)
+  xnew = lin_estimate_error(x, err)
+  err = np.abs(err)
+  x[np.argmin(err)] = xnew
+  return x, err
+
+def iter(err_calc: function, x: npt.ArrayLike, tol: float = .001) -> tuple[float, float, int]:
+  '''
+  Accepts a pair of inputs and an error function. Returns an input with tolerable error, the error, and the iterations required.
+  '''
+  error = 10000.
+  i = 0
+  while np.min(error) > tol:
+    error, x = err_reduc(err_calc, x)
+    i += 1
+  return x[np.argmin(error)], np.min(error), i
 
 def vertical_line(x) -> LinearEq:
   line = LinearEq(0, 1)
