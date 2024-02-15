@@ -61,16 +61,18 @@ def antoine_P(v: npt.ArrayLike, T: npt.ArrayLike) -> npt.ArrayLike:
   v = np.atleast_1d(v); T = np.atleast_1d(T)
   return 10 ** (np.c_[v[:, 0]] - np.c_[v[:, 1]] / (T + np.c_[v[:, 2]]))
 
-def lin_estimate_error(x_pair: list, y_pair: list) -> float:
+def lin_estimate_error(x_pair: npt.ArrayLike, y_pair: npt.ArrayLike) -> float:
   '''
   Calculates the x-intercept (x=0) for a given pair of x and y distances. Assumes linearity.
   '''
+  x_pair = np.atleast_1d(x_pair); y_pair = np.atleast_1d(y_pair)
   return x_pair[0] - y_pair[0] * ((x_pair[1]-x_pair[0])/(y_pair[1]-y_pair[0]))
 
 def err_reduc(err_calc: function, x: npt.ArrayLike) -> tuple[npt.ArrayLike, npt.ArrayLike]:
   '''
   Evaluates an error calculation for a pair of inputs and returns a new set of inputs with a smaller average error.
   '''
+  x = np.atleast_1d(x)
   err = err_calc(x)
   xnew = lin_estimate_error(x, err)
   err = np.abs(err)
@@ -81,6 +83,7 @@ def iter(err_calc: function, x: npt.ArrayLike, tol: float = .001) -> tuple[float
   '''
   Accepts a pair of inputs and an error function. Returns an input with tolerable error, the error, and the iterations required.
   '''
+  x = np.atleast_1d(x)
   error = 10000.
   i = 0
   while np.min(error) > tol:

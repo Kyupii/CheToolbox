@@ -131,7 +131,6 @@ def bubble_point(x: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) 
   x = np.atleast_1d(x)
   ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
   boil_points = common.antoine_T(ant_coeff, P)
-  T = [np.max(boil_points), np.min(boil_points)]
 
   def TtoY(T):
     Pvap = common.antoine_P(ant_coeff, T)
@@ -143,7 +142,7 @@ def bubble_point(x: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) 
     _, _, y = TtoY(T)
     return np.sum(y, axis=0) - 1.
   
-  bubbleT, error, i = common.iter(err, T, tol)
+  bubbleT, error, i = common.iter(err, [np.max(boil_points), np.min(boil_points)], tol)
 
   Pvap, k, y = TtoY(bubbleT)
   return bubbleT, Pvap, k, y, error, i
@@ -181,7 +180,6 @@ def dew_point(y: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> 
   y = np.atleast_1d(y)
   ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
   boil_points = common.antoine_T(ant_coeff, P)
-  T = [np.max(boil_points), np.min(boil_points)]
 
   def TtoX(T):
     Pvap = common.antoine_P(ant_coeff, T)
@@ -193,7 +191,7 @@ def dew_point(y: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> 
     _, _, x = TtoX(T)
     return np.sum(x, axis=0) - 1.
   
-  dewT, error, i = common.iter(err, T, tol)
+  dewT, error, i = common.iter(err, [np.max(boil_points), np.min(boil_points)], tol)
   
   Pvap, k, y = TtoX(dewT)
   return dewT, Pvap, k, y, error, i
@@ -346,13 +344,11 @@ def mccabe_thiel_full_est(eq_curve: function, q: float, xf: float, xd: float, xb
   def err(x):
     return eq_curve(x) - feedline.eval(x)
 
-  error = 10000.
-  i = 0
-  while np.min(error) >= tol:
-    x, error = common.iter(err, x)
-    i += 1 
-  x = x[np.argmin(error)]
+  x, error, i = common.iter(err, [xb, xd], tol)
+
   eq_feedpoint = (x, eq_curve(x))
+
+  mccabe_thiel_otherlines(feedline, eq_feedpoint, xd, xb, Rmin_mult)
 
 
 def distilation_stream_split(F: float, xf: float, xd: float, xb: float, R: float = None, q: float = None) -> tuple[float, float, float | None, float | None, float | None, float | None]:
