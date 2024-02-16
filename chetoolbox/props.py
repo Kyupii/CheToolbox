@@ -394,6 +394,26 @@ def gibbs_est_HandS(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0
   S = deltaS_0 + delta[0] * np.log(T/T_0) + delta[1]*(T-T_0) + delta[2] / 2. * (T**2 - T_0*2)
   return H - T * S
 
+def gibbs(deltaH: float, deltaS: float, T: float) -> float:
+  '''
+  Calculates Gibbs free energy of a balanced chemical reaction from the reaction's net change in enthalpy and entropy. A negative value indicates a spontaneous reaction.
+
+  Parameters:
+  -----------
+  deltaH : float
+    Heat of reaction in J/mol (Joules per mole).
+  deltaS : float
+    Entropy of reaction in J/mol*K (Joules per mole Kelvin).
+  T : float
+    Current temperature of the reaction in K (Kelvin).
+
+  Returns:
+  -----------
+  deltaG : float
+    Estimated Gibbs free energy of the reaction in J/mol (Joules per mole).
+  '''
+  return deltaH - T * deltaS
+
 def k_est_gibbs(G: float, T: float) -> float:
   '''
   Estimates equilibrium constant of a reaction from Gibbs free energy.
