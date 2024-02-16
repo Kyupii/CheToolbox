@@ -203,9 +203,9 @@ def liq_frac_subcooled(Cpl: float, heatvap: float, Tf: float, Tb: float) -> floa
   Parameters:
   -----------
   Cpl : float
-    Specific heat of the liquid feed in kJ/mol*K (kilojoules per mole Kelvin).
+    Specific heat of the liquid feed in J/mol*K (joules per mole Kelvin).
   heatvap : float
-    Heat of vaporization of the liquid feed in kJ/mol (kilojoules per mole).
+    Heat of vaporization of the liquid feed in J/mol (joules per mole).
   Tf : float
     Temperature of the liquid feed in K (Kelvin).
   Tb : float
@@ -225,9 +225,9 @@ def liq_frac_superheated(Cpv: float, heatvap: float, Tf: float, Td: float) -> fl
   Parameters:
   -----------
   Cpv : float
-    Specific heat of the vapor feed in kJ/mol*K (kilojoules per mole Kelvin).
+    Specific heat of the vapor feed in J/mol*K (joules per mole Kelvin).
   heatvap : float
-    Heat of vaporization of the vapor feed in kJ/mol (kilojoules per mole).
+    Heat of vaporization of the vapor feed in J/mol (joules per mole).
   Tf : float
     Temperature of the vapor feed in K (Kelvin).
   Td : float
