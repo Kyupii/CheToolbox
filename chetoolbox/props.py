@@ -237,13 +237,14 @@ def biodegrade_est(g: npt.ArrayLike, MW: float) -> tuple[float, str]:
   '''
   g = np.atleast_1d(g).reshape(-1, 2)
   I = 3.199 + np.sum( g[:,0] * g[:,1] ) - .00221*MW
-  if I <= 1. :   cat = "Lifetime of Years"
-  elif I <= 2.:  cat = "Lifetime of Months"
-  elif I <= 3.:  cat = "Lifetime of Weeks"
-  elif I <= 4.:  cat ="Lifetime of Days"
+  Iround = np.round(I, 0)
+  if Iround <= 1. :   cat = "Lifetime of Years"
+  elif Iround == 2.:  cat = "Lifetime of Months"
+  elif Iround == 3.:  cat = "Lifetime of Weeks"
+  elif Iround == 4.:  cat ="Lifetime of Days"
   else: cat = "Lifetime of Hours"
   
-  return I, cat
+  return I , cat
 
 def cp_est(const: list, T: float) -> float:
   '''
@@ -328,9 +329,29 @@ def deltaS_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaS_0: flo
   # deltaS = deltaS_0 + integral( Cp / T dT) = integral( A/T + B + C*T + D/T**3 dT) = Aln(T) + B*T + .5*C*T**2 -.5*D/T**2
   return deltaS_0 + delta[0] * np.log(T/T_0) + delta[1] * (T - T_0) + .5 * delta[2] * (T**2 - T_0**2) - .5 * delta[3] / (T**2 - T_0**2)
 
-def gibbs_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0: float, G_0: float, T_0: float = 298.) -> float:
+def gibbs_rxn(deltaH: float, deltaS: float, T: float) -> float:
   '''
-  Estimates Gibbs free energy of a balanced chemical reaction via standard Gibbs free energy. A negative value indicates a spontaneous reaction.
+  Calculates Gibbs free energy of a balanced chemical reaction from the reaction's net change in enthalpy and entropy. A negative value indicates a spontaneous reaction.
+
+  Parameters:
+  -----------
+  deltaH : float
+    Heat of reaction in J/mol (Joules per mole).
+  deltaS : float
+    Entropy of reaction in J/mol*K (Joules per mole Kelvin).
+  T : float
+    Current temperature of the reaction in K (Kelvin).
+
+  Returns:
+  -----------
+  deltaG : float
+    Estimated Gibbs free energy of the reaction in J/mol (Joules per mole).
+  '''
+  return deltaH - T * deltaS
+
+def gibbs_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0: float, deltaG_0: float, T_0: float = 298.) -> float:
+  '''
+  Estimates Gibbs free energy of a balanced chemical reaction via its standard net change in enthalpy and Gibbs free energy. A negative value indicates a spontaneous reaction.
 
   Parameters:
   -----------
@@ -358,11 +379,11 @@ def gibbs_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0: floa
   prod = np.atleast_1d(prod).reshape(-1, 5)
   reac = np.atleast_1d(reac).reshape(-1, 5)
   delta = np.sum(np.c_[prod[:, 0]]*prod[:, 1:], axis=0) - np.sum(np.c_[reac[:, 0]]*reac[:, 1:], axis=0)
-  return deltaH_0 + (G_0 - deltaH_0) * phi + T_0 * delta[0] * (phi - 1. - phi*np.log(phi)) - .5 * T_0**2 * delta[1] * (phi**2 - 2.*phi + 1.) -  (1./6.) * delta[2] * T_0**3 * (phi**3 - 3.*phi + 2.) - delta[3] * ( (phi**2 - 2.*phi + 1.) / phi) / (2.*T_0) 
+  return deltaH_0 + (deltaG_0 - deltaH_0) * phi + T_0 * delta[0] * (phi - 1. - phi*np.log(phi)) - .5 * T_0**2 * delta[1] * (phi**2 - 2.*phi + 1.) -  (1./6.) * delta[2] * T_0**3 * (phi**3 - 3.*phi + 2.) - delta[3] * ( (phi**2 - 2.*phi + 1.) / phi) / (2.*T_0) 
 
 def gibbs_est_HandS(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0: float, deltaS_0: float, T_0: float = 298.) -> float:
   '''
-  Estimates Gibbs free energy of a balanced chemical reaction via standard entropy. A negative value indicates a spontaneous reaction.
+  Estimates Gibbs free energy of a balanced chemical reaction via its standard net change in enthalpy and entropy. A negative value indicates a spontaneous reaction.
 
   Parameters:
   -----------
@@ -411,11 +432,7 @@ def k_est_gibbs(G: float, T: float) -> float:
   '''
   return np.e ** (G / (-8.314 * T))
 
-# TODO THIS DOES NOT WORK! FIX THIS!
-# TODO THIS DOES NOT WORK! FIX THIS!
-# TODO THIS DOES NOT WORK! FIX THIS!
-# TODO THIS DOES NOT WORK! FIX THIS!
-def fate_analysis(m: float, props: list, env_vol: list, env_props: list) -> npt.ArrayLike:
+def fate_analysis(m: float, props: list, env_vol: list, env_dens : list, env_props: list) -> npt.ArrayLike:
   '''
   Calculates the volumetric retention of a compound in the environment based on its chemical properties.
 
@@ -429,6 +446,9 @@ def fate_analysis(m: float, props: list, env_vol: list, env_props: list) -> npt.
   env_vol : list
     Volume of each environmental retention phase in m^3 (cubic meters). Phases with a volume of 0. are ignored. Length must be 7.
       Ex) np.array([Air, Water, Soil, Bottom Sediment, Suspended Sediment, Fish, Aerosols])
+  env_dens : list
+    Density of each environmental retention phase in kg/m^3 (kilograms per cubic meter) except Lipid Content in Fish (unitless). Phases with a density of 0. are ignored. Length must be 4.
+      Ex) np.array([Soil, Bottom Sediment, Suspended Sediment, Lipid Content in Fish])
   env_props : list
     Environmental properties of the compound (unitless). Properties with a volume of 0. are ignored. Length must be 4. 
       Ex) [Mass Fraction of Organic Carbon in Soil, Mass Fraction of Organic Carbon in Bottom Sediment, Mass Fraction of Organic Carbon in Suspended Sediment, Lipid Content of Fish]
@@ -436,28 +456,37 @@ def fate_analysis(m: float, props: list, env_vol: list, env_props: list) -> npt.
   Returns
   -----------
   fate : ArrayLike
-    Quantity of compound retained within each environmental phase in kg and mol (kilograms and moles). Shape is 2 x 7. 
-      Ex) np.array([[Air, Water, Soil, Bottom Sediment, Suspended Sediment, Fish, Aerosols] (kg),
-                    [Air, Water, Soil, Bottom Sediment, Suspended Sediment, Fish, Aerosols] (mol) ])
+    Quantity of compound retained within each environmental phase in mol/m^3, mol, and kg (moles per cubic meter, moles, and kilograms). Shape is 3 x 7. 
+      Ex) np.array([[Air, Water, Soil, Bottom Sediment, Suspended Sediment, Fish, Aerosols] (mol/m^3),
+                    [Air, Water, Soil, Bottom Sediment, Suspended Sediment, Fish, Aerosols] (mol),
+                    [Air, Water, Soil, Bottom Sediment, Suspended Sediment, Fish, Aerosols] (kg) ])
+  env_cap : ArrayLike
+    Capacity within each environmental phase in mol/Pa*m^3 (moles per Pascal meter cubed).
+      Ex) np.array([Air, Water, Soil, Bottom Sediment, Suspended Sediment, Fish, Aerosols])
+  fugac : float
+    Fugacity of the compound in the environment in Pa (Pascals).
   '''
   env_vol = np.atleast_1d(env_vol); env_props = np.atleast_1d(env_props); props = np.atleast_1d(props)
 
   env_cap = np.empty(7)
-  env_cap[0] = (1 / (props[5]*8.314))
-  env_cap[1] = props[2]
-  env_cap[2] = env_cap[1]*2400*env_props[0]*(props[4]/1000)
-  env_cap[3] = env_cap[1]*2400*env_props[1]*(props[4]/1000)
-  env_cap[4] = env_cap[1]*1000*env_props[2]*(props[4]/1000)
-  env_cap[5] = env_cap[1]*1000*env_props[3]*(props[3]/1000)
+  env_cap[0] = (1. / (props[5]*8.314))                              #atmos
+  env_cap[1] = 1./props[2]                                          #water
+  env_cap[2] = env_cap[1]*env_dens[0]*env_props[0]*(props[4]/1000)  #soil
+  env_cap[3] = env_cap[1]*env_dens[1]*env_props[1]*(props[4]/1000)  #sed
+  env_cap[4] = env_cap[1]*env_dens[2]*env_props[2]*(props[4]/1000)  #sus sed
+  env_cap[5] = env_cap[1]*env_dens[3]*env_props[3]*(props[3]/1000)  #fish
   if props[6] == 0.:
     env_cap[6] = 0.
   else:
-    env_cap[6] = env_cap[0]*6e6/props[6]
+    env_cap[6] = env_cap[0]*6e6/props[6]                            #aerosol
 
-  fate = np.ones((2, 7))
-  fate[0] = env_cap*(((m * 1000) / props[0])/ np.sum(env_cap*env_vol))
-  fate[1] = fate[0]*env_vol
-  return fate
+  fugac = m * 1000 / props[0] / np.sum(env_cap * env_vol)
+  
+  fate = np.ones((3, 7))
+  fate[0] = env_cap * fugac 
+  fate[1] = fate[0] * env_vol
+  fate[2] = fate[1] * props[0]
+  return fate, env_cap, fugac
 
 def atom_economy(atoms: npt.ArrayLike) -> float:
   '''
