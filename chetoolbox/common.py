@@ -153,4 +153,4 @@ def quadratic_formula(coeff: npt.ArrayLike) -> npt.ArrayLike | None:
   descrim = coeff[1]**2 - 4*coeff[0]*coeff[2]
   if descrim < 0:
     return None
-  return (- coeff[1] + np.sqrt(np.array([descrim])).repeat(2) * np.array([1, -1])) / (2. * coeff[0])
+  return (- coeff[1] + np.sqrt(np.array([descrim])) * np.array([1, -1])) / (2. * coeff[0])
