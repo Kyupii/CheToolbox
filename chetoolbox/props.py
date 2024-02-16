@@ -358,7 +358,7 @@ def gibbs_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0: floa
   prod = np.atleast_1d(prod).reshape(-1, 5)
   reac = np.atleast_1d(reac).reshape(-1, 5)
   delta = np.sum(np.c_[prod[:, 0]]*prod[:, 1:], axis=0) - np.sum(np.c_[reac[:, 0]]*reac[:, 1:], axis=0)
-  return deltaH_0 + (G_0 - deltaH_0) * phi + T_0 * (delta[0]) * (phi - 1 + phi*np.log(phi)) - (T_0**2) / 2 * delta[1] * (phi**2 - 2*phi + 1) - (T_0**2)*delta[2] / 6 * (phi**3 - 3*phi + 2) - delta[3] / (2*T_0) * ( (phi**2 + 2*phi +1)/phi)
+  return deltaH_0 + (G_0 - deltaH_0) * phi + T_0 * delta[0] * (phi - 1. - phi*np.log(phi)) - .5 * T_0**2 * delta[1] * (phi**2 - 2.*phi + 1.) -  (1./6.) * delta[2] * T_0**3 * (phi**3 - 3.*phi + 2.) - delta[3] * ( (phi**2 - 2.*phi + 1.) / phi) / (2.*T_0) 
 
 def gibbs_est_HandS(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0: float, deltaS_0: float, T_0: float = 298.) -> float:
   '''
@@ -411,26 +411,30 @@ def k_est_gibbs(G: float, T: float) -> float:
   '''
   return np.e ** (G / (-8.314 * T))
 
-def fate_analysis(env_vol: list, env_props: list, m: float, props: list) -> npt.ArrayLike:
+# TODO THIS DOES NOT WORK! FIX THIS!
+# TODO THIS DOES NOT WORK! FIX THIS!
+# TODO THIS DOES NOT WORK! FIX THIS!
+# TODO THIS DOES NOT WORK! FIX THIS!
+def fate_analysis(m: float, props: list, env_vol: list, env_props: list) -> npt.ArrayLike:
   '''
   Calculates the volumetric retention of a compound in the environment based on its chemical properties.
 
   Parameters:
   -----------
+  m : float
+    Mass of compound released into the environment in kg (kilograms).
+  props : list
+    Chemical properties of the compound being analyzed. Shape must be 1 x 7.
+      Ex) np.array([Molecular Weight (g/mol), Aqueous Solubility (g/m^3), Henry's Law Constant (Pa*m^3/mol), K_ow (unitless), K_oc (unitless), Temperature (K), Liquid Vapor Pressure (Pa) ])
   env_vol : list
     Volume of each environmental retention phase in m^3 (cubic meters). Phases with a volume of 0. are ignored. Length must be 7.
       Ex) np.array([Air, Water, Soil, Bottom Sediment, Suspended Sediment, Fish, Aerosols])
   env_props : list
     Environmental properties of the compound (unitless). Properties with a volume of 0. are ignored. Length must be 4. 
-      Ex) [Mass Fraction of Organic Carbon in Suspended Sediment, Mass Fraction of Organic Carbon in Soil, Mass Fraction of Organic Carbon in Bottom Sediment, Lipid Content of Fish]
-  m : float
-    Mass of compound released into the environment in kg (kilograms).
-  props : list
-    Chemical properties of the compound being analyzed. Shape must be 1 x 7.
-      Ex) np.array([Molecular Weight (g/mol), Aqueous Solubility (g/m^3), Henry's Law Constant (moles/m^3*Pa), K_ow (unitless), K_oc (unitless), Temperature (K), Liquid Vapor Pressure (Pa) ])
-
+      Ex) [Mass Fraction of Organic Carbon in Soil, Mass Fraction of Organic Carbon in Bottom Sediment, Mass Fraction of Organic Carbon in Suspended Sediment, Lipid Content of Fish]
+  
   Returns
-  -------
+  -----------
   fate : ArrayLike
     Quantity of compound retained within each environmental phase in kg and mol (kilograms and moles). Shape is 2 x 7. 
       Ex) np.array([[Air, Water, Soil, Bottom Sediment, Suspended Sediment, Fish, Aerosols] (kg),
@@ -441,9 +445,9 @@ def fate_analysis(env_vol: list, env_props: list, m: float, props: list) -> npt.
   env_cap = np.empty(7)
   env_cap[0] = (1 / (props[5]*8.314))
   env_cap[1] = props[2]
-  env_cap[2] = env_cap[1]*2400*env_props[1]*(props[4]/1000)
-  env_cap[3] = env_cap[1]*2400*env_props[2]*(props[4]/1000)
-  env_cap[4] = env_cap[1]*1000*env_props[0]*(props[4]/1000)
+  env_cap[2] = env_cap[1]*2400*env_props[0]*(props[4]/1000)
+  env_cap[3] = env_cap[1]*2400*env_props[1]*(props[4]/1000)
+  env_cap[4] = env_cap[1]*1000*env_props[2]*(props[4]/1000)
   env_cap[5] = env_cap[1]*1000*env_props[3]*(props[3]/1000)
   if props[6] == 0.:
     env_cap[6] = 0.
@@ -454,3 +458,22 @@ def fate_analysis(env_vol: list, env_props: list, m: float, props: list) -> npt.
   fate[0] = env_cap*(((m * 1000) / props[0])/ np.sum(env_cap*env_vol))
   fate[1] = fate[0]*env_vol
   return fate
+
+def atom_economy(atoms: npt.ArrayLike) -> float:
+  '''
+  Calculates the atom economy of a reaction for a specific produced compound by elemental mass.
+
+  Parameters:
+  -----------
+  atoms : ArrayLike
+    The element's molecular weight in kg/kmol (kilograms per kilomole), the element's quantity in the target product and the element's element's quantity among all reactants. Shape must be N x 3.
+      Ex) For a reaction containing 4 elements: np.array([[12., 4, 0], [16, 5, 2], [1, 22, 8], [35.5, 2, 0]])
+
+  Returns
+  -----------
+  aecon : float
+    Atomic economy of the desired product.
+  '''
+
+  atoms = np.atleast_1d(atoms).reshape(-1, 3)
+  return np.sum(atoms[:,0] * atoms[:,1]) / np.sum(atoms[:,0] * atoms[:,2])
