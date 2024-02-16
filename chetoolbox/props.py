@@ -39,47 +39,48 @@ def mp_est(T_b: float)-> float:
   '''
   return 0.5839 * T_b
 
-def pvap_solid_est(T: float, T_b: float)-> float:
+def pvap_solid_est(T_b: float, T_m: float, T: float)-> float:
   '''
   Estimates the vapor pressure of a solid compound.
 
   Parameters:
   -----------
-  T : float
-    Current temperature of the solid compound in K (Kelvin).
   T_b : float
     Boiling point temperature of the solid compound in K (Kelvin).
+  T_m : float
+    Estimated melting point temperature in K (Kelvin).
+  T : float
+    Current temperature of the solid compound in K (Kelvin).
 
   Returns:
   -----------
   pvap : float
     Estimated vapor pressure in atm (atmospheres).
   '''
-  T_m = mp_est(T_b)
-  return -(4.4 + np.log(T_b))* (1.803 * (T_b / (T-1) - 0.803* np.log(T_b/T))) - 6.8 * (T_m / (T-1) )
+  return np.exp( -(4.4 + np.log(T_b)) * (1.803 * (T_b / T - 1.) - 0.803 * np.log(T_b/T)) - 6.8 * (T_m / T - 1.) )
 
-def pvap_liq_est(T: float, T_b: float, K_F: float)-> float:
+def pvap_liq_est(T_b: float, K_F: float, T: float)-> float:
   '''
   Estimates the vapor pressure of a liquid compound.
 
   Parameters:
   -----------
-  T : float
-    Current temperature of the liquid compound in K (Kelvin).
   T_b : float
     Boiling point temperature of the liquid compound in K (Kelvin).
   K_F : float
     K factor of the liquid compound.
+  T : float
+    Current temperature of the liquid compound in K (Kelvin).
 
   Returns:
   -----------
   pvap : float
     Estimated vapor pressure in atm (atmospheres).
   '''
-  R = 1.987
-  C = -18 + 0.19 * T_b
+  R = 1.987 #cal/mol*K
+  C = -18. + 0.19 * T_b
   A = K_F * (8.75 + R * np.log( T_b ))
-  return np.e ** ( (A * (T_b - C)**2 / (0.97 * R * T_b)) * ( 1 / (T_b - C) - 1 / (T-C)))
+  return np.exp( (A * (T_b - C)**2 / (0.97 * R * T_b)) * ( 1. / (T_b - C) - 1. / (T - C)))
 
 def Kow_est(f: npt.ArrayLike) -> float:
   '''
@@ -96,7 +97,7 @@ def Kow_est(f: npt.ArrayLike) -> float:
   K_ow : float
     Estimated octanol / water equilibrium constant (unitless).
   '''
-  return 0.229 + np.sum(f[:,0] * f[:,1]) + np.sum(f[:,0] * f[:,2])
+  return 10**(0.229 + np.sum(f[:,0] * f[:,1]) + np.sum(f[:,0] * f[:,2]))
 
 def bioconc_est(K_ow: float, c: list = None) -> tuple[float, str]:
   '''
@@ -198,7 +199,7 @@ def soil_sorb_est(g: npt.ArrayLike, mole_con: npt.ArrayLike | float) -> float:
   Parameters:
   -----------
   g : ArrayLike
-    The frequency of a group's appearance and the group's contribution value. Shape must be N x 2.
+    The frequency of a group's appearance and the group's correction factor. Shape must be N x 2.
       Ex) For a molecule containing 4 groups: np.array([[3, 1.233], [1, 23.5], [2, 44.6], [7, 103.6]])
   mole_con: npt.ArrayLike | float
     First order molecular connectivity index of the compound. Must be precomputed (float) or of shape 1 x 2N.
@@ -214,7 +215,7 @@ def soil_sorb_est(g: npt.ArrayLike, mole_con: npt.ArrayLike | float) -> float:
     mole_con = np.sum( (1. / (mole_con[:,0]*mole_con[:,1]) )**.5 )
   
   g = np.atleast_1d(g).reshape(-1, 2)
-  return .53 * mole_con + .62 + np.sum( g[:,0] * g[:,1] )
+  return 10**(.53 * mole_con + .62 + np.sum( g[:,0] * g[:,1] ))
 
 def biodegrade_est(g: npt.ArrayLike, MW: float) -> tuple[float, str]:
   '''
