@@ -138,7 +138,7 @@ def water_sol_est(K_ow: float, c: list = None, T_m: float = None, MW: float = No
   T_m : float
     Melting point temperature in K (Kelvin).
   MW : float
-    Molecular weight in kg/kmol (kilograms per kilomole). 
+    Molecular weight of the compound in kg/kmol (kilograms per kilomole). 
   
   Returns:
   --------
@@ -216,7 +216,35 @@ def soil_sorb_est(g: npt.ArrayLike, mole_con: npt.ArrayLike | float) -> float:
   g = np.atleast_1d(g).reshape(-1, 2)
   return .53 * mole_con + .62 + np.sum( g[:,0] * g[:,1] )
 
-# TODO name ABCD constants, propagate across other ABCD funcs
+def biodegrade_est(g: npt.ArrayLike, MW: float) -> tuple[float, str]:
+  '''
+  Estimates the biodegradation index of a compound via the group contribution method.
+
+  Parameters:
+  -----------
+  g : ArrayLike
+    The frequency of a group's appearance and the group's contribution value. Shape must be N x 2.
+      Ex) For a molecule containing 4 groups: np.array([[3, 1.233], [1, 23.5], [2, 44.6], [7, 103.6]])
+  MW: npt.ArrayLike | float
+    Molecular weight of the compound in kg/kmol (kilograms per kilomole).
+  
+  Retruns:
+  -----------
+  I : float
+    Estimated biodegradation index (unitless).
+  cat : float
+    Qualitative rate of aerobic biodegradation, as an estimated lifetime.
+  '''
+  g = np.atleast_1d(g).reshape(-1, 2)
+  I = 3.199 + np.sum( g[:,0] * g[:,1] ) - .00221*MW
+  if I <= 1. :   cat = "Lifetime of Years"
+  elif I <= 2.:  cat = "Lifetime of Months"
+  elif I <= 3.:  cat = "Lifetime of Weeks"
+  elif I <= 4.:  cat ="Lifetime of Days"
+  else: cat = "Lifetime of Hours"
+  
+  return I, cat
+
 def cp_est(const: list, T: float) -> float:
   '''
   Estimates the specific heat capacity of a compound.
@@ -224,16 +252,18 @@ def cp_est(const: list, T: float) -> float:
   Parameters:
   -----------
   const : list
-    a, b, c, and d constants of the compound. Length must be 4.
+    The compound's A, B, C, D specific heat constants. A is the vapor phase average specific heat in J/mol*K (Joule per mole Kelvin). Length must be 4.
   T : float
     Current temperature of the compound in K (Kelvin).
 
   Returns:
   -----------
   Cp : float
-    Estimated specific heat capacity of the compound in kJ/mol*K (kilojoules per mole kelvin).
+    Estimated specific heat capacity of the compound in J/mol*K (Joules per mole Kelvin).
   '''
   return const[0] + const[1]*T + const[2]*T**2 + const[3] / T**2
+
+# TODO #13 function to solve for ABCD specific heat constants given multiple (T, Cp) pairs
 
 # TODO #6 do we want/need a way to calculate deltaH_0 and deltaS_0 ie Hess' Law?
 
@@ -244,27 +274,28 @@ def deltaH_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0: flo
   Parameters:
   -----------
   prod : ArrayLike
-    The species' stoichiometric coefficient and the species' a, b, c, and d constants. Shape must be N x 5.
-      Ex) np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
+    The product species' stoichiometric coefficient and A, B, C, D specific heat constants. A is the vapor phase average specific heat in J/mol*K (Joule per mole Kelvin). Shape must be N x 5.
+      Ex) np.array([coeff1, A1, B1, C1, D1], [coeff2, A2, B2, C2, D2], [coeff3, A3, B3, C3, D3])
   reac : ArrayLike
-    The species' stoichiometric coefficient and the species' a, b, c, and d constants. Shape must be N x 5.
-      Ex) np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
+    The reactant species' stoichiometric coefficient and A, B, C, D specific heat constants. A is the vapor phase average specific heat in J/mol*K (Joules per mole Kelvin). Shape must be N x 5.
+      Ex) np.array([coeff1, A1, B1, C1, D1], [coeff2, A2, B2, C2, D2], [coeff3, A3, B3, C3, D3])
   T : float
     Current temperature of the reaction in K (Kelvin).
   deltaH_0 : float
-    Standard heat of reaction in kJ/mol (kilojoules per mole).
+    Standard heat of reaction in J/mol (Joules per mole).
   T_0 : float
     Standard reference temperature in K (Kelvin). Most standard heat of formation tables are calcualted at 298 K (Kelvin).
 
   Returns:
   -----------
   deltaH : float
-    Estimated enthalpy of the reaction in kJ/mol (kilojoules per mole).
+    Estimated enthalpy of the reaction in J/mol (Joules per mole).
   '''
   phi = T / T_0
   prod = np.atleast_1d(prod).reshape(-1, 5)
   reac = np.atleast_1d(reac).reshape(-1, 5)
   delta = np.sum(np.c_[prod[:, 0]]*prod[:, 1:], axis=0) - np.sum(np.c_[reac[:, 0]]*reac[:, 1:], axis=0)
+  # deltaH = deltaH_0 + integral( Cp dT) = integral( A + B*T + C*T**2 + D/T**2 dT) = AT + .5*B*T**2 + .33*C*T**3 - D/T
   return deltaH_0 + delta[0] * (T - T_0) + delta[1] / 2 * (T**2 - T_0**2) + delta[2] / 3 * (T**3 - T_0**3) + delta[3] / T_0 * ((phi - 1) / phi)
 
 def deltaS_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaS_0: float, T_0: float = 298.) -> float:
@@ -274,28 +305,28 @@ def deltaS_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaS_0: flo
   Parameters:
   -----------
   prod : ArrayLike
-    The species' stoichiometric coefficient and the species' a, b, c, and d constants. Shape must be N x 5.
-      Ex) np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
+    The product species' stoichiometric coefficient and A, B, C, D specific heat constants. A is the vapor phase average specific heat in J/mol*K (Joule per mole Kelvin). Shape must be N x 5.
+      Ex) np.array([coeff1, A1, B1, C1, D1], [coeff2, A2, B2, C2, D2], [coeff3, A3, B3, C3, D3])
   reac : ArrayLike
-    The species' stoichiometric coefficient and the species' a, b, c, and d constants. Shape must be N x 5.
-      Ex) np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
+    The reactant species' stoichiometric coefficient and A, B, C, D specific heat constants. A is the vapor phase average specific heat in J/mol*K (Joule per mole Kelvin). Shape must be N x 5.
+      Ex) np.array([coeff1, A1, B1, C1, D1], [coeff2, A2, B2, C2, D2], [coeff3, A3, B3, C3, D3])
   T : float
     Current temperature of the reaction in K (Kelvin).
   deltaS_0 : float
-    Standard heat of reaction in kJ/mol (kilojoules per mole).
+    Standard entropy of reaction in J/mol*K (Joules per mole Kelvin).
   T_0 : float
     Standard reference temperature in K (Kelvin). Most standard heat of formation tables are calcualted at 298 K (Kelvin).
 
   Returns:
   -----------
   deltaS : float
-    Estimated enthalpy of the reaction in kJ/mol (kilojoules per mole).
+    Estimated entropy of reaction in J/mol*K (Joules per mole Kelvin).
   '''
   prod = np.atleast_1d(prod).reshape(-1, 5)
   reac = np.atleast_1d(reac).reshape(-1, 5)
   delta = np.sum(np.c_[prod[:, 0]]*prod[:, 1:], axis=0) - np.sum(np.c_[reac[:, 0]]*reac[:, 1:], axis=0)
-  # TODO use an equation that considers uses the fourth term
-  return deltaS_0 + delta[0] * np.log(T/T_0) + delta[1]*(T-T_0) + delta[2] / 2 * (T**2 - T_0*2)
+  # deltaS = deltaS_0 + integral( Cp / T dT) = integral( A/T + B + C*T + D/T**3 dT) = Aln(T) + B*T + .5*C*T**2 -.5*D/T**2
+  return deltaS_0 + delta[0] * np.log(T/T_0) + delta[1] * (T - T_0) + .5 * delta[2] * (T**2 - T_0**2) - .5 * delta[3] / (T**2 - T_0**2)
 
 def gibbs_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0: float, G_0: float, T_0: float = 298.) -> float:
   '''
@@ -304,24 +335,24 @@ def gibbs_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0: floa
   Parameters:
   -----------
   prod : ArrayLike
-    The species' stoichiometric coefficient and the species' a, b, c, and d constants. Shape must be N x 5.
-      Ex) np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
+    The product species' stoichiometric coefficient and A, B, C, D specific heat constants. A is the vapor phase average specific heat in J/mol*K (Joule per mole Kelvin). Shape must be N x 5.
+      Ex) np.array([coeff1, A1, B1, C1, D1], [coeff2, A2, B2, C2, D2], [coeff3, A3, B3, C3, D3])
   reac : ArrayLike
-    The species' stoichiometric coefficient and the species' a, b, c, and d constants. Shape must be N x 5.
-      Ex) np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
+    The reactant species' stoichiometric coefficient and A, B, C, D specific heat constants. A is the vapor phase average specific heat in J/mol*K (Joule per mole Kelvin). Shape must be N x 5.
+      Ex) np.array([coeff1, A1, B1, C1, D1], [coeff2, A2, B2, C2, D2], [coeff3, A3, B3, C3, D3])
   T : float
     Current temperature of the reaction in K (Kelvin).
   deltaH_0 : float
-    Standard heat of reaction in kJ/mol (kilojoules per mole).
+    Standard heat of reaction in J/mol (Joules per mole).
   deltaG_0 : float
-    Standard Gibbs free energy in kJ/mol (kilojoules per mole).
+    Standard Gibbs free energy in J/mol (Joules per mole).
   T_0 : float
     Standard reference temperature in K (Kelvin). Most standard heat of formation tables are calcualted at 298 K (Kelvin).
 
   Returns:
   -----------
   deltaG : float
-    Estimated Gibbs free energy of the reaction in kJ/mol (kilojoules per mole).
+    Estimated Gibbs free energy of the reaction in J/mol (Joules per mole).
   '''
   phi = T / T_0
   prod = np.atleast_1d(prod).reshape(-1, 5)
@@ -336,40 +367,40 @@ def gibbs_est_HandS(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0
   Parameters:
   -----------
   prod : ArrayLike
-    The species' stoichiometric coefficient and the species' a, b, c, and d constants. Shape must be N x 5.
-      Ex) np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
+    The product species' stoichiometric coefficient and A, B, C, D specific heat constants. A is the vapor phase average specific heat in J/mol*K (Joule per mole Kelvin). Shape must be N x 5.
+      Ex) np.array([coeff1, A1, B1, C1, D1], [coeff2, A2, B2, C2, D2], [coeff3, A3, B3, C3, D3])
   reac : ArrayLike
-    The species' stoichiometric coefficient and the species' a, b, c, and d constants. Shape must be N x 5.
-      Ex) np.array([coeff1, a, b, c, d], [coeff2, a, b, c, d], [coeff3, a, b, c, d])
+    The reactant species' stoichiometric coefficient and A, B, C, D specific heat constants. A is the vapor phase average specific heat in J/mol*K (Joule per mole Kelvin). Shape must be N x 5.
+      Ex) np.array([coeff1, A1, B1, C1, D1], [coeff2, A2, B2, C2, D2], [coeff3, A3, B3, C3, D3])
   T : float
     Current temperature of the reaction in K (Kelvin).
   deltaH_0 : float
-    Standard heat of reaction in kJ/mol (kilojoules per mole).
+    Standard heat of reaction in J/mol (Joules per mole).
   deltaS_0 : float
-    Standard entropy in kJ/mol (kilojoules per mole).
+    Standard entropy of reaction in J/mol*K (Joules per mole Kelvin).
   T_0 : float
     Standard reference temperature in K (Kelvin). Most standard heat of formation tables are calcualted at 298 K (Kelvin).
 
   Returns:
   -----------
   deltaG : float
-    Estimated Gibbs free energy of the reaction in kJ/mol (kilojoules per mole).
+    Estimated Gibbs free energy of the reaction in J/mol (Joules per mole).
   '''
   prod = np.atleast_1d(prod).reshape(-1, 5)
   reac = np.atleast_1d(reac).reshape(-1, 5)
   delta = np.sum(np.c_[prod[:, 0]]*prod[:, 1:], axis=0) - np.sum(np.c_[reac[:, 0]]*reac[:, 1:], axis=0)
-  H = deltaH_0 + delta[0] * (T - T_0) + delta[1] / 2 * (T**2 - T_0**2) + delta[2] / 3 * (T**3 - T_0**3)
-  S = deltaS_0 + delta[0] * np.log(T/T_0) + delta[1]*(T-T_0) + delta[2] / 2 * (T**2 - T_0*2)
+  H = deltaH_0 + delta[0] * (T - T_0) + delta[1] / 2. * (T**2 - T_0**2) + delta[2] / 3. * (T**3 - T_0**3)
+  S = deltaS_0 + delta[0] * np.log(T/T_0) + delta[1]*(T-T_0) + delta[2] / 2. * (T**2 - T_0*2)
   return H - T * S
 
-def k_est(G: float, T: float) -> float:
+def k_est_gibbs(G: float, T: float) -> float:
   '''
   Estimates equilibrium constant of a reaction from Gibbs free energy.
 
   Parameters:
   -----------
   G : float
-    Gibbs free energy of the reaction in kJ/mol (kilojoules per mole).
+    Gibbs free energy of the reaction in J/mol (Joules per mole).
   T : float
     Current temperature of the reaction in K (Kelvin).
 
@@ -387,13 +418,13 @@ def fate_analysis(env_vol: list, env_props: list, m: float, props: list) -> npt.
   Parameters:
   -----------
   env_vol : list
-    Volume of each environmental retention phase in cubic meters (m^3). Length must be 7. Input 0. for ignored phases.
+    Volume of each environmental retention phase in m^3 (cubic meters). Phases with a volume of 0. are ignored. Length must be 7.
       Ex) np.array([Air, Water, Soil, Bottom Sediment, Suspended Sediment, Fish, Aerosols])
   env_props : list
-    Environmental properties of the compound (unitless). Length must be 4.
+    Environmental properties of the compound (unitless). Properties with a volume of 0. are ignored. Length must be 4. 
       Ex) [Mass Fraction of Organic Carbon in Suspended Sediment, Mass Fraction of Organic Carbon in Soil, Mass Fraction of Organic Carbon in Bottom Sediment, Lipid Content of Fish]
   m : float
-    Mass of compound released into the environment in kilograms (kg).
+    Mass of compound released into the environment in kg (kilograms).
   props : list
     Chemical properties of the compound being analyzed. Shape must be 1 x 7.
       Ex) np.array([Molecular Weight (g/mol), Aqueous Solubility (g/m^3), Henry's Law Constant (moles/m^3*Pa), K_ow (unitless), K_oc (unitless), Temperature (K), Liquid Vapor Pressure (Pa) ])
@@ -401,7 +432,7 @@ def fate_analysis(env_vol: list, env_props: list, m: float, props: list) -> npt.
   Returns
   -------
   fate : ArrayLike
-    Quantity of compound retained within each environmental phase in kilograms (kg) and moles (mol). Shape is 2 x 7. 
+    Quantity of compound retained within each environmental phase in kg and mol (kilograms and moles). Shape is 2 x 7. 
       Ex) np.array([[Air, Water, Soil, Bottom Sediment, Suspended Sediment, Fish, Aerosols] (kg),
                     [Air, Water, Soil, Bottom Sediment, Suspended Sediment, Fish, Aerosols] (mol) ])
   '''
