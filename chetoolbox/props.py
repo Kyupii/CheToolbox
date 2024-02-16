@@ -237,13 +237,14 @@ def biodegrade_est(g: npt.ArrayLike, MW: float) -> tuple[float, str]:
   '''
   g = np.atleast_1d(g).reshape(-1, 2)
   I = 3.199 + np.sum( g[:,0] * g[:,1] ) - .00221*MW
-  if I <= 1. :   cat = "Lifetime of Years"
-  elif I <= 2.:  cat = "Lifetime of Months"
-  elif I <= 3.:  cat = "Lifetime of Weeks"
-  elif I <= 4.:  cat ="Lifetime of Days"
+  Iround = np.round(I, 0)
+  if Iround <= 1. :   cat = "Lifetime of Years"
+  elif Iround == 2.:  cat = "Lifetime of Months"
+  elif Iround == 3.:  cat = "Lifetime of Weeks"
+  elif Iround == 4.:  cat ="Lifetime of Days"
   else: cat = "Lifetime of Hours"
   
-  return I, cat
+  return I , cat
 
 def cp_est(const: list, T: float) -> float:
   '''
