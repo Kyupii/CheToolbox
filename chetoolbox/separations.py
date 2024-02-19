@@ -498,3 +498,37 @@ def ponchon_savarit_graph(props: npt.ArrayLike, xf: float, yf: float, xd: float,
   Rmin = (hdqcd - hv1) / (hv1 - hd)
 
   return
+
+def multicomp_feed_split_est(feed: npt.ArrayLike, keys: tuple[int, int], spec: tuple[float, float]) -> tuple[npt.ArrayLike, npt.ArrayLike]:
+  '''
+  Estimates the distilate and bottoms outflow rates of a multi-component distilation column.
+
+  Parameters:
+  -----------
+  feed : ArrayLike
+    Molar flowrate in mol/s (moles per second) and molecular weight ii g/mol (grams per mole) of each input feed species. Shape must be N x 2.
+      Ex) np.array([[448., 58.12], [36., 72.15], [23., 86.17], [39.1, 100.21], [272.2, 114.23], [31., 128.2]])
+  keys : tuple[int, int]
+    Indexes of the High Key Species and Low Key Species in the feed array.
+  spec : tuple[float, float]
+    Required molar flowrate of the High Key Species in the distilate and the Low Key Species in the bottoms in mol/s (moles per second).
+
+  Returns:
+  -----------
+  distil : ArrayLike
+    Molar flowrates of all species in the ditilate in mol/s (moles per second).
+  bottoms : ArrayLike
+    Molar flowrates of all species in the bottoms in mol/s (moles per second).
+  '''
+  feed = np.atleast_1d(feed).reshape((-1, 2))
+  topsplit = spec[0] / feed[keys[0], 0]
+  botsplit = 1. - (spec[1]) / feed[keys[1], 0]
+  splitline = common.point_slope((feed[keys[1], 1], botsplit), (feed[keys[0], 1], topsplit))
+
+  def splitest(MW: float):
+    cutoff = np.max(np.c_[splitline.eval(MW)], 1, initial=0.)
+    return np.min(np.c_[cutoff], 1, initial=1.)
+
+  distil = feed[:, 0] * splitest(feed[:, 1])
+
+  return distil, feed[:, 0] - distil
