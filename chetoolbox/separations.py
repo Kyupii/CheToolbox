@@ -404,7 +404,7 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, q: float, xf: float, xd: f
 
   return Rmin, R, min_stages, ideal_stages
 
-def distilation_stream_split(F: float, xf: float, xd: float, xb: float, R: float = None, q: float = None) -> tuple[float, float, float | None, float | None, float | None, float | None]:
+def bianary_feed_split(F: float, xf: float, xd: float, xb: float, R: float = None, q: float = None) -> tuple[float, float, float | None, float | None, float | None, float | None]:
   '''
   Calculates the distilate and bottom flow rates out of a bianary mixture distilation column. Optionally calculates the internal flows between the feed tray, rectifying, and stripping sections of the distilation column.
 
