@@ -87,6 +87,54 @@ def antoine_P(v: npt.ArrayLike, T: npt.ArrayLike) -> npt.ArrayLike:
   v = np.atleast_1d(v); T = np.atleast_1d(T)
   return 10 ** (np.c_[v[:, 0]] - np.c_[v[:, 1]] / (T + np.c_[v[:, 2]]))
 
+def raoult_XtoY(x: list, K: list) -> tuple[npt.ArrayLike, float]:
+  '''
+  Calculates the vapor mole fraction of a multi-component mixed phase feed (assuming liquid and gas ideality).
+
+  Parameters
+  ---------
+  x : list
+    Component mole fractions of the feed's liquid phase (unitless). Must sum to 1.
+  K : list 
+    Equalibrium constant for each component at a specific temperature and pressure (units vary). Length must equal x.
+  
+  Returns
+  ---------
+  y : ArrayLike
+    Component mole fractions of the feed's vapor phase (unitless).
+  error : float
+    Error of calculated vapor phase component mole fractions.
+  '''
+  x = np.atleast_1d(x)
+  K = np.atleast_1d(K)
+  y = np.c_[x] * K
+  error = np.sum(y) - 1
+  return y, error
+
+def raoult_YtoX(y: list, K: list) -> tuple[npt.ArrayLike, float]:
+  '''
+  Calculates the liquid mole fraction of a multi-component mixed phase feed (assuming liquid and gas ideality).
+
+  Parameters
+  ---------
+  y : list
+    Component mole fractions of the feed's vapor phase (unitless). Must sum to 1.
+  K : list 
+    Equalibrium constant for each component at a specific temperature and pressure (units vary). Length must equal y.
+    
+  Returns
+  ---------
+  x : ArrayLike
+    Component mole fractions of the feed's liquid phase (unitless).
+  error : float
+    Error of calculated liquid phase component mole fractions.
+  '''
+  y = np.atleast_1d(y)
+  K = np.atleast_1d(K)
+  x = np.c_[y] / K
+  error = np.sum(x) - 1
+  return x, error
+
 def lin_estimate_error(x_pair: npt.ArrayLike, y_pair: npt.ArrayLike) -> float:
   '''
   Calculates the x-intercept (x=0) for a given pair of x and y distances. Assumes linearity.

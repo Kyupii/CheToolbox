@@ -3,54 +3,6 @@ import numpy.typing as npt
 from typing import Callable
 from chetoolbox import common
 
-def raoult_XtoY(x: list, K: list) -> tuple[npt.ArrayLike, float]:
-  '''
-  Calculates the vapor mole fraction of a multi-component mixed phase feed (assuming liquid and gas ideality).
-
-  Parameters
-  ---------
-  x : list
-    Component mole fractions of the feed's liquid phase (unitless). Must sum to 1.
-  K : list 
-    Equalibrium constant for each component at a specific temperature and pressure (units vary). Length must equal x.
-  
-  Returns
-  ---------
-  y : ArrayLike
-    Component mole fractions of the feed's vapor phase (unitless).
-  error : float
-    Error of calculated vapor phase component mole fractions.
-  '''
-  x = np.atleast_1d(x)
-  K = np.atleast_1d(K)
-  y = np.c_[x] * K
-  error = np.sum(y) - 1
-  return y, error
-
-def raoult_YtoX(y: list, K: list) -> tuple[npt.ArrayLike, float]:
-  '''
-  Calculates the liquid mole fraction of a multi-component mixed phase feed (assuming liquid and gas ideality).
-
-  Parameters
-  ---------
-  y : list
-    Component mole fractions of the feed's vapor phase (unitless). Must sum to 1.
-  K : list 
-    Equalibrium constant for each component at a specific temperature and pressure (units vary). Length must equal y.
-    
-  Returns
-  ---------
-  x : ArrayLike
-    Component mole fractions of the feed's liquid phase (unitless).
-  error : float
-    Error of calculated liquid phase component mole fractions.
-  '''
-  y = np.atleast_1d(y)
-  K = np.atleast_1d(K)
-  x = np.c_[y] / K
-  error = np.sum(x) - 1
-  return x, error
-
 def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> tuple[float, npt.ArrayLike, npt.ArrayLike, float, int]:
   '''
   Iteratively solves for the vapor/liquid output feed ratio psi (Ψ) of a multi-component fluid stream.  
@@ -451,8 +403,7 @@ def bianary_feed_split(F: float, xf: float, xd: float, xb: float, R: float = Non
 
   return D, B, V, L, Vprime, Lprime
 
-# TODO #10 finish ponchon_savarit
-def ponchon_savarit_graph(props: npt.ArrayLike, xf: float, yf: float, xd: float, xb: float, feedSatLiq: bool = True):
+def ponchon_savarit_enthalpyline(props: npt.ArrayLike, xf: float, yf: float, xd: float, feedSatLiq: bool = True):
   '''
   Calculates the pochon_savarit Diagram for a bianary mixture distilation column.
 
@@ -497,7 +448,19 @@ def ponchon_savarit_graph(props: npt.ArrayLike, xf: float, yf: float, xd: float,
   hdqcd = (xd, tieline.eval(xd))
   Rmin = (hdqcd - hv1) / (hv1 - hd)
 
-  return
+  return liqlineH, vaplineH, Rmin
+
+# TODO #10 finish ponchon_savarit
+def ponchon_savarit_full_est(eq_curve: common.EqualibEq, props: npt.ArrayLike, xf: float, yf: float, xd: float, xb: float, feedSatLiq: bool):
+  liqlineH, vaplineH, Rmin = ponchon_savarit_enthalpyline(props, xf, yf, xd, feedSatLiq)
+  
+  x = xd
+  i = 1
+  while x >= xb:
+    x = eq_curve.eval(x)
+    i += 1
+  min_stages = (i - 1.) + (eq_curve.inv(x) - xb) / (eq_curve.inv(x) - x)
+
 
 def multicomp_feed_split_est(feed: npt.ArrayLike, keys: tuple[int, int], spec: tuple[float, float]) -> tuple[npt.ArrayLike, npt.ArrayLike]:
   '''
