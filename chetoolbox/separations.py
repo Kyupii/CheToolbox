@@ -1,7 +1,7 @@
 import numpy as np
 import numpy.typing as npt
 from typing import Callable
-from chetoolbox import common
+import common
 
 def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> tuple[float, npt.ArrayLike, npt.ArrayLike, float, int]:
   '''
@@ -211,8 +211,7 @@ def eq_curve_estim(points: npt.ArrayLike, alpha: float = None) -> common.Equalib
   '''
   points = np.atleast_1d(points).reshape((-1, 2))
   if alpha == None:
-    alpha = np.average( points[:, 1] * (1. - points[:, 0]) / points[:, 0] * (1. - points[:, 1]) )
-
+    alpha = np.average( points[:, 1] * (1. - points[:, 0]) / (points[:, 0] * (1. - points[:, 1])) )
   return common.EqualibEq(alpha)
 
 def mccabe_thiel_feedline(q: float, xf: float) -> common.LinearEq:

@@ -67,7 +67,7 @@ class EqualibEq:
   
   def eval(self, x: float) -> float: # numpy compatible
     # breaks if x = -1. / (1. - self.alpha)
-    return self.alpha * x / (1. + (1. - self.alpha) * x)
+    return   (self.alpha * x ) / (1. + (self.alpha - 1.) * x)
   
   def inv(self, y: float) -> float: # numpy compatible
     # breaks if y = -self.alpha / (1. - self.alpha)
