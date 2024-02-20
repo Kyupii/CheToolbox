@@ -140,7 +140,8 @@ def lin_estimate_error(x_pair: npt.ArrayLike, y_pair: npt.ArrayLike) -> float:
   Calculates the x-intercept (x=0) for a given pair of x and y distances. Assumes linearity.
   '''
   x_pair = np.atleast_1d(x_pair); y_pair = np.atleast_1d(y_pair)
-  return x_pair[0] - y_pair[0] * ((x_pair[1]-x_pair[0])/(y_pair[1]-y_pair[0]))
+  x_new = x_pair[0] - y_pair[0] * ((x_pair[1]-x_pair[0])/(y_pair[1]-y_pair[0]))
+  return x_new
 
 def err_reduc(err_calc: Callable[[float], float], x: npt.ArrayLike) -> tuple[npt.ArrayLike, npt.ArrayLike]:
   '''
@@ -150,7 +151,7 @@ def err_reduc(err_calc: Callable[[float], float], x: npt.ArrayLike) -> tuple[npt
   err = err_calc(x)
   xnew = lin_estimate_error(x, err)
   err = np.abs(err)
-  x[np.argmin(err)] = xnew
+  x[np.argmax(err)] = xnew
   return x, err
 
 def iter(err_calc: Callable[[float], float], x: npt.ArrayLike, tol: float = .001) -> tuple[float, float, int]:
@@ -161,7 +162,7 @@ def iter(err_calc: Callable[[float], float], x: npt.ArrayLike, tol: float = .001
   error = 10000.
   i = 0
   while np.min(error) > tol:
-    error, x = err_reduc(err_calc, x)
+    x, error = err_reduc(err_calc, x)
     i += 1
   return x[np.argmin(error)], np.min(error), i
 
