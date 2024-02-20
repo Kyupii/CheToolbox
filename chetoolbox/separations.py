@@ -279,7 +279,10 @@ def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: 
   rectifyline = common.LinearEq(m, y_int)
 
   # feedpoint
-  feedpoint = common.linear_intersect(feedline, rectifyline)
+  if np.isnan(feedline.m) or np.isnan(feedline.b):
+    feedpoint = (eq_feedpoint[0],rectifyline.eval(eq_feedpoint[0]))
+  else:
+    feedpoint = common.linear_intersect(feedline, rectifyline)
 
   # bottoms to feed point
   stripline = common.point_slope(feedpoint, (xb, xb))
@@ -318,15 +321,17 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, q: float, xf: float, xd: f
   ideal_stages : float
     Number of ideal stages (includes reboiler and partial condensor if applicable).
   '''
+ 
   feedline = mccabe_thiel_feedline(q, xf)
 
   def err(x):
     return eq_curve.eval(x) - feedline.eval(x)
-
-  x, error, i = common.iter(err, [xb, xd], tol)
+  if np.isnan(feedline.m) and np.isnan(feedline.b):
+    x = xf
+  else:
+    x, error, i = common.iter(err, [xb, xd], tol)
 
   eq_feedpoint = (x, eq_curve.eval(x))
-
   rectifyline, stripline, feedpoint, Rmin, R = mccabe_thiel_otherlines(feedline, eq_feedpoint, xd, xb, Rmin_mult)
 
   def equalibrium_line_walker(y_piecewise: Callable[[float], float], xd: float):
