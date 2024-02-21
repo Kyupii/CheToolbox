@@ -2,7 +2,42 @@ import numpy as np
 import numpy.typing as npt
 from typing import Callable
 import common
+def lost_work(inlet: npt.ArrayLike, outlet: npt.ArrayLike, Q: npt.ArrayLike, T_s: npt.ArrayLike, T_0: float,  W_s: float = 0):
+  '''
+  Solves for the lost work of a separation process by thermodynamic analysis.  
+  
+  Parameters
+  ----------
+  inlet : ArrayLike
+    The thermodynamic properties of the inlet stream in joules per mole (J/mol), must be ordered as [n: molar flow rate of component, h: enthalpy of component, s: entropy of component] Shape must be N x 3 
+      ex) np.array([n1, h1, s1], [n2, h2, s2], [n3, h3, s3])
+  outlet : ArrayLike
+    The thermodynamic properties of the outlet stream joules per mole (J/mol), must be ordered as [n: molar flow rate of component, h: enthalpy of component, s: entropy of component] Shape must be N x 3 
+      ex) np.array([n1, h1, s1], [n2, h2, s2], [n3, h3, s3])
+  Q : ArrayLike
+    The reboiler and condenser heat duties
+      ex) np.array([Q_reboiler,Q_condenser])
+  T_s : ArrayLike
+    Temperature of steam and cooling water
+  T_0 : float
+    Temperature of surroundings.
+      ex) np.array([T_steam, T_CW])
+  W_s : float
+    Shaft work in joules
 
+  Returns
+  ----------
+  LW : float
+    Lost work in  joules per mole (J/mol).
+  '''
+  inlet = np.atleast_1d(inlet).reshape(-1,3)
+  outlet = np.atleast_1d(outlet).reshape(-1,3)
+  Q = np.atleast_1d(Q)
+  T_s = np.atleast_1d(T_s)
+  def b(h,s):
+    return h - T_0 * s
+  return np.sum(inlet[:,0] * b(inlet[:,1], inlet[:,2]) + Q[0] * (1 - T_0/T_s[0]) + W_s) - np.sum(outlet[:,0] * b(outlet[:,1], outlet[:,2]) + Q[1] * (1 - T_0/T_s[1]) + W_s)
+ 
 def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> tuple[float, npt.ArrayLike, npt.ArrayLike, float, int]:
   '''
   Iteratively solves for the vapor/liquid output feed ratio psi (Ψ) of a multi-component fluid stream.  
