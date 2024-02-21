@@ -76,6 +76,16 @@ class EqualibEq:
     # breaks if y = -self.alpha / (1. - self.alpha)
     return y / (self.alpha + y * (1. - self.alpha))
 
+class solution_object(dict):
+  def __getattr__(self,name):
+    try: 
+      return self[name]
+    except KeyError as e:
+      raise AttributeError(name) from e
+  def __dir__(self):
+    return list(self.keys())
+  
+
 def antoine_T(v: npt.ArrayLike, P: npt.ArrayLike) -> npt.ArrayLike:
   '''
   Calculates the temperature of every component for each pressure.

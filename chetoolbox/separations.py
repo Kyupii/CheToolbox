@@ -48,7 +48,8 @@ def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> tuple[float, 
     i += 1
   x_out = x / (1 + psi * (K - 1))
   y_out = (x * K) / (1 + psi * (K - 1))
-  return psi, x_out, y_out, error(psi), i
+  sol = common.solution_object(psi = psi, x_out = x_out, y_out = y_out, error = error(psi), i = i)
+  return sol
 
 def bubble_point_iterator(x:list, K:list)->tuple[float,npt.ArrayLike,float]:
   '''
@@ -74,7 +75,9 @@ def bubble_point_iterator(x:list, K:list)->tuple[float,npt.ArrayLike,float]:
   K = np.atleast_1d(K)
   y = x * K
   err = np.sum(y) - 1 
-  return y, err
+
+  sol = common.solution_object(y = y, err = err)
+  return sol
 
 def dew_point_iterator(y:list, K:list)->tuple[float,npt.ArrayLike,float]:
   '''
@@ -100,8 +103,8 @@ def dew_point_iterator(y:list, K:list)->tuple[float,npt.ArrayLike,float]:
   K = np.atleast_1d(K)
   x = y / K
   err = np.sum(x) - 1 
-  return x, err
-
+  sol = common.solution_object(x = x, err = err)
+  return sol
 
 def bubble_point(x: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> tuple[float, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, float, int]:
   '''
@@ -339,8 +342,8 @@ def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: 
 
   # bottoms to feed point
   stripline = common.point_slope(feedpoint, (xb, xb))
-
-  return rectifyline, stripline, feedpoint, Rmin, R
+  sol = common.solution_object(rectifyline = rectifyline, stripline = stripline, feedpoint = feedpoint, Rmin = Rmin, R = R)
+  return sol
 
 def mccabe_thiel_full_est(eq_curve: common.EqualibEq, q: float, xf: float, xd: float, xb: float, Rmin_mult: float = 1.2, tol: float = .00001):
   '''
@@ -410,8 +413,8 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, q: float, xf: float, xd: f
   
   min_stages = equalibrium_line_walker(y_reflect, xd)
   ideal_stages = equalibrium_line_walker(y_operlines, xd)
-
-  return Rmin, R, min_stages, ideal_stages
+  sol = common.solution_object(Rmin = Rmin, R = R, min_stages = min_stages, ideal_stages = ideal_stages)
+  return sol
 
 def bianary_feed_split(F: float, xf: float, xd: float, xb: float, R: float = None, q: float = None) -> tuple[float, float, float | None, float | None, float | None, float | None]:
   '''
