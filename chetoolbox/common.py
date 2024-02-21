@@ -45,7 +45,10 @@ class LinearEq:
   def __init__(self, m: float, b: float) -> None:
     self.m = m   
     self.b = b
-    self.x_int = -m/b
+    if b == 0:
+      self.x_int = np.NaN
+    else:
+      self.x_int = -m/b
   
   def eval(self, x: float) -> float: # numpy compatible
     return self.m * x + self.b
@@ -180,6 +183,10 @@ def point_slope(point1: tuple, point2: tuple) -> LinearEq:
   point1 = np.atleast_1d(point1); point2 = np.atleast_1d(point2)
   if point1[0] == point2[0]:
     return vertical_line(point1[0])
+  elif point1[1] == point2[1]:
+    m = 0
+    b = point1[1]
+    return LinearEq(m, b)
   m = (point1[1]-point2[1])/(point1[0]-point2[0])
   b = point1[1] - m * point1[0]
   return LinearEq(m, b)
@@ -190,8 +197,9 @@ def linear_intersect(line1: LinearEq, line2: LinearEq) -> tuple[float, float] | 
   '''
   if line2.m == line1.m and line1.y != line2.y:
     return None
-  x = (line1.b - line2.b)/(line2.m - line1.m)
-  y = line1.eval(x)
+  else:
+    x = (line1.b - line2.b)/(line2.m - line1.m)
+    y = line1.eval(x)
   return x, y
 
 def quadratic_formula(coeff: npt.ArrayLike) -> npt.ArrayLike | None:

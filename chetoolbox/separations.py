@@ -50,6 +50,59 @@ def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> tuple[float, 
   y_out = (x * K) / (1 + psi * (K - 1))
   return psi, x_out, y_out, error(psi), i
 
+def bubble_point_iterator(x:list, K:list)->tuple[float,npt.ArrayLike,float]:
+  '''
+  Intended to be used with a DePriester Chart. Calculates the vapor mole fractions & associated error, then proposes a new temperature on the DePriester chart to try.
+
+  Parameters
+  ----------
+  x : list
+    Component mole fractions of the liquid mixture (unitless). Must sum to 1.
+  K : list
+    Component equilibrium constants
+
+
+  Returns
+  ----------
+  err : float
+    associated error of the proposed bubble point temperature
+  y : list
+    list of vapor mole fractions based on equilibrium constants
+
+  '''
+  x = np.atleast_1d(x)
+  K = np.atleast_1d(K)
+  y = x * K
+  err = np.sum(y) - 1 
+  return y, err
+
+def dew_point_iterator(y:list, K:list)->tuple[float,npt.ArrayLike,float]:
+  '''
+  Intended to be used with a DePriester Chart. Calculates the vapor mole fractions & associated error, then proposes a new temperature on the DePriester chart to try.
+
+  Parameters
+  ----------
+  y : list
+    Component mole fractions of the vapor mixture (unitless). Must sum to 1.
+  K : list
+    Component equilibrium constants
+
+
+  Returns
+  ----------
+  err : float
+    associated error of the proposed dew point temperature
+  x : list
+    list of liquid mole fractions based on equilibrium constants
+
+  '''
+  y = np.atleast_1d(x)
+  K = np.atleast_1d(K)
+  x = y / K
+  err = np.sum(x) - 1 
+  return x, err
+
+
 def bubble_point(x: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> tuple[float, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, float, int]:
   '''
   Iteratively solves for the bubble point temperature of a multi-component liquid mixture.
