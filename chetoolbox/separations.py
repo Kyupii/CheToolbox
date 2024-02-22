@@ -479,7 +479,9 @@ def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq
   Parameters:
   -----------
   liqlineH : LinearEq
+
   vaplineH : LinearEq
+
   xf : float
     Liquid fraction of the lower boiling boint species in the feed (unitless).
   yf : float
@@ -512,54 +514,55 @@ def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq
   return tieline, Rmin, R, P
 
 # TODO #10 finish ponchon_savarit
-def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.LinearEq, vaplineH: common.LinearEq, F: tuple[float, float], q: bool | float, xd: float, xb: float, Rmin_mult: float, tol: float = .00001):
+def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.LinearEq, vaplineH: common.LinearEq, Fpoint: tuple[float, float], q: bool | float, xd: float, xb: float, Rmin_mult: float, tol: float = .00001):
   '''
   Calculates the liquid and vapor enthalpy lines on a Pochon Savarit diagram for a bianary mixture distilation column.
 
   Parameters:
   -----------
-  equalibrium_curve : EqualibEq
+  eq_curve : EqualibEq
     Equation for an equalibrium curve of a bianary mixture.
-  props : ArrayLike
-    Chemical properties of the compounds being analyzed. Shape must be 2 x 3.
-      Ex) np.array([Boiling Point Temperature (K), Average Molar Heat Capactity (kJ/mol*C), Molar Heat of Vaporization (kJ/mol) ])
-  F : tuple[float, float] # TODO how would we be given this in point format?
-    Cooridinates of the feed point on the Pochon Savarit diagram. 
+  liqlineH : LinearEq
+
+  vaplineH : LinearEq
+
+  Fpoint : tuple[float, float] # TODO how would we be given this in point format?
+    Cooridinates of the feed point on the Pochon Savarit diagram in (mol fraction (unitless), enthalpy (J/mol)) (unitless, Joules per mole).
   q : bool | float
     The liquid fraction of the incoming feed. Should be True or 1. when the feed is saturated liquid (vaporless / at its bubble point). Should be False or 0. when the feed is saturated vapor (liquidless / at its dew point).
   xd : float
     Liquid fraction of the lower boiling boint species in the distilate (unitless).
   xb : float
     Liquid fraction of the lower boiling boint species in the bottoms (unitless).
-  
+  Rmin_mult : float
+    Factor by which to excede the minimum reflux ratio, Rmin (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf).
+  tol : float
+    Largest error value to stop iterating and return.
 
   Returns:
   -----------
   
   '''
-  props = np.atleast_1d(props).reshape((-1, 3))
-  liqlineH, vaplineH = ponchon_savarit_enthalpylines(props)
-
   if type(q) == bool or q == 0. or q == 1.: # saturated liq / vap feed
     if q:
-      xf = F[0]
+      xf = Fpoint[0]
       yf = eq_curve.eval(xf)
     else:
-      yf = F[0]
+      yf = Fpoint[0]
       xf = eq_curve.inv(yf)
   else: # iteratively solve for x_f* and y_f* of the feed
     # take q as good estimate for the feedline's slope
-    xf, _ = common.linear_intersect(common.point_slope(F, q), liqlineH)
+    xf, _ = common.linear_intersect(common.point_slope(Fpoint, q), liqlineH)
     yf = eq_curve.eval(xf)
-    q_alt = common.point_conn(F, (yf, vaplineH.eval(yf))).m
+    q_alt = common.point_conn(Fpoint, (yf, vaplineH.eval(yf))).m
     tieslopes = np.array([q, q_alt])
 
     def error(q):
-      xf, _ = common.linear_intersect(common.point_slope(F, q), liqlineH)
+      xf, _ = common.linear_intersect(common.point_slope(Fpoint, q), liqlineH)
       return 1. - (xf + eq_curve.eval(xf))
     
     tieslope, _, _ = common.iter(error, tieslopes, tol)
-    xf, _ = common.linear_intersect(common.point_slope(F, tieslope), liqlineH)
+    xf, _ = common.linear_intersect(common.point_slope(Fpoint, tieslope), liqlineH)
     yf = eq_curve.eval(xf)
   
   tieline, Rmin, R, P = ponchon_savarit_tieline(liqlineH, vaplineH, xf, yf, xd, Rmin_mult)

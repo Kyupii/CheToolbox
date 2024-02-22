@@ -109,28 +109,39 @@ class EqualibEq(Equation):
 
 class PiecewiseEq(Equation):
   '''
-  Curves must be equal at each bound.
-  Piecewise must be injective (pass horizontal line test / one y only has one x).
-  Upperbounds must be ordered smallest to largest.
+  Piecewise must be continuous (component equations must be equal at each bound) and injective (must have only one x per y value).
+
+  eqs : tuple[Equation]
+    All equations that compose the piecewise function. Equations must be ordered from smallest to largest upper bound.
+  upperbounds : float
+    The upper bounds for each equation, except the last which has an upper bound of np.inf. Upperbounds must be ordered smallest to largest.
+  eval : Callable
+    Return the output of the function (y) when evaluated at an input (x).
+  inv : Callable
+    Return the input of the function (x) that evaluates to an output (y).
   '''
-  def __init__(self, curves: tuple[Equation], upperbounds: tuple[Equation]):
-    if len(curves) - 1 != len(upperbounds):
+  def __init__(self, eqs: tuple[Equation], upperbounds: tuple[float]):
+    if len(eqs) - 1 != len(upperbounds):
       raise AttributeError("Number of bounds do not match number of curves minus one.")
-    for i in len(upperbounds):
-      setattr(self, str(upperbounds[i]), curves[i])
-    setattr(self, str(np.inf), curves[-1])
-    y_test = curves[-1].eval(np.array([upperbounds[-1], upperbounds[-1] + .05]))
-    self.posSlope = y_test 
+    self.boundeqs = dict(zip(upperbounds, eqs[:-1]) + [(np.inf, eqs[-1])])
+    self.posSlope = eqs[-1].eval(upperbounds[-1]) < eqs[-1].eval(upperbounds[-1] + .05)
 
   def eval(self, x: float) -> float:
-    keys = np.array(self.__dict__.keys()).astype(np.float)
-    curve = getattr(self, str(keys[np.sum( keys[keys <= x] )]) )
-    return curve.eval(x)
+    bounds = np.fromiter(self.boundeqs.keys(), float)
+    eq = self.boundeqs[str(bounds[np.sum(bounds <= x)])]
+    return eq.eval(x)
   
   def inv(self, y: float) -> float:
+    bounds = np.fromiter(self.boundeqs.keys(), float)
+    curves = list(self.boundeqs.values())
+    boundeqval = np.array([curve.eval(bounds[i]) for i, curve in enumerate(curves[-1])])
+    if self.posSlope:
+      eq = self.boundeqs[str(bounds[np.sum(boundeqval <= y)])]
+    else:
+      eq = self.boundeqs[str(bounds[np.sum(boundeqval >= y)])]
+    return eq.inv(y)
 
 class SolutionObj(dict):
-
   def __getattr__(self, name):
     try: 
       return self[name]
