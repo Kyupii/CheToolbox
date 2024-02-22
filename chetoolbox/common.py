@@ -192,7 +192,7 @@ def vertical_line(x) -> LinearEq:
 def horizontal_line(y) -> LinearEq:
   return LinearEq(0., y)
 
-def point_slope(point1: tuple, point2: tuple) -> LinearEq:
+def point_connector(point1: tuple, point2: tuple) -> LinearEq:
   '''
   Calculates equation of a line from two points.
   '''
@@ -204,7 +204,14 @@ def point_slope(point1: tuple, point2: tuple) -> LinearEq:
   m = (point1[1] - point2[1]) / (point1[0] - point2[0])
   b = point1[1] - m * point1[0]
   return LinearEq(m, b)
-  
+
+def point_slope(point: tuple, slope: float ) -> LinearEq:
+  '''
+  Calculates equation of a line from two points.
+  '''
+  point = np.atleast_1d(point)
+  return LinearEq(slope, slope * point[0] + point[1])
+
 def linear_intersect(line1: LinearEq, line2: LinearEq) -> tuple[float, float] | None:
   '''
   Calculates the intersection points of two straight lines or returns None if no intersect exists. Uses LinearEq objects.

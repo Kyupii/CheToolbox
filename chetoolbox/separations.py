@@ -325,7 +325,7 @@ def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: 
     Reflux ratio of the rectifying section (unitless).
   '''
   # "distilate to feed at equalibrium" line
-  eq_rectifyline = common.point_slope(eq_feedpoint, (xd, xd))
+  eq_rectifyline = common.point_connector(eq_feedpoint, (xd, xd))
 
   # "distilate to feedpoint" line
   Rmin = eq_rectifyline.m / (1. - eq_rectifyline.m)
@@ -341,7 +341,7 @@ def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: 
     feedpoint = common.linear_intersect(feedline, rectifyline)
 
   # bottoms to feed point
-  stripline = common.point_slope(feedpoint, (xb, xb))
+  stripline = common.point_connector(feedpoint, (xb, xb))
   sol = common.SolutionObj(rectifyline = rectifyline, stripline = stripline, feedpoint = feedpoint, Rmin = Rmin, R = R)
   return sol
 
@@ -463,9 +463,9 @@ def bianary_feed_split(F: float, xf: float, xd: float, xb: float, R: float = Non
 
   return D, B, V, L, Vprime, Lprime
 
-def ponchon_savarit_enthalpyline(props: npt.ArrayLike, xf: float, yf: float, xd: float, feedSatLiq: bool = True):
+def ponchon_savarit_enthalpylines(props: npt.ArrayLike, xf: float, yf: float, xd: float, q: bool | float):
   '''
-  Calculates the pochon_savarit Diagram for a bianary mixture distilation column.
+  Calculates the liquid and vapor enthalpy lines on a Pochon Savarit diagram for a bianary mixture distilation column.
 
   Parameters:
   -----------
@@ -480,8 +480,8 @@ def ponchon_savarit_enthalpyline(props: npt.ArrayLike, xf: float, yf: float, xd:
     Liquid fraction of the lower boiling boint species in the distilate (unitless).
   xb : float
     Liquid fraction of the lower boiling boint species in the bottoms (unitless).
-  feedSatLiq : bool  # TODO #9 check if q is a valid substitute for this var
-    Whether the feed is saturated liquid (vaporless / at its bubble point). False means the feed is saturated vapor (liquidless / at its dew point).
+  q : bool | float
+    The liquid fraction of the incoming feed. Should be True or 1. when the feed is saturated liquid (vaporless / at its bubble point). Should be False or 0. when the feed is saturated vapor (liquidless / at its dew point).
 
   Returns:
   -----------
@@ -490,19 +490,19 @@ def ponchon_savarit_enthalpyline(props: npt.ArrayLike, xf: float, yf: float, xd:
   props = np.atleast_1d(props).reshape((-1, 3))
   if props[0, 0] > props[1, 0]:
     props = props[::-1]
-  liqlineH = common.point_slope((1., 0.), (0., props[1, 1] * (props[1, 0] - props[0, 0])))
-  vaplineH = common.point_slope((1., props[0, 2]), (0., props[1, 1] * (props[1, 0] - props[0, 0]) + props[1, 2]))
+  liqlineH = common.point_connector((1., 0.), (0., props[1, 1] * (props[1, 0] - props[0, 0])))
+  vaplineH = common.point_connector((1., props[0, 2]), (0., props[1, 1] * (props[1, 0] - props[0, 0]) + props[1, 2]))
 
-  if feedSatLiq:
+  if q == 1. or q == True:
     feedpoint = (xf, liqlineH.eval(xf))
     tiepoint = (yf, vaplineH.eval(yf))
-  elif not feedSatLiq:
+  elif not q:
     feedpoint = (yf, vaplineH.eval(yf))
     tiepoint = (xf, liqlineH.eval(xf))
   else:
     return liqlineH, vaplineH #manual guess-and-check for feedpoint required
 
-  tieline = common.point_slope(feedpoint, tiepoint)
+  tieline = common.point_connector(feedpoint, tiepoint)
   hd = (xd, liqlineH.eval(xd))
   hv1 = (xd, vaplineH.eval(xd))
   hdqcd = (xd, tieline.eval(xd))
@@ -511,10 +511,36 @@ def ponchon_savarit_enthalpyline(props: npt.ArrayLike, xf: float, yf: float, xd:
   return liqlineH, vaplineH, Rmin
 
 # TODO #10 finish ponchon_savarit
-def ponchon_savarit_full_est(eq_curve: common.EqualibEq, props: npt.ArrayLike, xf: float, yf: float, xd: float, xb: float, feedSatLiq: bool):
+def ponchon_savarit_full_est(eq_curve: common.EqualibEq, props: npt.ArrayLike, F: tuple[float, float], q: bool | float, xd: float, xb: float):
   '''
-  '''
+  Calculates the liquid and vapor enthalpy lines on a Pochon Savarit diagram for a bianary mixture distilation column.
+
+  Parameters:
+  -----------
+  equalibrium_curve : EqualibEq
+    Equation for an equalibrium curve of a bianary mixture.
+  props : ArrayLike
+    Chemical properties of the compounds being analyzed. Shape must be 2 x 3.
+      Ex) np.array([Boiling Point Temperature (K), Average Molar Heat Capactity (kJ/mol*C), Molar Heat of Vaporization (kJ/mol) ])
+  xf : float
+    Liquid fraction of the lower boiling boint species in the feed (unitless).
+  yf : float
+    Vapor fraction of the lower boiling boint species in the feed (unitless). Corresponding y-value of xf on the equalibrium curve.
+  xd : float
+    Liquid fraction of the lower boiling boint species in the distilate (unitless).
+  xb : float
+    Liquid fraction of the lower boiling boint species in the bottoms (unitless).
+  q : bool | float
+    The liquid fraction of the incoming feed. Should be True or 1. when the feed is saturated liquid (vaporless / at its bubble point). Should be False or 0. when the feed is saturated vapor (liquidless / at its dew point).
+
+  Returns:
+  -----------
   
+  '''
+  # TODO # 9 iteratively solve for the x_f* and y_f* values of the feedline
+  # take q as valid starting point for the slope of the feedline
+
+
   liqlineH, vaplineH, Rmin = ponchon_savarit_enthalpyline(props, xf, yf, xd, feedSatLiq)
   
   x = xd
@@ -548,7 +574,7 @@ def multicomp_feed_split_est(feed: npt.ArrayLike, keys: tuple[int, int], spec: t
   feed = np.atleast_1d(feed).reshape((-1, 2))
   topsplit = spec[0] / feed[keys[0], 0]
   botsplit = 1. - (spec[1]) / feed[keys[1], 0]
-  splitline = common.point_slope((feed[keys[1], 1], botsplit), (feed[keys[0], 1], topsplit))
+  splitline = common.point_connector((feed[keys[1], 1], botsplit), (feed[keys[0], 1], topsplit))
 
   def splitest(MW: float):
     cutoff = np.max(np.c_[splitline.eval(MW)], 1, initial=0.)
