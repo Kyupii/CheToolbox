@@ -389,16 +389,11 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
   rectifyline, stripline, feedpoint, Rmin, R = mccabe_thiel_otherlines(feedline, eq_feedpoint, xd, xb, Rmin_mult)
 
   y_reflect = common.LinearEq(1., 0.)
-
-  def y_operlines(x):
-    if x >= feedpoint[0]:
-      y = rectifyline.eval(x)
-    else:
-      y = stripline.eval(x)
-    return y
-  
   min_stages = common.curve_bouncer(eq_curve, y_reflect, xd, xb)
+
+  y_operlines = common.PiecewiseEq((stripline, rectifyline), (feedpoint[0],))
   ideal_stages = common.curve_bouncer(eq_curve, y_operlines, xd, xb)
+  
   sol = common.SolutionObj(Rmin = Rmin, R = R, min_stages = min_stages, ideal_stages = ideal_stages)
   return sol
 
