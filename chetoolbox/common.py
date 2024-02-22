@@ -207,7 +207,7 @@ def point_connector(point1: tuple, point2: tuple) -> LinearEq:
 
 def point_slope(point: tuple, slope: float ) -> LinearEq:
   '''
-  Calculates equation of a line from two points.
+  Calculates equation of a line from a point and its slope.
   '''
   point = np.atleast_1d(point)
   return LinearEq(slope, slope * point[0] + point[1])
