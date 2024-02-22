@@ -29,7 +29,18 @@ class TESTVARS:
                         [6.83029, 945.90, 240.],
                         [6.85221, 1064.63, 232.]])
   P = 10342.95
-class LinearEq:
+
+class Equation:
+  def __init__(self):
+    return
+  
+  def eval(self, x: float) -> float:
+    return x
+  
+  def inv(self, y: float) -> float:
+    return y
+
+class LinearEq(Equation):
   '''
   m : float
     Slope of the line.
@@ -76,7 +87,7 @@ class LinearEq:
     else:
       return (y - self.b) / self.m
 
-class EqualibEq:
+class EqualibEq(Equation):
   '''
   alpha : float
     Equalibrium ratio (K1 / K2) between two species.
@@ -250,15 +261,15 @@ def quadratic_formula(coeff: npt.ArrayLike) -> npt.ArrayLike | None:
     return None
   return (- coeff[1] + np.sqrt(np.array([descrim])) * np.array([1, -1])) / (2. * coeff[0])
 
-def curve_bouncer(upper: LinearEq | EqualibEq, lower: LinearEq | EqualibEq, y_start: float, x_stop: float):
+def curve_bouncer(upper: Equation, lower: Equation, y_start: float, x_stop: float):
   '''
   y_start is on the upper curve
   '''
-  y = x_start
+  y = y_start
   x = upper.inv(y_start)
   i = 1
   while x > x_stop:
-    y = lower(x)
+    y = lower.eval(x)
     x = upper.inv(y)
     i += 1
   xprev = lower.inv(y)
