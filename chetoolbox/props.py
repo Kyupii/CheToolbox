@@ -267,8 +267,6 @@ def cp_est(const: list, T: float) -> float:
 
 # TODO #13 function to solve for ABCD specific heat constants given multiple (T, Cp) pairs
 
-# TODO #6 do we want/need a way to calculate deltaH_0 and deltaS_0 ie Hess' Law?
-
 def hess(prod: npt.ArrayLike, reac: npt.ArrayLike):
   '''
   Estimates change in enthalpy, entropy, or Gibb's free energy based on formation values for delta H, delta S or delta G.
@@ -290,6 +288,7 @@ def hess(prod: npt.ArrayLike, reac: npt.ArrayLike):
   reac = np.atleast_1d(reac).reshape(-1, 2)
 
   return np.sum(prod[:,0]*prod[:,1]) - np.sum(reac[:,0]* reac[:,1])
+
 def deltaH_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0: float, T_0: float = 298.) -> float:
   '''
   Estimates enthalpy of a balanced chemical reaction. A negative value indicates a net energy release.

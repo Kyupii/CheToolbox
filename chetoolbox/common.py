@@ -1,6 +1,6 @@
 import numpy as np
 import numpy.typing as npt
-from typing import Callable
+from typing import Callable, Optional
 
 class TESTVARS:
   '''
@@ -42,13 +42,21 @@ class LinearEq:
   inv : Callable
     Return the input of the function (x) that evaluates to an output (y).
   '''
-  def __init__(self, m: float, b: float) -> None:
-    self.m = m   
+  def __init__(self, m: float, b: float, x_int: float | None = None) -> None:
+    self.m = m
     self.b = b
-    if b == 0:
-      self.x_int = np.NaN
+    if self.m == np.NaN or self.b == np.NaN: # vertical lines
+      self.m == np.NaN
+      self.b = np.NaN
+      self.x_int = x_int
     else:
-      self.x_int = -m/b
+      if b == 0.: # intersect the origin
+        self.x_int = 0.
+      else:
+        if self.m == 0.: # horizontal lines
+          self.x_int = np.NaN
+        else:
+          self.x_int = -m/b
   
   def eval(self, x: float) -> float: # numpy compatible
     return self.m * x + self.b
@@ -84,7 +92,6 @@ class SolutionObj(dict):
       raise AttributeError(name) from e
   def __dir__(self):
     return list(self.keys())
-  
 
 def antoine_T(v: npt.ArrayLike, P: npt.ArrayLike) -> npt.ArrayLike:
   '''
