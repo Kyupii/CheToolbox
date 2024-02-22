@@ -249,3 +249,17 @@ def quadratic_formula(coeff: npt.ArrayLike) -> npt.ArrayLike | None:
   if descrim < 0:
     return None
   return (- coeff[1] + np.sqrt(np.array([descrim])) * np.array([1, -1])) / (2. * coeff[0])
+
+def curve_bouncer(upper: LinearEq | EqualibEq, lower: LinearEq | EqualibEq, y_start: float, x_stop: float):
+  '''
+  y_start is on the upper curve
+  '''
+  y = x_start
+  x = upper.inv(y_start)
+  i = 1
+  while x > x_stop:
+    y = lower(x)
+    x = upper.inv(y)
+    i += 1
+  xprev = lower.inv(y)
+  return (i - 1.) + (xprev - x_stop) / (xprev - x)

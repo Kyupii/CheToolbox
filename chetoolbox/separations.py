@@ -390,19 +390,7 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, q: float, xf: float, xd: f
   eq_feedpoint = (x, eq_curve.eval(x))
   rectifyline, stripline, feedpoint, Rmin, R = mccabe_thiel_otherlines(feedline, eq_feedpoint, xd, xb, Rmin_mult)
 
-  def equalibrium_line_walker(y_piecewise: Callable[[float], float], xd: float):
-    y = xd
-    x = eq_curve.inv(xd)
-    i = 1
-    while x > xb:
-      y = y_piecewise(x)
-      x = eq_curve.inv(y)
-      i += 1
-    xprev = stripline.inv(y)
-    return (i - 1.) + (xprev - xb) / (xprev - x)
-
-  def y_reflect(x):
-    return x
+  y_reflect = common.LinearEq(1., 0.)
 
   def y_operlines(x):
     if x >= feedpoint[0]:
@@ -411,8 +399,8 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, q: float, xf: float, xd: f
       y = stripline.eval(x)
     return y
   
-  min_stages = equalibrium_line_walker(y_reflect, xd)
-  ideal_stages = equalibrium_line_walker(y_operlines, xd)
+  min_stages = common.curve_bouncer(eq_curve, y_reflect, xd, xb)
+  ideal_stages = common.curve_bouncer(eq_curve, y_operlines, xd, xb)
   sol = common.SolutionObj(Rmin = Rmin, R = R, min_stages = min_stages, ideal_stages = ideal_stages)
   return sol
 
@@ -486,7 +474,7 @@ def ponchon_savarit_enthalpylines(props: npt.ArrayLike) -> tuple[common.LinearEq
 
   return liqlineH, vaplineH
 
-def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq, xf: float, yf: float, xd: float):
+def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq, xf: float, yf: float, xd: float, Rmin_mult: float = 1.2):
   '''
   Calculates the tieline and Rmin of a Pochon Savarit diagram for a bianary mixture distilation column.
 
@@ -502,23 +490,31 @@ def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq
     Liquid fraction of the lower boiling boint species in the distilate (unitless).
   xb : float
     Liquid fraction of the lower boiling boint species in the bottoms (unitless).
-  satLiq : bool | float
-    Whether the incoming feed is saturated liquid (vaporless / at its bubble point). Should be False when the feed is saturated vapor (liquidless / at its dew point).
+  Rmin_mult : float
+    Factor by which to excede the minimum reflux ratio, Rmin (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf).
 
   Returns:
   -----------
+  tieline : LinearEq
   Rmin : float
     Minimum reflux ratio of the rectifying section (unitless).
+  R : float
+    Reflux ratio of the rectifying section (unitless).
+  P : float
+    IDK what this represents tbh # TODO figure out what P actually is lol
   '''
   tieline = common.point_conn((xf, liqlineH.eval(xf)), (yf, vaplineH.eval(yf)))
   hd = (xd, liqlineH.eval(xd))
   hv1 = (xd, vaplineH.eval(xd))
   hdqcd = (xd, tieline.eval(xd))
   Rmin = (hdqcd - hv1) / (hv1 - hd)
-  return tieline, Rmin
+  R = Rmin  * Rmin_mult
+  P = R * (hv1 - hd) + hv1
+  tieline = common.point_conn((xf, liqlineH.eval(xf)), (xd, P)) # tieline for real R, not Rmin
+  return tieline, Rmin, R, P
 
 # TODO #10 finish ponchon_savarit
-def ponchon_savarit_full_est(eq_curve: common.EqualibEq, props: npt.ArrayLike, F: tuple[float, float], q: bool | float, xd: float, xb: float, tol: float = .00001):
+def ponchon_savarit_full_est(eq_curve: common.EqualibEq, props: npt.ArrayLike, F: tuple[float, float], q: bool | float, xd: float, xb: float, Rmin_mult: float, tol: float = .00001):
   '''
   Calculates the liquid and vapor enthalpy lines on a Pochon Savarit diagram for a bianary mixture distilation column.
 
@@ -568,7 +564,7 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, props: npt.ArrayLike, F
     xf, _ = common.linear_intersect(common.point_slope(F, tieslope), liqlineH)
     yf = eq_curve.eval(xf)
   
-  tieline, Rmin = ponchon_savarit_tieline(props, xf, yf, xd, q)
+  tieline, Rmin, R, P = ponchon_savarit_tieline(props, xf, yf, xd, Rmin_mult)
 
   # calc stage_min
   x = xd
@@ -577,6 +573,8 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, props: npt.ArrayLike, F
     x = eq_curve.eval(x)
     i += 1
   min_stages = (i - 1.) + (eq_curve.inv(x) - xb) / (eq_curve.inv(x) - x)
+
+  # calc ideal_stages
 
   return
 
