@@ -486,7 +486,7 @@ def ponchon_savarit_enthalpylines(props: npt.ArrayLike) -> tuple[common.LinearEq
 
   return liqlineH, vaplineH
 
-def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq, xf: float, yf: float, xd: float, satLiq: bool):
+def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq, xf: float, yf: float, xd: float):
   '''
   Calculates the tieline and Rmin of a Pochon Savarit diagram for a bianary mixture distilation column.
 
@@ -546,7 +546,7 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, props: npt.ArrayLike, F
   props = np.atleast_1d(props).reshape((-1, 3))
   liqlineH, vaplineH = ponchon_savarit_enthalpylines(props)
 
-  if type(q) == bool or q == 0. or q == 1.:
+  if type(q) == bool or q == 0. or q == 1.: # saturated liq / vap feed
     if q:
       xf = F[0]
       yf = eq_curve.eval(xf)
@@ -577,6 +577,8 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, props: npt.ArrayLike, F
     x = eq_curve.eval(x)
     i += 1
   min_stages = (i - 1.) + (eq_curve.inv(x) - xb) / (eq_curve.inv(x) - x)
+
+  return
 
 
 
