@@ -59,10 +59,22 @@ class LinearEq:
           self.x_int = -m/b
   
   def eval(self, x: float) -> float: # numpy compatible
-    return self.m * x + self.b
+    if np.isnan(self.m) or np.isnan(self.b): # vertical line
+      if x == self.x_int: # on the vertical line
+        return np.zeros_like(x).fill(np.NaN)
+      else: # off the vertical line
+        return np.zeros_like(x).fill(None)
+    else:
+      return self.m * x + self.b
   
   def inv(self, y: float) -> float: # numpy compatible
-    return (y - self.b) / self.m
+    if self.m == 0.: # horizontal line
+      if y == self.b: # on the horizontal line
+        return np.zeros_like(y).fill(np.NaN)
+      else: # off the horizontal line
+        return np.zeros_like(y).fill(None)
+    else:
+      return (y - self.b) / self.m
 
 class EqualibEq:
   '''
@@ -78,7 +90,7 @@ class EqualibEq:
   
   def eval(self, x: float) -> float: # numpy compatible
     # breaks if x = -1. / (1. - self.alpha)
-    return   (self.alpha * x ) / (1. + (self.alpha - 1.) * x)
+    return (self.alpha * x ) / (1. + (self.alpha - 1.) * x)
   
   def inv(self, y: float) -> float: # numpy compatible
     # breaks if y = -self.alpha / (1. - self.alpha)

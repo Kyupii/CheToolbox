@@ -463,7 +463,7 @@ def bianary_feed_split(F: float, xf: float, xd: float, xb: float, R: float = Non
 
   return D, B, V, L, Vprime, Lprime
 
-def ponchon_savarit_enthalpylines(props: npt.ArrayLike, xf: float, yf: float, xd: float, q: bool | float):
+def ponchon_savarit_enthalpylines(props: npt.ArrayLike) -> tuple[common.LinearEq, common.LinearEq]:
   '''
   Calculates the liquid and vapor enthalpy lines on a Pochon Savarit diagram for a bianary mixture distilation column.
 
@@ -472,6 +472,28 @@ def ponchon_savarit_enthalpylines(props: npt.ArrayLike, xf: float, yf: float, xd
   props : ArrayLike
     Chemical properties of the compounds being analyzed. Shape must be 2 x 3.
       Ex) np.array([Boiling Point Temperature (K), Average Molar Heat Capactity (kJ/mol*C), Molar Heat of Vaporization (kJ/mol) ])
+  
+  Returns:
+  -----------
+  liqlineH : LinearEq
+  vaplineH : LinearEq
+  '''
+  props = np.atleast_1d(props).reshape((-1, 3))
+  if props[0, 0] > props[1, 0]:
+    props = props[::-1]
+  liqlineH = common.point_conn((1., 0.), (0., props[1, 1] * (props[1, 0] - props[0, 0])))
+  vaplineH = common.point_conn((1., props[0, 2]), (0., props[1, 1] * (props[1, 0] - props[0, 0]) + props[1, 2]))
+
+  return liqlineH, vaplineH
+
+def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq, xf: float, yf: float, xd: float, satLiq: bool):
+  '''
+  Calculates the tieline and Rmin of a Pochon Savarit diagram for a bianary mixture distilation column.
+
+  Parameters:
+  -----------
+  liqlineH : LinearEq
+  vaplineH : LinearEq
   xf : float
     Liquid fraction of the lower boiling boint species in the feed (unitless).
   yf : float
@@ -480,38 +502,23 @@ def ponchon_savarit_enthalpylines(props: npt.ArrayLike, xf: float, yf: float, xd
     Liquid fraction of the lower boiling boint species in the distilate (unitless).
   xb : float
     Liquid fraction of the lower boiling boint species in the bottoms (unitless).
-  q : bool | float
-    The liquid fraction of the incoming feed. Should be True or 1. when the feed is saturated liquid (vaporless / at its bubble point). Should be False or 0. when the feed is saturated vapor (liquidless / at its dew point).
+  satLiq : bool | float
+    Whether the incoming feed is saturated liquid (vaporless / at its bubble point). Should be False when the feed is saturated vapor (liquidless / at its dew point).
 
   Returns:
   -----------
-  
+  Rmin : float
+    Minimum reflux ratio of the rectifying section (unitless).
   '''
-  props = np.atleast_1d(props).reshape((-1, 3))
-  if props[0, 0] > props[1, 0]:
-    props = props[::-1]
-  liqlineH = common.point_conn((1., 0.), (0., props[1, 1] * (props[1, 0] - props[0, 0])))
-  vaplineH = common.point_conn((1., props[0, 2]), (0., props[1, 1] * (props[1, 0] - props[0, 0]) + props[1, 2]))
-
-  if q == 1. or q == True:
-    feedpoint = (xf, liqlineH.eval(xf))
-    tiepoint = (yf, vaplineH.eval(yf))
-  elif not q:
-    feedpoint = (yf, vaplineH.eval(yf))
-    tiepoint = (xf, liqlineH.eval(xf))
-  else:
-    return liqlineH, vaplineH #manual guess-and-check for feedpoint required
-
-  tieline = common.point_conn(feedpoint, tiepoint)
+  tieline = common.point_conn((xf, liqlineH.eval(xf)), (yf, vaplineH.eval(yf)))
   hd = (xd, liqlineH.eval(xd))
   hv1 = (xd, vaplineH.eval(xd))
   hdqcd = (xd, tieline.eval(xd))
   Rmin = (hdqcd - hv1) / (hv1 - hd)
-
-  return liqlineH, vaplineH, Rmin
+  return tieline, Rmin
 
 # TODO #10 finish ponchon_savarit
-def ponchon_savarit_full_est(eq_curve: common.EqualibEq, props: npt.ArrayLike, F: tuple[float, float], q: bool | float, xd: float, xb: float):
+def ponchon_savarit_full_est(eq_curve: common.EqualibEq, props: npt.ArrayLike, F: tuple[float, float], q: bool | float, xd: float, xb: float, tol: float = .00001):
   '''
   Calculates the liquid and vapor enthalpy lines on a Pochon Savarit diagram for a bianary mixture distilation column.
 
@@ -522,33 +529,57 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, props: npt.ArrayLike, F
   props : ArrayLike
     Chemical properties of the compounds being analyzed. Shape must be 2 x 3.
       Ex) np.array([Boiling Point Temperature (K), Average Molar Heat Capactity (kJ/mol*C), Molar Heat of Vaporization (kJ/mol) ])
-  xf : float
-    Liquid fraction of the lower boiling boint species in the feed (unitless).
-  yf : float
-    Vapor fraction of the lower boiling boint species in the feed (unitless). Corresponding y-value of xf on the equalibrium curve.
+  F : tuple[float, float] # TODO how would we be given this in point format?
+    Cooridinates of the feed point on the Pochon Savarit diagram. 
+  q : bool | float
+    The liquid fraction of the incoming feed. Should be True or 1. when the feed is saturated liquid (vaporless / at its bubble point). Should be False or 0. when the feed is saturated vapor (liquidless / at its dew point).
   xd : float
     Liquid fraction of the lower boiling boint species in the distilate (unitless).
   xb : float
     Liquid fraction of the lower boiling boint species in the bottoms (unitless).
-  q : bool | float
-    The liquid fraction of the incoming feed. Should be True or 1. when the feed is saturated liquid (vaporless / at its bubble point). Should be False or 0. when the feed is saturated vapor (liquidless / at its dew point).
+  
 
   Returns:
   -----------
   
   '''
-  # TODO # 9 iteratively solve for the x_f* and y_f* values of the feedline
-  # take q as valid starting point for the slope of the feedline
+  props = np.atleast_1d(props).reshape((-1, 3))
+  liqlineH, vaplineH = ponchon_savarit_enthalpylines(props)
 
+  if type(q) == bool or q == 0. or q == 1.:
+    if q:
+      xf = F[0]
+      yf = eq_curve.eval(xf)
+    else:
+      yf = F[0]
+      xf = eq_curve.inv(yf)
+  else: # iteratively solve for x_f* and y_f* of the feed
+    # take q as good estimate for the feedline's slope
+    xf, _ = common.linear_intersect(common.point_slope(F, q), liqlineH)
+    yf = eq_curve.eval(xf)
+    q_alt = common.point_conn(F, (yf, vaplineH.eval(yf))).m
+    tieslopes = np.array([q, q_alt])
 
-  liqlineH, vaplineH, Rmin = ponchon_savarit_enthalpyline(props, xf, yf, xd, feedSatLiq)
+    def error(q):
+      xf, _ = common.linear_intersect(common.point_slope(F, q), liqlineH)
+      return 1. - (xf + eq_curve.eval(xf))
+    
+    tieslope, _, _ = common.iter(error, tieslopes, tol)
+    xf, _ = common.linear_intersect(common.point_slope(F, tieslope), liqlineH)
+    yf = eq_curve.eval(xf)
   
+  tieline, Rmin = ponchon_savarit_tieline(props, xf, yf, xd, q)
+
+  # calc stage_min
   x = xd
   i = 1
   while x >= xb:
     x = eq_curve.eval(x)
     i += 1
   min_stages = (i - 1.) + (eq_curve.inv(x) - xb) / (eq_curve.inv(x) - x)
+
+
+
 
 def multicomp_feed_split_est(feed: npt.ArrayLike, keys: tuple[int, int], spec: tuple[float, float]) -> tuple[npt.ArrayLike, npt.ArrayLike]:
   '''
