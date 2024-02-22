@@ -294,7 +294,7 @@ def mccabe_thiel_feedline(q: float, xf: float) -> common.LinearEq:
     feedline = common.LinearEq(m, y_int)
   return feedline
 
-def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: float, xb: float, Rmin_mult: float = 1.2) -> tuple[common.LinearEq, common.LinearEq, tuple[float, float], float]:
+def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: float, xb: float, Rmin_mult: float = 1.2) -> common.SolutionObj[common.LinearEq, common.LinearEq, tuple[float, float], float]:
   '''
   Calculates the rectifying and stripping operating lines of a McCabe Thiel Diagram for a bianary mixture distilation column. Assumes equal molar heats of vaporization.
 
@@ -386,14 +386,14 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
     x, error, i = common.iter(err, [xb, xd], tol)
 
   eq_feedpoint = (x, eq_curve.eval(x))
-  rectifyline, stripline, feedpoint, Rmin, R = mccabe_thiel_otherlines(feedline, eq_feedpoint, xd, xb, Rmin_mult)
+  rectifyline, stripline, feedpoint, Rmin, R = mccabe_thiel_otherlines(feedline, eq_feedpoint, xd, xb, Rmin_mult).unpack()
 
   y_reflect = common.LinearEq(1., 0.)
   min_stages = common.curve_bouncer(eq_curve, y_reflect, xd, xb)
 
   y_operlines = common.PiecewiseEq((stripline, rectifyline), (feedpoint[0],))
   ideal_stages = common.curve_bouncer(eq_curve, y_operlines, xd, xb)
-  
+
   sol = common.SolutionObj(Rmin = Rmin, R = R, min_stages = min_stages, ideal_stages = ideal_stages)
   return sol
 
@@ -562,13 +562,8 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
   
   tieline, Rmin, R, P = ponchon_savarit_tieline(liqlineH, vaplineH, xf, yf, xd, Rmin_mult)
 
-  # calc stage_min
-  x = xd
-  i = 1
-  while x >= xb:
-    x = eq_curve.eval(x)
-    i += 1
-  min_stages = (i - 1.) + (eq_curve.inv(x) - xb) / (eq_curve.inv(x) - x)
+
+  min_stages = common.curve_bouncer(eq_curve, , xd, xb)
 
   # calc ideal_stages
 

@@ -149,8 +149,11 @@ class SolutionObj(dict):
     except KeyError as e:
       raise AttributeError(name) from e
 
-  def __dir__(self):
-    return list(self.keys())
+  def __dir__(self) -> tuple:
+    return tuple(self.keys())
+  
+  def unpack(self) -> tuple:
+    return tuple(self.values())
 
 def antoine_T(v: npt.ArrayLike, P: npt.ArrayLike) -> npt.ArrayLike:
   '''
@@ -297,9 +300,9 @@ def quadratic_formula(coeff: npt.ArrayLike) -> npt.ArrayLike | None:
     return None
   return (- coeff[1] + np.sqrt(np.array([descrim])) * np.array([1, -1])) / (2. * coeff[0])
 
-def curve_bouncer(upper: Equation, lower: Equation, y_start: float, x_stop: float):
+def curve_bouncer(upper: Equation, lower: Equation, y_start: float, x_stop: float) -> float:
   '''
-  Bounce between two curves. y_start must be on the upper curve.
+  Bounce between two curves at right angles and return the number of bounces required to reach x_stop. y_start must lie on the upper curve.
   '''
   y = y_start
   x = upper.inv(y_start)
