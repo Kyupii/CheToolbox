@@ -325,7 +325,7 @@ def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: 
     Reflux ratio of the rectifying section (unitless).
   '''
   # "distilate to feed at equalibrium" line
-  eq_rectifyline = common.point_connector(eq_feedpoint, (xd, xd))
+  eq_rectifyline = common.point_conn(eq_feedpoint, (xd, xd))
 
   # "distilate to feedpoint" line
   Rmin = eq_rectifyline.m / (1. - eq_rectifyline.m)
@@ -341,7 +341,7 @@ def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: 
     feedpoint = common.linear_intersect(feedline, rectifyline)
 
   # bottoms to feed point
-  stripline = common.point_connector(feedpoint, (xb, xb))
+  stripline = common.point_conn(feedpoint, (xb, xb))
   sol = common.SolutionObj(rectifyline = rectifyline, stripline = stripline, feedpoint = feedpoint, Rmin = Rmin, R = R)
   return sol
 
@@ -490,8 +490,8 @@ def ponchon_savarit_enthalpylines(props: npt.ArrayLike, xf: float, yf: float, xd
   props = np.atleast_1d(props).reshape((-1, 3))
   if props[0, 0] > props[1, 0]:
     props = props[::-1]
-  liqlineH = common.point_connector((1., 0.), (0., props[1, 1] * (props[1, 0] - props[0, 0])))
-  vaplineH = common.point_connector((1., props[0, 2]), (0., props[1, 1] * (props[1, 0] - props[0, 0]) + props[1, 2]))
+  liqlineH = common.point_conn((1., 0.), (0., props[1, 1] * (props[1, 0] - props[0, 0])))
+  vaplineH = common.point_conn((1., props[0, 2]), (0., props[1, 1] * (props[1, 0] - props[0, 0]) + props[1, 2]))
 
   if q == 1. or q == True:
     feedpoint = (xf, liqlineH.eval(xf))
@@ -502,7 +502,7 @@ def ponchon_savarit_enthalpylines(props: npt.ArrayLike, xf: float, yf: float, xd
   else:
     return liqlineH, vaplineH #manual guess-and-check for feedpoint required
 
-  tieline = common.point_connector(feedpoint, tiepoint)
+  tieline = common.point_conn(feedpoint, tiepoint)
   hd = (xd, liqlineH.eval(xd))
   hv1 = (xd, vaplineH.eval(xd))
   hdqcd = (xd, tieline.eval(xd))
@@ -574,7 +574,7 @@ def multicomp_feed_split_est(feed: npt.ArrayLike, keys: tuple[int, int], spec: t
   feed = np.atleast_1d(feed).reshape((-1, 2))
   topsplit = spec[0] / feed[keys[0], 0]
   botsplit = 1. - (spec[1]) / feed[keys[1], 0]
-  splitline = common.point_connector((feed[keys[1], 1], botsplit), (feed[keys[0], 1], topsplit))
+  splitline = common.point_conn((feed[keys[1], 1], botsplit), (feed[keys[0], 1], topsplit))
 
   def splitest(MW: float):
     cutoff = np.max(np.c_[splitline.eval(MW)], 1, initial=0.)

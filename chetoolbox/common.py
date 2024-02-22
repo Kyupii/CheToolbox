@@ -192,7 +192,7 @@ def vertical_line(x) -> LinearEq:
 def horizontal_line(y) -> LinearEq:
   return LinearEq(0., y)
 
-def point_connector(point1: tuple, point2: tuple) -> LinearEq:
+def point_conn(point1: tuple, point2: tuple) -> LinearEq:
   '''
   Calculates equation of a line from two points.
   '''
