@@ -50,7 +50,7 @@ class LinearEq:
       self.b = np.NaN
       self.x_int = x_int
     else:
-      if b == 0.: # intersect the origin
+      if b == 0.: # intersects the origin
         self.x_int = 0.
       else:
         if self.m == 0.: # horizontal lines
@@ -187,11 +187,10 @@ def iter(err_calc: Callable[[float], float], x: npt.ArrayLike, tol: float = .001
   return x[np.argmin(error)], np.min(error), i
 
 def vertical_line(x) -> LinearEq:
-  line = LinearEq(0, 1)
-  line.m = np.NaN
-  line.b = np.NaN
-  line.x_int = x
-  return line
+  return LinearEq(np.NaN, np.NaN, x)
+
+def horizontal_line(y) -> LinearEq:
+  return LinearEq(0., y)
 
 def point_slope(point1: tuple, point2: tuple) -> LinearEq:
   '''
@@ -201,18 +200,16 @@ def point_slope(point1: tuple, point2: tuple) -> LinearEq:
   if point1[0] == point2[0]:
     return vertical_line(point1[0])
   elif point1[1] == point2[1]:
-    m = 0
-    b = point1[1]
-    return LinearEq(m, b)
-  m = (point1[1]-point2[1])/(point1[0]-point2[0])
+    return horizontal_line(point1[1])
+  m = (point1[1] - point2[1]) / (point1[0] - point2[0])
   b = point1[1] - m * point1[0]
   return LinearEq(m, b)
   
 def linear_intersect(line1: LinearEq, line2: LinearEq) -> tuple[float, float] | None:
   '''
-  Calculates the intersection points of two straight lines or None if no intersect exists. Uses LinearEq objects.
+  Calculates the intersection points of two straight lines or returns None if no intersect exists. Uses LinearEq objects.
   '''
-  if line2.m == line1.m and line1.y != line2.y:
+  if line2.m == line1.m and line1.b != line2.b:
     return None
   else:
     x = (line1.b - line2.b)/(line2.m - line1.m)
