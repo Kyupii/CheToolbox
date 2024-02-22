@@ -45,8 +45,8 @@ class LinearEq:
   def __init__(self, m: float, b: float, x_int: float | None = None) -> None:
     self.m = m
     self.b = b
-    if self.m == np.NaN or self.b == np.NaN: # vertical lines
-      self.m == np.NaN
+    if np.isnan(self.m) or np.isnan(self.b): # vertical lines
+      self.m = np.NaN
       self.b = np.NaN
       self.x_int = x_int
     else:
@@ -192,7 +192,7 @@ def vertical_line(x) -> LinearEq:
 def horizontal_line(y) -> LinearEq:
   return LinearEq(0., y)
 
-def point_conn(point1: tuple, point2: tuple) -> LinearEq:
+def point_conn(point1: tuple[float, float], point2: tuple[float, float]) -> LinearEq:
   '''
   Calculates equation of a line from two points.
   '''
@@ -205,12 +205,17 @@ def point_conn(point1: tuple, point2: tuple) -> LinearEq:
   b = point1[1] - m * point1[0]
   return LinearEq(m, b)
 
-def point_slope(point: tuple, slope: float ) -> LinearEq:
+def point_slope(point: tuple[float, float], slope: float ) -> LinearEq:
   '''
   Calculates equation of a line from a point and its slope.
   '''
   point = np.atleast_1d(point)
-  return LinearEq(slope, slope * point[0] + point[1])
+  if np.isnan(slope):
+    return vertical_line(point[0])
+  elif slope == 0.:
+    return horizontal_line(point[1])
+  else:
+    return LinearEq(slope, slope * point[0] + point[1])
 
 def linear_intersect(line1: LinearEq, line2: LinearEq) -> tuple[float, float] | None:
   '''
