@@ -107,8 +107,30 @@ class EqualibEq(Equation):
     # breaks if y = -self.alpha / (1. - self.alpha)
     return y / (self.alpha + y * (1. - self.alpha))
 
+class PiecewiseEq(Equation):
+  '''
+  Curves must be equal at each bound.
+  Piecewise must be injective (pass horizontal line test / one y only has one x).
+  Upperbounds must be ordered smallest to largest.
+  '''
+  def __init__(self, curves: tuple[Equation], upperbounds: tuple[Equation]):
+    if len(curves) - 1 != len(upperbounds):
+      raise AttributeError("Number of bounds do not match number of curves minus one.")
+    for i in len(upperbounds):
+      setattr(self, str(upperbounds[i]), curves[i])
+    setattr(self, str(np.inf), curves[-1])
+    y_test = curves[-1].eval(np.array([upperbounds[-1], upperbounds[-1] + .05]))
+    self.posSlope = y_test 
+
+  def eval(self, x: float) -> float:
+    keys = np.array(self.__dict__.keys()).astype(np.float)
+    curve = getattr(self, str(keys[np.sum( keys[keys <= x] )]) )
+    return curve.eval(x)
+  
+  def inv(self, y: float) -> float:
+
 class SolutionObj(dict):
-  def __getattr__(self,name):
+  def __getattr__(self, name):
     try: 
       return self[name]
     except KeyError as e:
@@ -263,7 +285,7 @@ def quadratic_formula(coeff: npt.ArrayLike) -> npt.ArrayLike | None:
 
 def curve_bouncer(upper: Equation, lower: Equation, y_start: float, x_stop: float):
   '''
-  y_start is on the upper curve
+  Bounce between two curves. y_start must be on the upper curve.
   '''
   y = y_start
   x = upper.inv(y_start)
