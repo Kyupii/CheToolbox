@@ -114,7 +114,7 @@ class PiecewiseEq(Equation):
   eqs : tuple[Equation]
     All equations that compose the piecewise function. Equations must be ordered from smallest to largest upper domain limit.
   upperdomainlims : float
-    The upper domain limit of each equation, except the last equation which has an upper domain limit of np.inf. Upperbounds must be ordered smallest to largest. Length must be len(eqs) - 1.
+    The upper domain limit of each equation, except the last equation which has an upper domain limit of np.inf. Upperbounds must be ordered smallest to largest. Length must be len(eqs) -
   eval : Callable
     Return the output of the function (y) when evaluated at an input (x).
   inv : Callable
@@ -122,9 +122,10 @@ class PiecewiseEq(Equation):
   '''
   def __init__(self, eqs: tuple[Equation], upperdomainlims: tuple[float]):
     if len(eqs) - 1 != len(upperdomainlims):
-      raise AttributeError("Number of bounds do not match number of curves minus one.")
-    self.boundeqs = dict(zip(upperdomainlims, eqs[:-1]) + [(np.inf, eqs[-1])])
-    self.posSlope = eqs[-1].eval(upperdomainlims[-1]) < eqs[-1].eval(upperdomainlims[-1] + .05)
+      raise AttributeError("Number of bounds do not match number of equations minus one.")
+    upperdomainlims = np.array(list(upperdomainlims) + [np.inf])
+    self.boundeqs = dict(zip(upperdomainlims.astype(str), eqs))
+    self.posSlope = eqs[0].eval(upperdomainlims[0] - .05) < eqs[0].eval(upperdomainlims[0])
 
   def eval(self, x: float) -> float:
     bounds = np.fromiter(self.boundeqs.keys(), float)
@@ -134,7 +135,7 @@ class PiecewiseEq(Equation):
   def inv(self, y: float) -> float:
     bounds = np.fromiter(self.boundeqs.keys(), float)
     curves = list(self.boundeqs.values())
-    boundeqval = np.array([curve.eval(bounds[i]) for i, curve in enumerate(curves[-1])])
+    boundeqval = np.array([curve.eval(bounds[i]) for i, curve in enumerate(curves[:-1])])
     if self.posSlope:
       eq = self.boundeqs[str(bounds[np.sum(boundeqval <= y)])]
     else:
