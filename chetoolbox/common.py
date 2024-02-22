@@ -130,11 +130,13 @@ class PiecewiseEq(Equation):
   def inv(self, y: float) -> float:
 
 class SolutionObj(dict):
+
   def __getattr__(self, name):
     try: 
       return self[name]
     except KeyError as e:
       raise AttributeError(name) from e
+
   def __dir__(self):
     return list(self.keys())
 

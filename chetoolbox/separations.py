@@ -345,7 +345,7 @@ def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: 
   sol = common.SolutionObj(rectifyline = rectifyline, stripline = stripline, feedpoint = feedpoint, Rmin = Rmin, R = R)
   return sol
 
-def mccabe_thiel_full_est(eq_curve: common.EqualibEq, q: float, xf: float, xd: float, xb: float, Rmin_mult: float = 1.2, tol: float = .00001):
+def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq, xf: float, xd: float, xb: float, Rmin_mult: float = 1.2, tol: float = .00001):
   '''
   Calculates the reflux ratio and ideal stages of a bianary mixture distilation column, as well as thier ideal minimums. Uses a McCabe Thiel Diagram and assumes equal molar heats of vaporization.
 
@@ -353,8 +353,8 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, q: float, xf: float, xd: f
   -----------
   equalibrium_curve : EqualibEq
     Equation for an equalibrium curve of a bianary mixture.
-  q : float
-    Feed liquid fraction (unitless).
+  feedline : LinearEq
+    Feed line of a McCabe Thiel Diagram.
   xf : float
     Liquid fraction of the feed's lower boiling boint species (unitless).
   xd : float
@@ -377,8 +377,6 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, q: float, xf: float, xd: f
   ideal_stages : float
     Number of ideal stages (includes reboiler and partial condensor if applicable).
   '''
- 
-  feedline = mccabe_thiel_feedline(q, xf)
 
   def err(x):
     return eq_curve.eval(x) - feedline.eval(x)
@@ -514,7 +512,7 @@ def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq
   return tieline, Rmin, R, P
 
 # TODO #10 finish ponchon_savarit
-def ponchon_savarit_full_est(eq_curve: common.EqualibEq, props: npt.ArrayLike, F: tuple[float, float], q: bool | float, xd: float, xb: float, Rmin_mult: float, tol: float = .00001):
+def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.LinearEq, vaplineH: common.LinearEq, F: tuple[float, float], q: bool | float, xd: float, xb: float, Rmin_mult: float, tol: float = .00001):
   '''
   Calculates the liquid and vapor enthalpy lines on a Pochon Savarit diagram for a bianary mixture distilation column.
 
@@ -564,7 +562,7 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, props: npt.ArrayLike, F
     xf, _ = common.linear_intersect(common.point_slope(F, tieslope), liqlineH)
     yf = eq_curve.eval(xf)
   
-  tieline, Rmin, R, P = ponchon_savarit_tieline(props, xf, yf, xd, Rmin_mult)
+  tieline, Rmin, R, P = ponchon_savarit_tieline(liqlineH, vaplineH, xf, yf, xd, Rmin_mult)
 
   # calc stage_min
   x = xd
