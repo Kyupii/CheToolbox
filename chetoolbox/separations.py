@@ -48,7 +48,7 @@ def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> tuple[float, 
     i += 1
   x_out = x / (1 + psi * (K - 1))
   y_out = (x * K) / (1 + psi * (K - 1))
-  sol = common.solution_object(psi = psi, x_out = x_out, y_out = y_out, error = error(psi), i = i)
+  sol = common.SolutionObj(psi = psi, x_out = x_out, y_out = y_out, error = error(psi), i = i)
   return sol
 
 def bubble_point_iterator(x:list, K:list)->tuple[float,npt.ArrayLike,float]:
@@ -76,7 +76,7 @@ def bubble_point_iterator(x:list, K:list)->tuple[float,npt.ArrayLike,float]:
   y = x * K
   err = np.sum(y) - 1 
 
-  sol = common.solution_object(y = y, err = err)
+  sol = common.SolutionObj(y = y, err = err)
   return sol
 
 def dew_point_iterator(y:list, K:list)->tuple[float,npt.ArrayLike,float]:
@@ -103,7 +103,7 @@ def dew_point_iterator(y:list, K:list)->tuple[float,npt.ArrayLike,float]:
   K = np.atleast_1d(K)
   x = y / K
   err = np.sum(x) - 1 
-  sol = common.solution_object(x = x, err = err)
+  sol = common.SolutionObj(x = x, err = err)
   return sol
 
 def bubble_point(x: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> tuple[float, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, float, int]:
@@ -342,7 +342,7 @@ def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: 
 
   # bottoms to feed point
   stripline = common.point_slope(feedpoint, (xb, xb))
-  sol = common.solution_object(rectifyline = rectifyline, stripline = stripline, feedpoint = feedpoint, Rmin = Rmin, R = R)
+  sol = common.SolutionObj(rectifyline = rectifyline, stripline = stripline, feedpoint = feedpoint, Rmin = Rmin, R = R)
   return sol
 
 def mccabe_thiel_full_est(eq_curve: common.EqualibEq, q: float, xf: float, xd: float, xb: float, Rmin_mult: float = 1.2, tol: float = .00001):
@@ -413,7 +413,7 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, q: float, xf: float, xd: f
   
   min_stages = equalibrium_line_walker(y_reflect, xd)
   ideal_stages = equalibrium_line_walker(y_operlines, xd)
-  sol = common.solution_object(Rmin = Rmin, R = R, min_stages = min_stages, ideal_stages = ideal_stages)
+  sol = common.SolutionObj(Rmin = Rmin, R = R, min_stages = min_stages, ideal_stages = ideal_stages)
   return sol
 
 def bianary_feed_split(F: float, xf: float, xd: float, xb: float, R: float = None, q: float = None) -> tuple[float, float, float | None, float | None, float | None, float | None]:
@@ -512,6 +512,9 @@ def ponchon_savarit_enthalpyline(props: npt.ArrayLike, xf: float, yf: float, xd:
 
 # TODO #10 finish ponchon_savarit
 def ponchon_savarit_full_est(eq_curve: common.EqualibEq, props: npt.ArrayLike, xf: float, yf: float, xd: float, xb: float, feedSatLiq: bool):
+  '''
+  '''
+  
   liqlineH, vaplineH, Rmin = ponchon_savarit_enthalpyline(props, xf, yf, xd, feedSatLiq)
   
   x = xd

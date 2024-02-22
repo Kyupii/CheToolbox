@@ -55,7 +55,7 @@ class LinearEq:
   
   def inv(self, y: float) -> float: # numpy compatible
     return (y - self.b) / self.m
-  
+
 class EqualibEq:
   '''
   alpha : float
@@ -76,7 +76,7 @@ class EqualibEq:
     # breaks if y = -self.alpha / (1. - self.alpha)
     return y / (self.alpha + y * (1. - self.alpha))
 
-class solution_object(dict):
+class SolutionObj(dict):
   def __getattr__(self,name):
     try: 
       return self[name]
