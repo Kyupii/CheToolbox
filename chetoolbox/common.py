@@ -274,7 +274,7 @@ def point_slope(point: tuple[float, float], slope: float ) -> LinearEq:
   elif slope == 0.:
     return horizontal_line(point[1])
   else:
-    return LinearEq(slope, slope * point[0] + point[1])
+    return LinearEq(slope, -slope * point[0] + point[1])
 
 def linear_intersect(line1: LinearEq, line2: LinearEq) -> tuple[float, float] | None:
   '''
