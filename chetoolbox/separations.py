@@ -579,6 +579,7 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
     else:
       connectpoint = (xb, B)
     line = common.point_conn( (liqlineH.inv(y), y), connectpoint)
+    # draw to graph?
     _, y = common.linear_intersect(line, vaplineH)
     return y
   
