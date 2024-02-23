@@ -296,15 +296,14 @@ def linear_intersect(line1: LinearEq, line2: LinearEq) -> tuple[float, float] | 
   '''
   if line2.m == line1.m and line1.b != line2.b:
     return None
-  if any(np.isnan(line1.m), np.isnan(line2.m)):
+  if np.isnan(line1.m) or np.isnan(line2.m):
     if np.isnan(line1.m):
       return line1.x_int, line2.eval(line1.x_int)
     else:
       return line2.x_int, line1.eval(line2.x_int)
   else:
     x = (line1.b - line2.b)/(line2.m - line1.m)
-    y = line1.eval(x)
-  return x, y
+  return x, line1.eval(x)
 
 def quadratic_formula(coeff: npt.ArrayLike) -> npt.ArrayLike | None:
   '''

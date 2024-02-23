@@ -336,7 +336,7 @@ def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: 
   stripline = common.point_conn(feedpoint, (xb, xb))
   return common.SolutionObj(rectifyline = rectifyline, stripline = stripline, feedpoint = feedpoint, Rmin = Rmin, R = R)
 
-def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq, xf: float, xd: float, xb: float, Rmin_mult: float = 1.2, tol: float = .00001, PLOTTING_ENABLED = True) -> common.SolutionObj[float, float, float, float]:
+def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq, xf: float, xd: float, xb: float, Rmin_mult: float = 1.2, tol: float = .00001, PLOTTING_ENABLED = False) -> common.SolutionObj[float, float, float, float]:
   '''
   Calculates the reflux ratio and ideal stages of a binary mixture distilation column, as well as thier ideal minimums. Uses a McCabe Thiel Diagram and assumes equal molar heats of vaporization.
 
@@ -371,7 +371,7 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
 
   def err(x):
     return eq_curve.eval(x) - feedline.eval(x)
-  if np.isnan(feedline.m) and np.isnan(feedline.b):
+  if np.isnan(feedline.m):
     x = xf
   else:
     x, error, i = common.iter(err, [xb, xd], tol)
@@ -393,8 +393,9 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
     ax.plot([xf]*200, np.linspace(0., eq_curve.eval(xf), 200))
     ax.plot([xb]*200, np.linspace(0., eq_curve.eval(xb), 200))
     ax.plot([xd]*200, np.linspace(0., eq_curve.eval(xd), 200))
-    ax.plot(np.linspace(xf, xd, 200), rectifyline.eval(np.linspace(xf, xd, 200)))
-    ax.plot(np.linspace(xb, xf, 200), stripline.eval(np.linspace(xb, xf, 200)))
+    ax.plot(np.linspace(eq_feedpoint[0], xf, 200), feedline.eval(np.linspace(eq_feedpoint[0], xf, 200)))
+    ax.plot(np.linspace(eq_feedpoint[0], xd, 200), rectifyline.eval(np.linspace(eq_feedpoint[0], xd, 200)))
+    ax.plot(np.linspace(xb, eq_feedpoint[0], 200), stripline.eval(np.linspace(xb, eq_feedpoint[0], 200)))
     plt.xlim(0, 1)
     plt.ylim(0, 1)
 
@@ -518,7 +519,7 @@ def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq
 
   return common.SolutionObj(tieline = tieline, Rmin = Rmin, R = R, Hd = Hd, Hb = Hb)
 
-def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.LinearEq, vaplineH: common.LinearEq, Fpoint: tuple[float, float], q: bool | float, xd: float, xb: float, Rmin_mult: float, tol: float = .00001, PLOTTING_ENABLED = True) -> common.SolutionObj[common.LinearEq, float, float, float, float]:
+def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.LinearEq, vaplineH: common.LinearEq, Fpoint: tuple[float, float], q: bool | float, xd: float, xb: float, Rmin_mult: float, tol: float = .00001, PLOTTING_ENABLED = False) -> common.SolutionObj[common.LinearEq, float, float, float, float]:
   '''
   Calculates the liquid and vapor enthalpy lines on a Pochon Savarit diagram for a binary mixture distilation column.
 
