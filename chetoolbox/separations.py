@@ -1,6 +1,7 @@
 import numpy as np
 import numpy.typing as npt
 from typing import Callable
+from matplotlib import pyplot as plt
 import common
 
 def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> common.SolutionObj[float, npt.ArrayLike, npt.ArrayLike, float, int]:
@@ -50,7 +51,7 @@ def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> common.Soluti
   y_out = (x * K) / (1 + psi * (K - 1))
   return common.SolutionObj(psi = psi, x_out = x_out, y_out = y_out, error = error(psi), i = i)
 
-def bubble_point_iterator(x:list, K:list) -> common.SolutionObj[float, npt.ArrayLike, float]:
+def bubble_point_stepper(x:list, K:list) -> common.SolutionObj[float, npt.ArrayLike, float]:
   '''
   Intended to be used with a DePriester Chart. Calculates the vapor mole fractions & associated error, then proposes a new temperature on the DePriester chart to try.
 
@@ -76,7 +77,7 @@ def bubble_point_iterator(x:list, K:list) -> common.SolutionObj[float, npt.Array
   err = np.sum(y) - 1 
   return common.SolutionObj(y = y, err = err)
 
-def dew_point_iterator(y:list, K:list) -> common.SolutionObj[float, npt.ArrayLike, float]:
+def dew_point_stepper(y:list, K:list) -> common.SolutionObj[float, npt.ArrayLike, float]:
   '''
   Intended to be used with a DePriester Chart. Calculates the vapor mole fractions & associated error, then proposes a new temperature on the DePriester chart to try.
 
@@ -102,7 +103,7 @@ def dew_point_iterator(y:list, K:list) -> common.SolutionObj[float, npt.ArrayLik
   err = np.sum(x) - 1 
   return common.SolutionObj(x = x, err = err)
 
-def bubble_point(x: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> tuple[float, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, float, int]:
+def bubble_point_antoine(x: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> tuple[float, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, float, int]:
   '''
   Iteratively solves for the bubble point temperature of a multi-component liquid mixture.
 
@@ -151,7 +152,7 @@ def bubble_point(x: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) 
   Pvap, k, y = TtoY(bubbleT)
   return bubbleT, Pvap, k, y, error, i
 
-def dew_point(y: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> tuple[float, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, float, int]:
+def dew_point_antoine(y: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> tuple[float, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, float, int]:
   '''
   Iteratively solves for the dew point temperature of a multi-component vapor mixture.
 
@@ -273,7 +274,7 @@ def mccabe_thiel_feedline(q: float, xf: float) -> common.LinearEq:
   Parameters:
   -----------
   q : float
-    Feed liquid fraction (unitless).
+    The liquid fraction of the incoming feed. Should be 1. when the feed is saturated liquid (vaporless / at its bubble point). Should be 0. when the feed is saturated vapor (liquidless / at its dew point).
   xf : float
     Liquid fraction of the feed's lower boiling boint species (unitless).
   
@@ -340,7 +341,7 @@ def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: 
   stripline = common.point_conn(feedpoint, (xb, xb))
   return common.SolutionObj(rectifyline = rectifyline, stripline = stripline, feedpoint = feedpoint, Rmin = Rmin, R = R)
 
-def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq, xf: float, xd: float, xb: float, Rmin_mult: float = 1.2, tol: float = .00001) -> common.SolutionObj[float, float, float, float]:
+def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq, xf: float, xd: float, xb: float, Rmin_mult: float = 1.2, tol: float = .00001, PLOTTING_ENABLED = True) -> common.SolutionObj[float, float, float, float]:
   '''
   Calculates the reflux ratio and ideal stages of a binary mixture distilation column, as well as thier ideal minimums. Uses a McCabe Thiel Diagram and assumes equal molar heats of vaporization.
 
@@ -379,8 +380,9 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
     x = xf
   else:
     x, error, i = common.iter(err, [xb, xd], tol)
-
+  
   eq_feedpoint = (x, eq_curve.eval(x))
+  print(eq_feedpoint)
   rectifyline, stripline, feedpoint, Rmin, R = mccabe_thiel_otherlines(feedline, eq_feedpoint, xd, xb, Rmin_mult).unpack()
 
   y_reflect = common.LinearEq(1., 0.)
@@ -388,6 +390,18 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
 
   y_operlines = common.PiecewiseEq((stripline, rectifyline), (feedpoint[0],))
   ideal_stages = common.curve_bouncer(eq_curve, y_operlines, xd, xb)
+
+  if PLOTTING_ENABLED:
+    fig, ax = plt.subplots()
+    x = np.linspace(0., 1., 200)
+    ax.plot(x, eq_curve.eval(x))
+    ax.plot(x, x)
+    ax.plot([xf]*200, x)
+    ax.plot([xb]*200, x)
+    ax.plot([xd]*200, x)
+    ax.plot(np.linspace(xf, xd, 200), rectifyline.eval(x))
+    ax.plot(np.linspace(xb, xf, 200), stripline.eval(x))
+    plt.ylim(0, 1)
 
   return common.SolutionObj(Rmin = Rmin, R = R, min_stages = min_stages, ideal_stages = ideal_stages)
 
@@ -408,7 +422,7 @@ def binary_feed_split(F: float, xf: float, xd: float, xb: float, R: float = None
   R : float (Optional)
     Reflux ratio of the rectifying section (unitless).
   q : float (Optional)
-    Feed liquid fraction (unitless).
+    The liquid fraction of the incoming feed. Should be 1. when the feed is saturated liquid (vaporless / at its bubble point). Should be 0. when the feed is saturated vapor (liquidless / at its dew point).
 
   Returns:
   -----------
@@ -451,7 +465,9 @@ def ponchon_savarit_enthalpylines(props: npt.ArrayLike) -> tuple[common.LinearEq
   Returns:
   -----------
   liqlineH : LinearEq
+    Enthalpy concentration line of a binary mixture in the liquid phase on a Pochon Savarit diagram.
   vaplineH : LinearEq
+    Enthalpy concentration line of a binary mixture in the vapor phase on a Pochon Savarit diagram.
   '''
   props = np.atleast_1d(props).reshape((-1, 3))
   if props[0, 0] > props[1, 0]:
@@ -468,12 +484,12 @@ def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq
   Parameters:
   -----------
   liqlineH : LinearEq
-
+    Enthalpy concentration line of a binary mixture in the liquid phase on a Pochon Savarit diagram.
   vaplineH : LinearEq
-
-  xf : float
-    Liquid fraction of the lower boiling boint species in the feed (unitless).
-  yf : float
+    Enthalpy concentration line of a binary mixture in the vapor phase on a Pochon Savarit diagram.
+  x_f* : float
+    Liquid fraction of the lower boiling boint species in the feed (unitless). Corresponding x-value of yf on the equalibrium curve.
+  y_f* : float
     Vapor fraction of the lower boiling boint species in the feed (unitless). Corresponding y-value of xf on the equalibrium curve.
   xd : float
     Liquid fraction of the lower boiling boint species in the distilate (unitless).
@@ -485,15 +501,15 @@ def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq
   Returns:
   -----------
   tieline : LinearEq
-
+    Tie line of a Pochon Savarit diagram, which connects the feedpoint, x_f*, y_f*, P', and B' points.
   Rmin : float
     Minimum reflux ratio of the rectifying section (unitless).
   R : float
     Reflux ratio of the rectifying section (unitless).
-  P : float
-    IDK what this represents tbh # TODO figure out what P actually is lol
-  B : float
-    IDK what this represents tbh # TODO figure out what B actually is lol
+  Hd : float
+    Total enthalpy of the lower boiling point species at dew point plus the condenser's heat duty divided by the distilate flowrate 
+  Hb : float
+    Total enthalpy of the higher boiling point species at dew point plus the condenser's heat duty divided by the distilate flowrate 
   '''
   tieline = common.point_conn((xf, liqlineH.eval(xf)), (yf, vaplineH.eval(yf)))
   hd = liqlineH.eval(xd)
@@ -501,13 +517,13 @@ def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq
   hdqcd = tieline.eval(xd)
   Rmin = (hdqcd - hv1) / (hv1 - hd)
   R = Rmin  * Rmin_mult
-  P = R * (hv1 - hd) + hv1
-  tieline = common.point_conn((xf, liqlineH.eval(xf)), (xd, P)) # tieline for real R, not Rmin
-  B = tieline.eval(xb)
+  Hd = R * (hv1 - hd) + hv1
+  tieline = common.point_conn((xf, liqlineH.eval(xf)), (xd, Hd)) # tieline for real R, not Rmin
+  Hb = tieline.eval(xb)
 
-  return common.SolutionObj(tieline = tieline, Rmin = Rmin, R = R, P = P, B = B)
+  return common.SolutionObj(tieline = tieline, Rmin = Rmin, R = R, Hd = Hd, Hb = Hb)
 
-def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.LinearEq, vaplineH: common.LinearEq, Fpoint: tuple[float, float], q: bool | float, xd: float, xb: float, Rmin_mult: float, tol: float = .00001) -> tuple[float, float, float, float]:
+def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.LinearEq, vaplineH: common.LinearEq, Fpoint: tuple[float, float], q: bool | float, xd: float, xb: float, Rmin_mult: float, tol: float = .00001) -> common.SolutionObj[common.LinearEq, float, float, float, float]:
   '''
   Calculates the liquid and vapor enthalpy lines on a Pochon Savarit diagram for a binary mixture distilation column.
 
@@ -516,10 +532,10 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
   eq_curve : EqualibEq
     Equation for an equalibrium curve of a binary mixture.
   liqlineH : LinearEq
-
+    Enthalpy concentration line of a binary mixture in the liquid phase on a Pochon Savarit diagram.
   vaplineH : LinearEq
-
-  Fpoint : tuple[float, float] # TODO how would we be given this in point format?
+    Enthalpy concentration line of a binary mixture in the vapor phase on a Pochon Savarit diagram.
+  Fpoint : tuple[float, float]
     Cooridinates of the feed point on the Pochon Savarit diagram in (mol fraction (unitless), enthalpy (J/mol)) (unitless, Joules per mole).
   q : bool | float
     The liquid fraction of the incoming feed. Should be True or 1. when the feed is saturated liquid (vaporless / at its bubble point). Should be False or 0. when the feed is saturated vapor (liquidless / at its dew point).
@@ -565,7 +581,7 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
     xf, _ = common.linear_intersect(common.point_slope(Fpoint, tieslope), liqlineH)
     yf = eq_curve.eval(xf)
   
-  tieline, Rmin, R, P, B = ponchon_savarit_tieline(liqlineH, vaplineH, xf, yf, xd, Rmin_mult).unpack()
+  tieline, Rmin, R, Hp, Hb = ponchon_savarit_tieline(liqlineH, vaplineH, xf, yf, xd, xb, Rmin_mult).unpack()
 
   def y_transform(y):
     return vaplineH.eval(liqlineH.inv(y))
@@ -575,17 +591,16 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
   def y_transform(y):
     x = liqlineH.inv(y)
     if x > Fpoint[0]:
-      connectpoint = (xd, P)
+      connectpoint = (xd, Hp)
     else:
-      connectpoint = (xb, B)
+      connectpoint = (xb, Hb)
     line = common.point_conn( (liqlineH.inv(y), y), connectpoint)
-    # draw to graph?
     _, y = common.linear_intersect(line, vaplineH)
     return y
   
   ideal_stages = common.curve_bouncer(vaplineH, liqlineH, xd, xb, eq_curve.inv, y_transform)
 
-  return Rmin, R, min_stages, ideal_stages
+  return common.SolutionObj(tieline = tieline, Rmin = Rmin, R = R, min_stages = min_stages, ideal_stages = ideal_stages)
 
 def multicomp_feed_split_est(feed: npt.ArrayLike, keys: tuple[int, int], spec: tuple[float, float]) -> tuple[npt.ArrayLike, npt.ArrayLike]:
   '''

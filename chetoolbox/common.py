@@ -155,6 +155,17 @@ class SolutionObj(dict):
   def unpack(self) -> tuple:
     return tuple(self.values())
 
+class UnitConv:
+  def faren2kelvin(T):
+    T = np.atleast_1d(T)
+    return (T - 32.) * (5./9.) + 273.15
+  def ft2meters(ft):
+    ft = np.atleast_1d(ft)
+    return ft * .3048
+  def lbs2kgs(lbs):
+    lbs = np.atleast_1d(lbs)
+    return lbs * .4535934
+
 def antoine_T(v: npt.ArrayLike, P: npt.ArrayLike) -> npt.ArrayLike:
   '''
   Calculates the temperature of every component for each pressure.
@@ -315,6 +326,5 @@ def curve_bouncer(upper: Equation, lower: Equation, x_start: float, x_stop: floa
     if y_transform != None:
       y = y_transform(y)
     x = upper.inv(y)
-    print(x, y)
     i += 1
   return (i - 1.) + (xprev - x_stop) / (xprev - x)
