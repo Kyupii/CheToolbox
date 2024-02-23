@@ -493,14 +493,15 @@ def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq
     IDK what this represents tbh # TODO figure out what P actually is lol
   '''
   tieline = common.point_conn((xf, liqlineH.eval(xf)), (yf, vaplineH.eval(yf)))
-  hd = (xd, liqlineH.eval(xd))
-  hv1 = (xd, vaplineH.eval(xd))
-  hdqcd = (xd, tieline.eval(xd))
+  hd = liqlineH.eval(xd)
+  hv1 = vaplineH.eval(xd)
+  hdqcd = tieline.eval(xd)
   Rmin = (hdqcd - hv1) / (hv1 - hd)
   R = Rmin  * Rmin_mult
   P = R * (hv1 - hd) + hv1
   tieline = common.point_conn((xf, liqlineH.eval(xf)), (xd, P)) # tieline for real R, not Rmin
-  return tieline, Rmin, R, P
+
+  return common.SolutionObj(tieline = tieline, Rmin = Rmin, R = R, P = P)
 
 def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.LinearEq, vaplineH: common.LinearEq, Fpoint: tuple[float, float], q: bool | float, xd: float, xb: float, Rmin_mult: float, tol: float = .00001):
   '''
