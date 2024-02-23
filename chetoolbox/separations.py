@@ -327,14 +327,10 @@ def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: 
   Rmin = eq_rectifyline.m / (1. - eq_rectifyline.m)
   R = Rmin_mult * Rmin
   m = R / (1. + R)
-  y_int = xd / (1. + R)
-  rectifyline = common.LinearEq(m, y_int)
+  rectifyline = common.point_slope((xd, xd), m)
 
   # feedpoint
-  if np.isnan(feedline.m) or np.isnan(feedline.b):
-    feedpoint = (eq_feedpoint[0],rectifyline.eval(eq_feedpoint[0]))
-  else:
-    feedpoint = common.linear_intersect(feedline, rectifyline)
+  feedpoint = common.linear_intersect(feedline, rectifyline)
 
   # bottoms to feed point
   stripline = common.point_conn(feedpoint, (xb, xb))
@@ -381,7 +377,6 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
     x, error, i = common.iter(err, [xb, xd], tol)
   
   eq_feedpoint = (x, eq_curve.eval(x))
-  print(eq_feedpoint)
   rectifyline, stripline, feedpoint, Rmin, R = mccabe_thiel_otherlines(feedline, eq_feedpoint, xd, xb, Rmin_mult).unpack()
 
   y_reflect = common.LinearEq(1., 0.)
