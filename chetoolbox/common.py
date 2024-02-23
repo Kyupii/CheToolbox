@@ -300,15 +300,19 @@ def quadratic_formula(coeff: npt.ArrayLike) -> npt.ArrayLike | None:
     return None
   return (- coeff[1] + np.sqrt(np.array([descrim])) * np.array([1, -1])) / (2. * coeff[0])
 
-def curve_bouncer(upper: Equation, lower: Equation, y_start: float, x_stop: float) -> float:
+def curve_bouncer(upper: Equation, lower: Equation, y_start: float, x_stop: float, x_transform: Callable[[float, float], float] | None = None, y_transform: Callable[[float, float], float] | None = None) -> float:
   '''
-  Bounce between two curves at right angles and return the number of bounces required to reach x_stop. y_start must lie on the upper curve.
+  Bounce between two curves and return the number of bounces required to reach x_stop. y_start must lie on the upper curve. If y_transform/x_transform are None, move directly vertical/horizontal. Transform functions must accept current x and y for compatibility
   '''
   y = y_start
   x = upper.inv(y_start)
   i = 1
   while x > x_stop:
+    if x_transform != None:
+      x = x_transform(y)
     y = lower.eval(x)
+    if y_transform != None:
+      y = y_transform(y)
     x = upper.inv(y)
     i += 1
   xprev = lower.inv(y)

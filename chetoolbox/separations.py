@@ -373,9 +373,9 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
   R : float
     Reflux ratio of the rectifying section (unitless).
   min_stages : float
-    Minimum number of ideal stages (includes reboiler and partial condensor if applicable).
+    Minimum number of ideal stages (includes reboiler and partial condenser if applicable).
   ideal_stages : float
-    Number of ideal stages (includes reboiler and partial condensor if applicable).
+    Number of ideal stages (includes reboiler and partial condenser if applicable).
   '''
 
   def err(x):
@@ -508,7 +508,6 @@ def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq
   tieline = common.point_conn((xf, liqlineH.eval(xf)), (xd, P)) # tieline for real R, not Rmin
   return tieline, Rmin, R, P
 
-# TODO #10 finish ponchon_savarit
 def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.LinearEq, vaplineH: common.LinearEq, Fpoint: tuple[float, float], q: bool | float, xd: float, xb: float, Rmin_mult: float, tol: float = .00001):
   '''
   Calculates the liquid and vapor enthalpy lines on a Pochon Savarit diagram for a bianary mixture distilation column.
@@ -536,7 +535,14 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
 
   Returns:
   -----------
-  
+  Rmin : float
+    Minimum reflux ratio of the rectifying section (unitless).
+  R : float
+    Reflux ratio of the rectifying section (unitless).
+  min_stages : float
+    Minimum number of ideal stages (includes reboiler and partial condenser if applicable).
+  ideal_stages : float
+    Number of ideal stages (includes reboiler and partial condenser if applicable).
   '''
   if type(q) == bool or q == 0. or q == 1.: # saturated liq / vap feed
     if q:
@@ -562,15 +568,16 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
   
   tieline, Rmin, R, P = ponchon_savarit_tieline(liqlineH, vaplineH, xf, yf, xd, Rmin_mult)
 
+  min_stages = common.curve_bouncer(liqlineH, vaplineH, xd, xb, eq_curve.eval)
 
-  min_stages = common.curve_bouncer(eq_curve, , xd, xb)
+  def y_transform(y):
+    line = common.point_conn( (vaplineH.inv(y), y), P)
+    _, y = common.linear_intersect(line, vaplineH)
+    return y
+  
+  ideal_stages = common.curve_bouncer(liqlineH, vaplineH, xd, xb, eq_curve.eval, y_transform)
 
-  # calc ideal_stages
-
-  return
-
-
-
+  return Rmin, R, min_stages, ideal_stages
 
 def multicomp_feed_split_est(feed: npt.ArrayLike, keys: tuple[int, int], spec: tuple[float, float]) -> tuple[npt.ArrayLike, npt.ArrayLike]:
   '''
