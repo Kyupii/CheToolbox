@@ -69,21 +69,17 @@ class LinearEq(Equation):
         else:
           self.x_int = -m/b
   
-  def eval(self, x: float) -> float: # numpy compatible
+  def eval(self, x: float | npt.ArrayLike) -> float | npt.ArrayLike: # numpy compatible
     if np.isnan(self.m): # vertical line
-      if x == self.x_int: # on the vertical line
-        return np.zeros_like(x).fill(np.NaN)
-      else: # off the vertical line
-        return np.zeros_like(x).fill(None)
+      return np.zeros_like(x).fill(np.NaN)
     else:
       return self.m * x + self.b
   
-  def inv(self, y: float) -> float: # numpy compatible
+  def inv(self, y: float | npt.ArrayLike) -> float | npt.ArrayLike: # numpy compatible
     if self.m == 0.: # horizontal line
-      if y == self.b: # on the horizontal line
-        return np.zeros_like(y).fill(np.NaN)
-      else: # off the horizontal line
-        return np.zeros_like(y).fill(None)
+      return np.zeros_like(y).fill(np.NaN)
+    elif np.isnan(self.m): # vertical line
+      return np.zeros_like(y).fill(self.x_int)
     else:
       return (y - self.b) / self.m
 
