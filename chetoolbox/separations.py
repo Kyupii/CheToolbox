@@ -387,17 +387,16 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
 
   if PLOTTING_ENABLED:
     fig, ax = plt.subplots()
-    x = np.linspace(0., 1., 200)
-    ax.plot(x, eq_curve.eval(x))
-    ax.plot(x, x)
+    ax.plot(np.linspace(0., 1., 200), eq_curve.eval(np.linspace(0., 1., 200)))
+    ax.plot(np.linspace(0., 1., 200), np.linspace(0., 1., 200))
     ax.plot([xf]*200, np.linspace(0., eq_curve.eval(xf), 200))
     ax.plot([xb]*200, np.linspace(0., eq_curve.eval(xb), 200))
     ax.plot([xd]*200, np.linspace(0., eq_curve.eval(xd), 200))
+    # ax.plot(eq_feedpoint[0], eq_feedpoint[1], 'o'); ax.plot(feedpoint[0], feedpoint[1], 'o')
     ax.plot(np.linspace(eq_feedpoint[0], xf, 200), feedline.eval(np.linspace(eq_feedpoint[0], xf, 200)))
-    ax.plot(np.linspace(eq_feedpoint[0], xd, 200), rectifyline.eval(np.linspace(eq_feedpoint[0], xd, 200)))
-    ax.plot(np.linspace(xb, eq_feedpoint[0], 200), stripline.eval(np.linspace(xb, eq_feedpoint[0], 200)))
-    plt.xlim(0, 1)
-    plt.ylim(0, 1)
+    ax.plot(np.linspace(feedpoint[0], xd, 200), rectifyline.eval(np.linspace(feedpoint[0], xd, 200)))
+    ax.plot(np.linspace(xb, feedpoint[0], 200), stripline.eval(np.linspace(xb, feedpoint[0], 200)))
+    plt.xlim(0, 1); plt.ylim(0, 1)
 
   return common.SolutionObj(Rmin = Rmin, R = R, min_stages = min_stages, ideal_stages = ideal_stages)
 
