@@ -287,8 +287,7 @@ def mccabe_thiel_feedline(q: float, xf: float) -> common.LinearEq:
     feedline = common.vertical_line(xf)
   else:
     m = -q / (1. - q)
-    y_int = m*xf + xf
-    feedline = common.LinearEq(m, y_int)
+    feedline = common.point_slope((xf, xf), m)
   return feedline
 
 def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: float, xb: float, Rmin_mult: float = 1.2) -> common.SolutionObj[common.LinearEq, common.LinearEq, tuple[float, float], float]:
