@@ -3,7 +3,7 @@ import numpy.typing as npt
 from typing import Callable
 import common
 
-def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> tuple[float, npt.ArrayLike, npt.ArrayLike, float, int]:
+def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> common.SolutionObj[float, npt.ArrayLike, npt.ArrayLike, float, int]:
   '''
   Iteratively solves for the vapor/liquid output feed ratio psi (Ψ) of a multi-component fluid stream.  
   
@@ -48,10 +48,9 @@ def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> tuple[float, 
     i += 1
   x_out = x / (1 + psi * (K - 1))
   y_out = (x * K) / (1 + psi * (K - 1))
-  sol = common.SolutionObj(psi = psi, x_out = x_out, y_out = y_out, error = error(psi), i = i)
-  return sol
+  return common.SolutionObj(psi = psi, x_out = x_out, y_out = y_out, error = error(psi), i = i)
 
-def bubble_point_iterator(x:list, K:list)->tuple[float,npt.ArrayLike,float]:
+def bubble_point_iterator(x:list, K:list) -> common.SolutionObj[float, npt.ArrayLike, float]:
   '''
   Intended to be used with a DePriester Chart. Calculates the vapor mole fractions & associated error, then proposes a new temperature on the DePriester chart to try.
 
@@ -75,11 +74,9 @@ def bubble_point_iterator(x:list, K:list)->tuple[float,npt.ArrayLike,float]:
   K = np.atleast_1d(K)
   y = x * K
   err = np.sum(y) - 1 
+  return common.SolutionObj(y = y, err = err)
 
-  sol = common.SolutionObj(y = y, err = err)
-  return sol
-
-def dew_point_iterator(y:list, K:list)->tuple[float,npt.ArrayLike,float]:
+def dew_point_iterator(y:list, K:list) -> common.SolutionObj[float, npt.ArrayLike, float]:
   '''
   Intended to be used with a DePriester Chart. Calculates the vapor mole fractions & associated error, then proposes a new temperature on the DePriester chart to try.
 
@@ -103,8 +100,7 @@ def dew_point_iterator(y:list, K:list)->tuple[float,npt.ArrayLike,float]:
   K = np.atleast_1d(K)
   x = y / K
   err = np.sum(x) - 1 
-  sol = common.SolutionObj(x = x, err = err)
-  return sol
+  return common.SolutionObj(x = x, err = err)
 
 def bubble_point(x: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> tuple[float, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, float, int]:
   '''
@@ -206,7 +202,7 @@ def dew_point(y: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> 
 
 def liq_frac_subcooled(Cpl: float, heatvap: float, Tf: float, Tb: float) -> float:
   '''
-  Calculates the liquid fraction of a subcooled bianary liquid mixture feed.
+  Calculates the liquid fraction of a subcooled binary liquid mixture feed.
 
   Parameters:
   -----------
@@ -228,7 +224,7 @@ def liq_frac_subcooled(Cpl: float, heatvap: float, Tf: float, Tb: float) -> floa
 
 def liq_frac_superheated(Cpv: float, heatvap: float, Tf: float, Td: float) -> float:
   '''
-  Calculates the liquid fraction of a superheated bianary vapor mixture feed.
+  Calculates the liquid fraction of a superheated binary vapor mixture feed.
 
   Parameters:
   -----------
@@ -250,7 +246,7 @@ def liq_frac_superheated(Cpv: float, heatvap: float, Tf: float, Td: float) -> fl
 
 def eq_curve_estim(points: npt.ArrayLike, alpha: float = None) -> common.EqualibEq:
   '''
-  Estimates an equalibrium curve for a bianary mixture. Assumes constant equalibrium ratio (K1 / K2) between the two species.
+  Estimates an equalibrium curve for a binary mixture. Assumes constant equalibrium ratio (K1 / K2) between the two species.
 
   Parameters:
   -----------
@@ -263,7 +259,7 @@ def eq_curve_estim(points: npt.ArrayLike, alpha: float = None) -> common.Equalib
   Returns:
   -----------
   equalibrium_curve : EqualibEq
-    Equation for an equalibrium curve of a bianary mixture.
+    Equation for an equalibrium curve of a binary mixture.
   '''
   points = np.atleast_1d(points).reshape((-1, 2))
   if alpha == None:
@@ -272,7 +268,7 @@ def eq_curve_estim(points: npt.ArrayLike, alpha: float = None) -> common.Equalib
 
 def mccabe_thiel_feedline(q: float, xf: float) -> common.LinearEq:
   '''
-  Calculates the feed line on a McCabe Thiel Diagram for a bianary mixture distilation column. Assumes equal molar heats of vaporization.
+  Calculates the feed line on a McCabe Thiel Diagram for a binary mixture distilation column. Assumes equal molar heats of vaporization.
 
   Parameters:
   -----------
@@ -296,7 +292,7 @@ def mccabe_thiel_feedline(q: float, xf: float) -> common.LinearEq:
 
 def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: float, xb: float, Rmin_mult: float = 1.2) -> common.SolutionObj[common.LinearEq, common.LinearEq, tuple[float, float], float]:
   '''
-  Calculates the rectifying and stripping operating lines of a McCabe Thiel Diagram for a bianary mixture distilation column. Assumes equal molar heats of vaporization.
+  Calculates the rectifying and stripping operating lines of a McCabe Thiel Diagram for a binary mixture distilation column. Assumes equal molar heats of vaporization.
 
   Parameters:
   -----------
@@ -342,17 +338,16 @@ def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: 
 
   # bottoms to feed point
   stripline = common.point_conn(feedpoint, (xb, xb))
-  sol = common.SolutionObj(rectifyline = rectifyline, stripline = stripline, feedpoint = feedpoint, Rmin = Rmin, R = R)
-  return sol
+  return common.SolutionObj(rectifyline = rectifyline, stripline = stripline, feedpoint = feedpoint, Rmin = Rmin, R = R)
 
-def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq, xf: float, xd: float, xb: float, Rmin_mult: float = 1.2, tol: float = .00001):
+def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq, xf: float, xd: float, xb: float, Rmin_mult: float = 1.2, tol: float = .00001) -> common.SolutionObj[float, float, float, float]:
   '''
-  Calculates the reflux ratio and ideal stages of a bianary mixture distilation column, as well as thier ideal minimums. Uses a McCabe Thiel Diagram and assumes equal molar heats of vaporization.
+  Calculates the reflux ratio and ideal stages of a binary mixture distilation column, as well as thier ideal minimums. Uses a McCabe Thiel Diagram and assumes equal molar heats of vaporization.
 
   Parameters:
   -----------
   equalibrium_curve : EqualibEq
-    Equation for an equalibrium curve of a bianary mixture.
+    Equation for an equalibrium curve of a binary mixture.
   feedline : LinearEq
     Feed line of a McCabe Thiel Diagram.
   xf : float
@@ -394,12 +389,11 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
   y_operlines = common.PiecewiseEq((stripline, rectifyline), (feedpoint[0],))
   ideal_stages = common.curve_bouncer(eq_curve, y_operlines, xd, xb)
 
-  sol = common.SolutionObj(Rmin = Rmin, R = R, min_stages = min_stages, ideal_stages = ideal_stages)
-  return sol
+  return common.SolutionObj(Rmin = Rmin, R = R, min_stages = min_stages, ideal_stages = ideal_stages)
 
-def bianary_feed_split(F: float, xf: float, xd: float, xb: float, R: float = None, q: float = None) -> tuple[float, float, float | None, float | None, float | None, float | None]:
+def binary_feed_split(F: float, xf: float, xd: float, xb: float, R: float = None, q: float = None) -> tuple[float, float, float | None, float | None, float | None, float | None]:
   '''
-  Calculates the distilate and bottom flow rates out of a bianary mixture distilation column. Optionally calculates the internal flows between the feed tray, rectifying, and stripping sections of the distilation column.
+  Calculates the distilate and bottom flow rates out of a binary mixture distilation column. Optionally calculates the internal flows between the feed tray, rectifying, and stripping sections of the distilation column.
 
   Parameters:
   -----------
@@ -446,7 +440,7 @@ def bianary_feed_split(F: float, xf: float, xd: float, xb: float, R: float = Non
 
 def ponchon_savarit_enthalpylines(props: npt.ArrayLike) -> tuple[common.LinearEq, common.LinearEq]:
   '''
-  Calculates the liquid and vapor enthalpy lines on a Pochon Savarit diagram for a bianary mixture distilation column.
+  Calculates the liquid and vapor enthalpy lines on a Pochon Savarit diagram for a binary mixture distilation column.
 
   Parameters:
   -----------
@@ -469,7 +463,7 @@ def ponchon_savarit_enthalpylines(props: npt.ArrayLike) -> tuple[common.LinearEq
 
 def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq, xf: float, yf: float, xd: float, Rmin_mult: float = 1.2):
   '''
-  Calculates the tieline and Rmin of a Pochon Savarit diagram for a bianary mixture distilation column.
+  Calculates the tieline and Rmin of a Pochon Savarit diagram for a binary mixture distilation column.
 
   Parameters:
   -----------
@@ -510,12 +504,12 @@ def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq
 
 def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.LinearEq, vaplineH: common.LinearEq, Fpoint: tuple[float, float], q: bool | float, xd: float, xb: float, Rmin_mult: float, tol: float = .00001):
   '''
-  Calculates the liquid and vapor enthalpy lines on a Pochon Savarit diagram for a bianary mixture distilation column.
+  Calculates the liquid and vapor enthalpy lines on a Pochon Savarit diagram for a binary mixture distilation column.
 
   Parameters:
   -----------
   eq_curve : EqualibEq
-    Equation for an equalibrium curve of a bianary mixture.
+    Equation for an equalibrium curve of a binary mixture.
   liqlineH : LinearEq
 
   vaplineH : LinearEq
@@ -571,7 +565,7 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
   min_stages = common.curve_bouncer(liqlineH, vaplineH, xd, xb, eq_curve.eval)
 
   def y_transform(y):
-    line = common.point_conn( (vaplineH.inv(y), y), P)
+    line = common.point_conn( (vaplineH.inv(y), y), (xd, P))
     _, y = common.linear_intersect(line, vaplineH)
     return y
   
