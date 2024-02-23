@@ -564,7 +564,10 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
   
   tieline, Rmin, R, P = ponchon_savarit_tieline(liqlineH, vaplineH, xf, yf, xd, Rmin_mult).unpack()
 
-  min_stages = common.curve_bouncer(vaplineH, liqlineH, xd, xb, eq_curve.inv)
+  def y_transform(y):
+    return vaplineH.eval(liqlineH.inv(y))
+
+  min_stages = common.curve_bouncer(vaplineH, liqlineH, xd, xb, eq_curve.inv, y_transform)
 
   def y_transform(y):
     line = common.point_conn( (vaplineH.inv(y), y), (xd, P))
