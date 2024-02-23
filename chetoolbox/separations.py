@@ -461,7 +461,7 @@ def ponchon_savarit_enthalpylines(props: npt.ArrayLike) -> tuple[common.LinearEq
 
   return liqlineH, vaplineH
 
-def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq, xf: float, yf: float, xd: float, Rmin_mult: float = 1.2):
+def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq, xf: float, yf: float, xd: float, Rmin_mult: float = 1.2) -> tuple[common.LinearEq, float, float, float]:
   '''
   Calculates the tieline and Rmin of a Pochon Savarit diagram for a binary mixture distilation column.
 
@@ -485,6 +485,7 @@ def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq
   Returns:
   -----------
   tieline : LinearEq
+
   Rmin : float
     Minimum reflux ratio of the rectifying section (unitless).
   R : float
@@ -503,7 +504,7 @@ def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq
 
   return common.SolutionObj(tieline = tieline, Rmin = Rmin, R = R, P = P)
 
-def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.LinearEq, vaplineH: common.LinearEq, Fpoint: tuple[float, float], q: bool | float, xd: float, xb: float, Rmin_mult: float, tol: float = .00001):
+def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.LinearEq, vaplineH: common.LinearEq, Fpoint: tuple[float, float], q: bool | float, xd: float, xb: float, Rmin_mult: float, tol: float = .00001) -> tuple[float, float, float, float]:
   '''
   Calculates the liquid and vapor enthalpy lines on a Pochon Savarit diagram for a binary mixture distilation column.
 
@@ -608,33 +609,33 @@ def multicomp_feed_split_est(feed: npt.ArrayLike, keys: tuple[int, int], spec: t
 
   return distil, feed[:, 0] - distil
 
-def lost_work(inlet: npt.ArrayLike, outlet: npt.ArrayLike, Q: npt.ArrayLike, T_s: npt.ArrayLike, T_0: float,  W_s: float = 0):
+def lost_work(inlet: npt.ArrayLike, outlet: npt.ArrayLike, Q: npt.ArrayLike, T_s: npt.ArrayLike, T_0: float,  W_s: float = 0) -> float:
   '''
   Solves for the lost work of a separation process via thermodynamic analysis.  
   
   Parameters
   ----------
   inlet : ArrayLike
-    The thermodynamic properties of the inlet stream in joules per mole (J/mol), must be ordered as [n: molar flow rate of component, h: enthalpy of component, s: entropy of component] Shape must be N x 3.
+    The thermodynamic properties of the inlet stream in J/mol (Joules per mole), must be ordered as [n: molar flow rate of component, h: enthalpy of component, s: entropy of component] Shape must be N x 3.
       Ex) np.array([n1, h1, s1], [n2, h2, s2], [n3, h3, s3])
   outlet : ArrayLike
-    The thermodynamic properties of the outlet stream in joules per mole (J/mol), must be ordered as [n: molar flow rate of component, h: enthalpy of component, s: entropy of component] Shape must be N x 3.
+    The thermodynamic properties of the outlet stream in J/mol (Joules per mole), must be ordered as [n: molar flow rate of component, h: enthalpy of component, s: entropy of component] Shape must be N x 3.
       Ex) np.array([n1, h1, s1], [n2, h2, s2], [n3, h3, s3])
   Q : ArrayLike
-    The reboiler and condenser heat duties. Shape must be 1 x 2.
+    The reboiler and condenser heat duties in J (Joules). Shape must be 1 x 2.
       Ex) np.array([Q_reboiler, Q_condenser])
   T_s : ArrayLike
-    Temperature of steam and cooling water.
+    Temperature of steam and cooling water in K (Kelvin).
       Ex) np.array([T_steam, T_CW])
   T_0 : float
-    Temperature of surroundings.
+    Temperature of surroundings in K (Kelvin).
   W_s : float
-    Shaft work in joules.
+    Shaft work in Joules.
 
   Returns
   ----------
   LW : float
-    Lost work in  joules per mole (J/mol).
+    Lost work in J/mol (Joules per mole).
   '''
   inlet = np.atleast_1d(inlet).reshape(-1,3)
   outlet = np.atleast_1d(outlet).reshape(-1,3)
