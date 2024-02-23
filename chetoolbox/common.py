@@ -302,7 +302,7 @@ def quadratic_formula(coeff: npt.ArrayLike) -> npt.ArrayLike | None:
 
 def curve_bouncer(upper: Equation, lower: Equation, x_start: float, x_stop: float, x_transform: Callable[[float, float], float] | None = None, y_transform: Callable[[float, float], float] | None = None) -> float:
   '''
-  Bounce between two curves and return the number of bounces required to reach x_stop. x_start must cross the upper curve. If x_transform is None, move straight down. If y_transform is None, move straight down. Each transform function must accept only its own variable and return only its own variable.
+  Bounce between two curves and return the number of bounces required to reach x_stop. x_start must cross both curves. If x_transform is None, move straight vertically. If y_transform is None, move straight horizontal. Each transform function must accept only its own variable and return only its own variable.
   '''
   x = x_start
   y = upper.eval(x_start)
@@ -312,10 +312,8 @@ def curve_bouncer(upper: Equation, lower: Equation, x_start: float, x_stop: floa
     if x_transform != None:
       x = x_transform(x)
     y = lower.eval(x)
-    print(x, y)
     if y_transform != None:
       y = y_transform(y)
-    print(x, y)
     x = upper.inv(y)
     print(x, y)
     i += 1

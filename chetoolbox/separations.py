@@ -461,7 +461,7 @@ def ponchon_savarit_enthalpylines(props: npt.ArrayLike) -> tuple[common.LinearEq
 
   return liqlineH, vaplineH
 
-def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq, xf: float, yf: float, xd: float, Rmin_mult: float = 1.2) -> common.SolutionObj[common.LinearEq, float, float, float]:
+def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq, xf: float, yf: float, xd: float, xb: float, Rmin_mult: float = 1.2) -> common.SolutionObj[common.LinearEq, float, float, float, float]:
   '''
   Calculates the tieline and Rmin of a Pochon Savarit diagram for a binary mixture distilation column.
 
@@ -492,6 +492,8 @@ def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq
     Reflux ratio of the rectifying section (unitless).
   P : float
     IDK what this represents tbh # TODO figure out what P actually is lol
+  B : float
+    IDK what this represents tbh # TODO figure out what B actually is lol
   '''
   tieline = common.point_conn((xf, liqlineH.eval(xf)), (yf, vaplineH.eval(yf)))
   hd = liqlineH.eval(xd)
@@ -501,8 +503,9 @@ def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq
   R = Rmin  * Rmin_mult
   P = R * (hv1 - hd) + hv1
   tieline = common.point_conn((xf, liqlineH.eval(xf)), (xd, P)) # tieline for real R, not Rmin
+  B = tieline.eval(xb)
 
-  return common.SolutionObj(tieline = tieline, Rmin = Rmin, R = R, P = P)
+  return common.SolutionObj(tieline = tieline, Rmin = Rmin, R = R, P = P, B = B)
 
 def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.LinearEq, vaplineH: common.LinearEq, Fpoint: tuple[float, float], q: bool | float, xd: float, xb: float, Rmin_mult: float, tol: float = .00001) -> tuple[float, float, float, float]:
   '''
@@ -562,15 +565,20 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
     xf, _ = common.linear_intersect(common.point_slope(Fpoint, tieslope), liqlineH)
     yf = eq_curve.eval(xf)
   
-  tieline, Rmin, R, P = ponchon_savarit_tieline(liqlineH, vaplineH, xf, yf, xd, Rmin_mult).unpack()
+  tieline, Rmin, R, P, B = ponchon_savarit_tieline(liqlineH, vaplineH, xf, yf, xd, Rmin_mult).unpack()
 
   def y_transform(y):
     return vaplineH.eval(liqlineH.inv(y))
 
   min_stages = common.curve_bouncer(vaplineH, liqlineH, xd, xb, eq_curve.inv, y_transform)
-
+  
   def y_transform(y):
-    line = common.point_conn( (vaplineH.inv(y), y), (xd, P))
+    x = liqlineH.inv(y)
+    if x > Fpoint[0]:
+      connectpoint = (xd, P)
+    else:
+      connectpoint = (xb, B)
+    line = common.point_conn( (liqlineH.inv(y), y), connectpoint)
     _, y = common.linear_intersect(line, vaplineH)
     return y
   
