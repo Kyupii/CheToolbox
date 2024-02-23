@@ -461,7 +461,7 @@ def ponchon_savarit_enthalpylines(props: npt.ArrayLike) -> tuple[common.LinearEq
 
   return liqlineH, vaplineH
 
-def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq, xf: float, yf: float, xd: float, Rmin_mult: float = 1.2) -> tuple[common.LinearEq, float, float, float]:
+def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq, xf: float, yf: float, xd: float, Rmin_mult: float = 1.2) -> common.SolutionObj[common.LinearEq, float, float, float]:
   '''
   Calculates the tieline and Rmin of a Pochon Savarit diagram for a binary mixture distilation column.
 
