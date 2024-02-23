@@ -56,7 +56,7 @@ class LinearEq(Equation):
   def __init__(self, m: float, b: float, x_int: float | None = None) -> None:
     self.m = m
     self.b = b
-    if np.isnan(self.m) or np.isnan(self.b): # vertical lines
+    if np.isnan(self.m): # vertical lines
       self.m = np.NaN
       self.b = np.NaN
       self.x_int = x_int
@@ -70,7 +70,7 @@ class LinearEq(Equation):
           self.x_int = -m/b
   
   def eval(self, x: float) -> float: # numpy compatible
-    if np.isnan(self.m) or np.isnan(self.b): # vertical line
+    if np.isnan(self.m): # vertical line
       if x == self.x_int: # on the vertical line
         return np.zeros_like(x).fill(np.NaN)
       else: # off the vertical line
