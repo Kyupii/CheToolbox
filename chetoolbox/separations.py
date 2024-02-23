@@ -396,11 +396,12 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
     x = np.linspace(0., 1., 200)
     ax.plot(x, eq_curve.eval(x))
     ax.plot(x, x)
-    ax.plot([xf]*200, x)
-    ax.plot([xb]*200, x)
-    ax.plot([xd]*200, x)
-    ax.plot(np.linspace(xf, xd, 200), rectifyline.eval(x))
-    ax.plot(np.linspace(xb, xf, 200), stripline.eval(x))
+    ax.plot([xf]*200, np.linspace(0., eq_curve.eval(xf), 200))
+    ax.plot([xb]*200, np.linspace(0., eq_curve.eval(xb), 200))
+    ax.plot([xd]*200, np.linspace(0., eq_curve.eval(xd), 200))
+    ax.plot(np.linspace(xf, xd, 200), rectifyline.eval(np.linspace(xf, xd, 200)))
+    ax.plot(np.linspace(xb, xf, 200), stripline.eval(np.linspace(xb, xf, 200)))
+    plt.xlim(0, 1)
     plt.ylim(0, 1)
 
   return common.SolutionObj(Rmin = Rmin, R = R, min_stages = min_stages, ideal_stages = ideal_stages)
@@ -523,7 +524,7 @@ def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq
 
   return common.SolutionObj(tieline = tieline, Rmin = Rmin, R = R, Hd = Hd, Hb = Hb)
 
-def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.LinearEq, vaplineH: common.LinearEq, Fpoint: tuple[float, float], q: bool | float, xd: float, xb: float, Rmin_mult: float, tol: float = .00001) -> common.SolutionObj[common.LinearEq, float, float, float, float]:
+def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.LinearEq, vaplineH: common.LinearEq, Fpoint: tuple[float, float], q: bool | float, xd: float, xb: float, Rmin_mult: float, tol: float = .00001, PLOTTING_ENABLED = True) -> common.SolutionObj[common.LinearEq, float, float, float, float]:
   '''
   Calculates the liquid and vapor enthalpy lines on a Pochon Savarit diagram for a binary mixture distilation column.
 
@@ -588,17 +589,39 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
 
   min_stages = common.curve_bouncer(vaplineH, liqlineH, xd, xb, eq_curve.inv, y_transform)
   
+  global linestograph
+  linestograph = []
   def y_transform(y):
     x = liqlineH.inv(y)
     if x > Fpoint[0]:
       connectpoint = (xd, Hp)
     else:
       connectpoint = (xb, Hb)
-    line = common.point_conn( (liqlineH.inv(y), y), connectpoint)
-    _, y = common.linear_intersect(line, vaplineH)
-    return y
+    line = common.point_conn( (x, y), connectpoint)
+    xnext, ynext = common.linear_intersect(line, vaplineH)
+    if PLOTTING_ENABLED:
+      if x > Fpoint[0]:
+        dom = np.array([x, xd]); val = np.array([line.eval(x), Hp])
+      else:
+        dom = np.array([xb, xnext]); val = np.array([Hb, line.eval(xnext)])
+      dom2 = np.array([x, eq_curve.eval(x)]); val2 = np.array([y, vaplineH.eval(eq_curve.eval(x))])
+      linestograph.append((dom, val)); linestograph.append((dom2, val2))
+    return ynext
   
   ideal_stages = common.curve_bouncer(vaplineH, liqlineH, xd, xb, eq_curve.inv, y_transform)
+
+  if PLOTTING_ENABLED:
+    fig, ax = plt.subplots()
+    x = np.linspace(0., 1., 200)
+    ax.plot(x, liqlineH.eval(x))
+    ax.plot(x, vaplineH.eval(x))
+    for dom, vals in linestograph:
+      ax.plot(dom, vals)
+    ax.plot([xf]*200, np.linspace(Hb * 1.1, Hp * 1.1, 200))
+    ax.plot([xb]*200, np.linspace(Hb * 1.1, Hp * 1.1, 200))
+    ax.plot([xd]*200, np.linspace(Hb * 1.1, Hp * 1.1, 200))
+    plt.xlim(0, 1)
+    plt.ylim(Hb * 1.1, Hp * 1.1)
 
   return common.SolutionObj(tieline = tieline, Rmin = Rmin, R = R, min_stages = min_stages, ideal_stages = ideal_stages)
 
