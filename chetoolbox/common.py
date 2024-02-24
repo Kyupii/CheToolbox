@@ -97,14 +97,29 @@ class EqualibEq(Equation):
   def __init__(self, alpha: float) -> None:
     self.alpha = alpha
   
-  def eval(self, x: float) -> float: # numpy compatible
+  def eval(self, x: float | npt.ArrayLike) -> float | npt.ArrayLike: # numpy compatible
     # breaks if x = -1. / (1. - self.alpha)
     return (self.alpha * x ) / (1. + (self.alpha - 1.) * x)
   
-  def inv(self, y: float) -> float: # numpy compatible
+  def inv(self, y: float | npt.ArrayLike) -> float | npt.ArrayLike: # numpy compatible
     # breaks if y = -self.alpha / (1. - self.alpha)
     return y / (self.alpha + y * (1. - self.alpha))
 
+class PiecewiseEq_new(Equation):
+  '''
+  Piecewise must be continuous (component equations must be equal at each bound) and injective (must have only one x per y value).
+
+  eqs : tuple[Equation]
+    All equations that compose the piecewise function. Equations must be ordered from smallest to largest upper domain limit.
+  upperdomainlims : float
+    The upper domain limit of each equation, except the last equation which has an upper domain limit of np.inf. Upperbounds must be ordered smallest to largest. Length must be len(eqs) -
+  eval : Callable
+    Return the output of the function (y) when evaluated at an input (x).
+  inv : Callable
+    Return the input of the function (x) that evaluates to an output (y).
+  '''
+  def __init__(self, eqs: tuple[Equation], upperdomainlims: tuple[float]):
+    np.piecewise()
 class PiecewiseEq(Equation):
   '''
   Piecewise must be continuous (component equations must be equal at each bound) and injective (must have only one x per y value).
@@ -125,12 +140,20 @@ class PiecewiseEq(Equation):
     self.boundeqs = dict(zip(upperdomainlims.astype(str), eqs))
     self.posSlope = eqs[0].eval(upperdomainlims[0] - .05) < eqs[0].eval(upperdomainlims[0])
 
-  def eval(self, x: float) -> float:
+  def eval(self, x: float | npt.ArrayLike) -> float | npt.ArrayLike: # numpy compatible
     bounds = np.fromiter(self.boundeqs.keys(), float)
-    eq = self.boundeqs[str(bounds[np.sum(bounds <= x)])]
-    return eq.eval(x)
+    print(type(x))
+    if type(x) != npt.ArrayLike:
+      eq = self.boundeqs[str(bounds[np.sum(bounds <= x)])]
+      return eq.eval(x)
+    else:
+      splitind = np.less_equal(x, bounds[:, np.newaxis]).sum(axis=1)
+      print(x, splitind)
+      xsets = np.split(x, splitind)
+      res = [self.boundeqs[bounds[i]].eval(xsets) for i in np.arange(len(xsets))]
+      return np.concatenate(res)
   
-  def inv(self, y: float) -> float:
+  def inv(self, y: float | npt.ArrayLike) -> float | npt.ArrayLike: # NOT numpy compatible
     bounds = np.fromiter(self.boundeqs.keys(), float)
     curves = list(self.boundeqs.values())
     boundeqval = np.array([curve.eval(bounds[i]) for i, curve in enumerate(curves[:-1])])
@@ -233,6 +256,16 @@ def point_separsort(*points: list | tuple | npt.ArrayLike) -> tuple[npt.ArrayLik
   points = np.atleast_1d(points).reshape(-1, 2)
   points = points[points[:, 0].argsort()]
   return points[:, 0], points[:, 1]
+
+def array_pad(arrs: tuple[npt.ArrayLike]) -> npt.ArrayLike:
+  '''
+  Takes an arbitrary list of np.arrays of varying length and pads each np.array to form a homogeneous 2D array of size len(arrs) x max(lens)
+  '''
+  lens = np.array([len(v) for v in arrs])
+  mask = lens[:, None] > np.arange(lens.max())
+  out = np.full(mask.shape, np.NaN)
+  out[mask] = np.concatenate(arrs)
+  return out
 
 def lin_estimate_error(x_pair: npt.ArrayLike, y_pair: npt.ArrayLike) -> float:
   '''

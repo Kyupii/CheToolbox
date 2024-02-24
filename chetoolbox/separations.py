@@ -338,7 +338,7 @@ def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: 
 
 def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq, xf: float, xd: float, xb: float, Rmin_mult: float = 1.2, tol: float = .00001, PLOTTING_ENABLED = False) -> common.SolutionObj[float, float, float, float]:
   '''
-  Calculates the reflux ratio and ideal stages of a binary mixture distilation column, as well as thier ideal minimums. Uses a McCabe Thiel Diagram and assumes equal molar heats of vaporization.
+  Calculates the reflux ratio and ideal stages of a binary mixture distilation column, as well as thier ideal minimums. Uses a McCabe Thiel diagram and assumes equal molar heats of vaporization.
 
   Parameters:
   -----------
@@ -388,26 +388,27 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
   linestograph = []
   def x_graphcapture(x):
     y = eq_curve.eval(x)
-    linestograph.append(common.point_separsort((x, y), (x, x)))
+    linestograph.append(common.point_separsort((x, y), (x, y_operlines.eval(x))))
     return x
   def y_graphcapture(y):
-    x = y
+    x = y_operlines.inv(y)
     linestograph.append(common.point_separsort((x, y), (eq_curve.inv(y), y)))
     return y
   
   ideal_stages = common.curve_bouncer(eq_curve, y_operlines, xd, xb, x_graphcapture, y_graphcapture)
 
   if PLOTTING_ENABLED:
-    fig, ax = plt.subplots()
-    ax.plot(np.linspace(0., 1., 200), eq_curve.eval(np.linspace(0., 1., 200)))
-    ax.plot(np.linspace(0., 1., 200), np.linspace(0., 1., 200))
-    ax.plot([xf]*200, np.linspace(0., eq_curve.eval(xf), 200))
-    ax.plot([xb]*200, np.linspace(0., eq_curve.eval(xb), 200))
-    ax.plot([xd]*200, np.linspace(0., eq_curve.eval(xd), 200))
+    fig, ax = plt.subplots(); ax.set_title("McCabe Thiel Diagram")
+    ax.plot(np.linspace(0., 1., 200), eq_curve.eval(np.linspace(0., 1., 200)), "g")
+    ax.plot(np.linspace(0., 1., 200), np.linspace(0., 1., 200), "k")
+    ax.plot([xf]*200, np.linspace(0., eq_curve.eval(xf), 200), "k")
+    ax.plot([xb]*200, np.linspace(0., eq_curve.eval(xb), 200), "k")
+    ax.plot([xd]*200, np.linspace(0., eq_curve.eval(xd), 200), "k")
+    for dom, vals in linestograph:
+      ax.plot(dom, vals, "r")
     # ax.plot(eq_feedpoint[0], eq_feedpoint[1], 'o'); ax.plot(feedpoint[0], feedpoint[1], 'o')
-    ax.plot(np.linspace(eq_feedpoint[0], xf, 200), feedline.eval(np.linspace(eq_feedpoint[0], xf, 200)))
-    ax.plot(np.linspace(feedpoint[0], xd, 200), rectifyline.eval(np.linspace(feedpoint[0], xd, 200)))
-    ax.plot(np.linspace(xb, feedpoint[0], 200), stripline.eval(np.linspace(xb, feedpoint[0], 200)))
+    ax.plot(np.linspace(eq_feedpoint[0], xf, 200), feedline.eval(np.linspace(eq_feedpoint[0], xf, 200)), "m")
+    ax.plot(np.linspace(xb, xd, 200), y_operlines.eval(np.linspace(xb, xd, 200)), "b")
     plt.xlim(0, 1); plt.ylim(0, 1)
 
   return common.SolutionObj(Rmin = Rmin, R = R, min_stages = min_stages, ideal_stages = ideal_stages)
