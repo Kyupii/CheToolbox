@@ -105,21 +105,6 @@ class EqualibEq(Equation):
     # breaks if y = -self.alpha / (1. - self.alpha)
     return y / (self.alpha + y * (1. - self.alpha))
 
-class PiecewiseEq_new(Equation):
-  '''
-  Piecewise must be continuous (component equations must be equal at each bound) and injective (must have only one x per y value).
-
-  eqs : tuple[Equation]
-    All equations that compose the piecewise function. Equations must be ordered from smallest to largest upper domain limit.
-  upperdomainlims : float
-    The upper domain limit of each equation, except the last equation which has an upper domain limit of np.inf. Upperbounds must be ordered smallest to largest. Length must be len(eqs) -
-  eval : Callable
-    Return the output of the function (y) when evaluated at an input (x).
-  inv : Callable
-    Return the input of the function (x) that evaluates to an output (y).
-  '''
-  def __init__(self, eqs: tuple[Equation], upperdomainlims: tuple[float]):
-    np.piecewise()
 class PiecewiseEq(Equation):
   '''
   Piecewise must be continuous (component equations must be equal at each bound) and injective (must have only one x per y value).
@@ -127,11 +112,11 @@ class PiecewiseEq(Equation):
   eqs : tuple[Equation]
     All equations that compose the piecewise function. Equations must be ordered from smallest to largest upper domain limit.
   upperdomainlims : float
-    The upper domain limit of each equation, except the last equation which has an upper domain limit of np.inf. Upperbounds must be ordered smallest to largest. Length must be len(eqs) -
+    The upper domain limit of each equation, except the last equation which has an upper domain limit of np.inf. Upperbounds must be ordered smallest to largest. Length must be len(eqs) - 1.
   eval : Callable
-    Return the output of the function (y) when evaluated at an input (x).
+    Return the output of the function (y) when evaluated at an input (x). If passing an np.array of x, it must be sorted first.
   inv : Callable
-    Return the input of the function (x) that evaluates to an output (y).
+    Return the input of the function (x) that evaluates to an output (y). If passing an np.array of y, it must be sorted first.
   '''
   def __init__(self, eqs: tuple[Equation], upperdomainlims: tuple[float]):
     if len(eqs) - 1 != len(upperdomainlims):
@@ -142,26 +127,36 @@ class PiecewiseEq(Equation):
 
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     bounds = np.fromiter(self.boundeqs.keys(), float)
-    print(type(x))
-    if type(x) != npt.NDArray:
-      eq = self.boundeqs[str(bounds[np.sum(bounds <= x)])]
+    if type(x) != np.ndarray:
+      eq = self.boundeqs[str(bounds[np.sum(x >= bounds)])]
       return eq.eval(x)
     else:
-      splitind = np.less_equal(x, bounds[:, np.newaxis]).sum(axis=1)
-      print(x, splitind)
+      x.sort()
+      splitind = np.less_equal(x, bounds[:-1, np.newaxis]).sum(axis=1)
       xsets = np.split(x, splitind)
-      res = [self.boundeqs[bounds[i]].eval(xsets) for i in np.arange(len(xsets))]
+      res = [self.boundeqs[str(bounds[i])].eval(xsets[i]) for i in np.arange(len(xsets))]
       return np.concatenate(res)
   
-  def inv(self, y: float | npt.NDArray) -> float | npt.NDArray: # NOT numpy compatible
+  def inv(self, y: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     bounds = np.fromiter(self.boundeqs.keys(), float)
     curves = list(self.boundeqs.values())
-    boundeqval = np.array([curve.eval(bounds[i]) for i, curve in enumerate(curves[:-1])])
-    if self.posSlope:
-      eq = self.boundeqs[str(bounds[np.sum(boundeqval <= y)])]
+    boundval = np.array([curve.eval(bounds[i]) for i, curve in enumerate(curves[:-1])])
+    if type(y) != np.ndarray:
+      if self.posSlope:
+        eq = self.boundeqs[str(bounds[np.sum(boundval <= y)])]
+      else:
+        eq = self.boundeqs[str(bounds[np.sum(boundval >= y)])]
+      return eq.inv(y)
     else:
-      eq = self.boundeqs[str(bounds[np.sum(boundeqval >= y)])]
-    return eq.inv(y)
+      y.sort()
+      if self.posSlope:
+        splitind = np.greater_equal(boundval, y[:, np.newaxis]).sum(axis=0)
+      else:
+        y = y[::-1] # account for dy = -dx
+        splitind = np.less_equal(boundval, y[:, np.newaxis]).sum(axis=0)
+      ysets = np.split(y, splitind)
+      res = [self.boundeqs[str(bounds[i])].inv(ysets[i]) for i in np.arange(len(ysets))]
+      return np.concatenate(res)
 
 class SolutionObj(dict):
   def __getattr__(self, name):

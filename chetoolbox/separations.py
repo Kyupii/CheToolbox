@@ -399,6 +399,7 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
 
   if PLOTTING_ENABLED:
     fig, ax = plt.subplots(); ax.set_title("McCabe Thiel Diagram")
+    plt.xlim(0, 1); plt.ylim(0, 1)
     ax.plot(np.linspace(0., 1., 200), eq_curve.eval(np.linspace(0., 1., 200)), "g")
     ax.plot(np.linspace(0., 1., 200), np.linspace(0., 1., 200), "k")
     ax.plot([xf]*200, np.linspace(0., eq_curve.eval(xf), 200), "k")
@@ -409,7 +410,6 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
     # ax.plot(eq_feedpoint[0], eq_feedpoint[1], 'o'); ax.plot(feedpoint[0], feedpoint[1], 'o')
     ax.plot(np.linspace(eq_feedpoint[0], xf, 200), feedline.eval(np.linspace(eq_feedpoint[0], xf, 200)), "m")
     ax.plot(np.linspace(xb, xd, 200), y_operlines.eval(np.linspace(xb, xd, 200)), "b")
-    plt.xlim(0, 1); plt.ylim(0, 1)
 
   return common.SolutionObj(Rmin = Rmin, R = R, min_stages = min_stages, ideal_stages = ideal_stages)
 
@@ -618,7 +618,8 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
   ideal_stages = common.curve_bouncer(vaplineH, liqlineH, xd, xb, eq_curve.inv, y_transform)
 
   if PLOTTING_ENABLED:
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(); ax.set_title("Pochon Savarit Diagram")
+    plt.xlim(0, 1); plt.ylim(Hb * 1.1, Hp * 1.1)
     x = np.linspace(0., 1., 200)
     ax.plot(x, liqlineH.eval(x))
     ax.plot(x, vaplineH.eval(x))
@@ -627,8 +628,7 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
     ax.plot([xf]*200, np.linspace(Hb * 1.1, Hp * 1.1, 200))
     ax.plot([xb]*200, np.linspace(Hb * 1.1, Hp * 1.1, 200))
     ax.plot([xd]*200, np.linspace(Hb * 1.1, Hp * 1.1, 200))
-    plt.xlim(0, 1)
-    plt.ylim(Hb * 1.1, Hp * 1.1)
+    
 
   return common.SolutionObj(tieline = tieline, Rmin = Rmin, R = R, min_stages = min_stages, ideal_stages = ideal_stages)
 
