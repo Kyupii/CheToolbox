@@ -400,16 +400,16 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
   if PLOTTING_ENABLED:
     fig, ax = plt.subplots(); ax.set_title("McCabe Thiel Diagram")
     plt.xlim(0, 1); plt.ylim(0, 1)
-    ax.plot(np.linspace(0., 1., 200), eq_curve.eval(np.linspace(0., 1., 200)), "g")
-    ax.plot(np.linspace(0., 1., 200), np.linspace(0., 1., 200), "k")
     ax.plot([xf]*200, np.linspace(0., eq_curve.eval(xf), 200), "k")
     ax.plot([xb]*200, np.linspace(0., eq_curve.eval(xb), 200), "k")
     ax.plot([xd]*200, np.linspace(0., eq_curve.eval(xd), 200), "k")
+    ax.plot(np.linspace(0., 1., 200), np.linspace(0., 1., 200), "k")
+    ax.plot(np.linspace(0., 1., 200), eq_curve.eval(np.linspace(0., 1., 200)), "g")
+    ax.plot(np.linspace(eq_feedpoint[0], xf, 200), feedline.eval(np.linspace(eq_feedpoint[0], xf, 200)), "m")
+    ax.plot(np.linspace(xb, xd, 200), y_operlines.eval(np.linspace(xb, xd, 200)), "b")
     for dom, vals in linestograph:
       ax.plot(dom, vals, "r")
     # ax.plot(eq_feedpoint[0], eq_feedpoint[1], 'o'); ax.plot(feedpoint[0], feedpoint[1], 'o')
-    ax.plot(np.linspace(eq_feedpoint[0], xf, 200), feedline.eval(np.linspace(eq_feedpoint[0], xf, 200)), "m")
-    ax.plot(np.linspace(xb, xd, 200), y_operlines.eval(np.linspace(xb, xd, 200)), "b")
 
   return common.SolutionObj(Rmin = Rmin, R = R, min_stages = min_stages, ideal_stages = ideal_stages)
 
@@ -621,13 +621,15 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
     fig, ax = plt.subplots(); ax.set_title("Pochon Savarit Diagram")
     plt.xlim(0, 1); plt.ylim(Hb * 1.1, Hp * 1.1)
     x = np.linspace(0., 1., 200)
-    ax.plot(x, liqlineH.eval(x))
-    ax.plot(x, vaplineH.eval(x))
-    for dom, vals in linestograph:
-      ax.plot(dom, vals)
-    ax.plot([xf]*200, np.linspace(Hb * 1.1, Hp * 1.1, 200))
-    ax.plot([xb]*200, np.linspace(Hb * 1.1, Hp * 1.1, 200))
-    ax.plot([xd]*200, np.linspace(Hb * 1.1, Hp * 1.1, 200))
+    ax.plot([xf]*200, np.linspace(Hb * 1.1, Hp * 1.1, 200), "k")
+    ax.plot([xb]*200, np.linspace(Hb * 1.1, Hp * 1.1, 200), "k")
+    ax.plot([xd]*200, np.linspace(Hb * 1.1, Hp * 1.1, 200), "k")
+    ax.plot(x, liqlineH.eval(x), "g")
+    ax.plot(x, vaplineH.eval(x), "g")
+    ax.plot(np.linspace(xb, xd, 200), tieline.eval(np.linspace(xb, xd, 200)), "y")
+    for i, domsvals in enumerate(linestograph):
+      ax.plot(*domsvals, "rb"[i%2])
+    
     
 
   return common.SolutionObj(tieline = tieline, Rmin = Rmin, R = R, min_stages = min_stages, ideal_stages = ideal_stages)
