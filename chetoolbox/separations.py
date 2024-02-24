@@ -393,6 +393,7 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
     ax.plot([xb]*200, np.linspace(0., eq_curve.eval(xb), 200))
     ax.plot([xd]*200, np.linspace(0., eq_curve.eval(xd), 200))
     # ax.plot(eq_feedpoint[0], eq_feedpoint[1], 'o'); ax.plot(feedpoint[0], feedpoint[1], 'o')
+    print(feedline.eval(np.linspace(eq_feedpoint[0], xf, 200)))
     ax.plot(np.linspace(eq_feedpoint[0], xf, 200), feedline.eval(np.linspace(eq_feedpoint[0], xf, 200)))
     ax.plot(np.linspace(feedpoint[0], xd, 200), rectifyline.eval(np.linspace(feedpoint[0], xd, 200)))
     ax.plot(np.linspace(xb, feedpoint[0], 200), stripline.eval(np.linspace(xb, feedpoint[0], 200)))

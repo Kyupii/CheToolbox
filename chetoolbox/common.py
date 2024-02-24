@@ -71,15 +71,17 @@ class LinearEq(Equation):
   
   def eval(self, x: float | npt.ArrayLike) -> float | npt.ArrayLike: # numpy compatible
     if np.isnan(self.m): # vertical line
-      return np.zeros_like(x).fill(np.NaN)
+      return np.full_like(x, np.NaN)
+    elif self.m == 0.: # horizontal line
+      return np.full_like(x, self.b)
     else:
       return self.m * x + self.b
   
   def inv(self, y: float | npt.ArrayLike) -> float | npt.ArrayLike: # numpy compatible
-    if self.m == 0.: # horizontal line
-      return np.zeros_like(y).fill(np.NaN)
-    elif np.isnan(self.m): # vertical line
-      return np.zeros_like(y).fill(self.x_int)
+    if np.isnan(self.m): # vertical line
+      return np.full_like(y, self.x_int)
+    elif self.m == 0.: # horizontal line
+      return np.full_like(y, np.NaN)
     else:
       return (y - self.b) / self.m
 
