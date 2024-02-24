@@ -226,6 +226,14 @@ def raoult_YtoX(y: list, K: list) -> tuple[npt.ArrayLike, float]:
   error = np.sum(x) - 1
   return x, error
 
+def point_separsort(*points: list | tuple | npt.ArrayLike) -> tuple[npt.ArrayLike, npt.ArrayLike]:
+  '''
+  Takes an arbitrary set of points and sorts them by x-value. Returns them as two np.arrays, one of x-values and the other of y-values.
+  '''
+  points = np.atleast_1d(points).reshape(-1, 2)
+  points = points[points[:, 0].argsort()]
+  return points[:, 0], points[:, 1]
+
 def lin_estimate_error(x_pair: npt.ArrayLike, y_pair: npt.ArrayLike) -> float:
   '''
   Calculates the x-intercept (x=0) for a given pair of x and y distances. Assumes linearity.

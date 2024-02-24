@@ -383,7 +383,19 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
   min_stages = common.curve_bouncer(eq_curve, y_reflect, xd, xb)
 
   y_operlines = common.PiecewiseEq((stripline, rectifyline), (feedpoint[0],))
-  ideal_stages = common.curve_bouncer(eq_curve, y_operlines, xd, xb)
+
+  global linestograph
+  linestograph = []
+  def x_graphcapture(x):
+    y = eq_curve.eval(x)
+    linestograph.append(common.point_separsort((x, y), (x, x)))
+    return x
+  def y_graphcapture(y):
+    x = y
+    linestograph.append(common.point_separsort((x, y), (eq_curve.inv(y), y)))
+    return y
+  
+  ideal_stages = common.curve_bouncer(eq_curve, y_operlines, xd, xb, x_graphcapture, y_graphcapture)
 
   if PLOTTING_ENABLED:
     fig, ax = plt.subplots()
@@ -595,11 +607,11 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
     xnext, ynext = common.linear_intersect(line, vaplineH)
     if PLOTTING_ENABLED:
       if x > Fpoint[0]:
-        dom = np.array([x, xd]); val = np.array([line.eval(x), Hp])
+        plot1 = common.point_separsort((x, line.eval(x)), connectpoint)
       else:
-        dom = np.array([xb, xnext]); val = np.array([Hb, line.eval(xnext)])
-      dom2 = np.array([x, eq_curve.eval(x)]); val2 = np.array([y, vaplineH.eval(eq_curve.eval(x))])
-      linestograph.append((dom, val)); linestograph.append((dom2, val2))
+        plot1 = common.point_separsort((xnext, line.eval(xnext)), connectpoint)
+      plot2 = common.point_separsort((x, y), (eq_curve.eval(x), vaplineH.eval(eq_curve.eval(x))))
+      linestograph.extend([plot1, plot2])
     return ynext
   
   ideal_stages = common.curve_bouncer(vaplineH, liqlineH, xd, xb, eq_curve.inv, y_transform)
