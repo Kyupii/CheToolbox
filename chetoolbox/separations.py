@@ -518,11 +518,11 @@ def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq
   Hb : float
     Total enthalpy of the higher boiling point species at dew point plus the condenser's heat duty divided by the distilate flowrate 
   '''
-  tieline = common.point_conn((xf, liqlineH.eval(xf)), (yf, vaplineH.eval(yf)))
+  eq_tieline = common.point_conn((xf, liqlineH.eval(xf)), (yf, vaplineH.eval(yf))) # tieline for Rmin
   hd = liqlineH.eval(xd)
   hv1 = vaplineH.eval(xd)
-  hdqcd = tieline.eval(xd)
-  Rmin = (hdqcd - hv1) / (hv1 - hd)
+  eq_hdqcd = eq_tieline.eval(xd)
+  Rmin = (eq_hdqcd - hv1) / (hv1 - hd)
   R = Rmin  * Rmin_mult
   Hd = R * (hv1 - hd) + hv1
   tieline = common.point_conn((xf, liqlineH.eval(xf)), (xd, Hd)) # tieline for real R, not Rmin
