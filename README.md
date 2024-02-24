@@ -9,7 +9,6 @@ The following dependencies will be necessary for CheToolbox to build properly,
 - Python >= 2.7: http://www.python.org/ (also install development files)
 - SciPy >= 0.11.0: http://www.scipy.org/
 - NumPy >= 1.16.0: http://www.numpy.org/
-- pandas
 ## Usage
 ```py
 import numpy as np
@@ -23,10 +22,11 @@ psi_init = 0.5 # an initial guess for psi
 ```py
 separations.psi_solver(x, K, psi_init)
 ```
+returns
 ```py
-(0.12109169497141782,
- array([0.07207241, 0.18334851, 0.30975219, 0.43474505]),
- array([0.30270414, 0.3208599 , 0.22921662, 0.14781332]),
- 0.000675806754791175,
- 2)
+{'psi': 0.12109169497141782,
+ 'x_out': array([0.07207241, 0.18334851, 0.30975219, 0.43474505]),
+ 'y_out': array([0.30270414, 0.3208599 , 0.22921662, 0.14781332]),
+ 'error': 0.000675806754791175,
+ 'i': 2}
  ```
