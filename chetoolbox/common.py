@@ -69,7 +69,7 @@ class LinearEq(Equation):
         else:
           self.x_int = -m/b
   
-  def eval(self, x: float | npt.ArrayLike) -> float | npt.ArrayLike: # numpy compatible
+  def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     if np.isnan(self.m): # vertical line
       return np.full_like(x, np.NaN)
     elif self.m == 0.: # horizontal line
@@ -77,7 +77,7 @@ class LinearEq(Equation):
     else:
       return self.m * x + self.b
   
-  def inv(self, y: float | npt.ArrayLike) -> float | npt.ArrayLike: # numpy compatible
+  def inv(self, y: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     if np.isnan(self.m): # vertical line
       return np.full_like(y, self.x_int)
     elif self.m == 0.: # horizontal line
@@ -97,11 +97,11 @@ class EqualibEq(Equation):
   def __init__(self, alpha: float) -> None:
     self.alpha = alpha
   
-  def eval(self, x: float | npt.ArrayLike) -> float | npt.ArrayLike: # numpy compatible
+  def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     # breaks if x = -1. / (1. - self.alpha)
     return (self.alpha * x ) / (1. + (self.alpha - 1.) * x)
   
-  def inv(self, y: float | npt.ArrayLike) -> float | npt.ArrayLike: # numpy compatible
+  def inv(self, y: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     # breaks if y = -self.alpha / (1. - self.alpha)
     return y / (self.alpha + y * (1. - self.alpha))
 
@@ -140,10 +140,10 @@ class PiecewiseEq(Equation):
     self.boundeqs = dict(zip(upperdomainlims.astype(str), eqs))
     self.posSlope = eqs[0].eval(upperdomainlims[0] - .05) < eqs[0].eval(upperdomainlims[0])
 
-  def eval(self, x: float | npt.ArrayLike) -> float | npt.ArrayLike: # numpy compatible
+  def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     bounds = np.fromiter(self.boundeqs.keys(), float)
     print(type(x))
-    if type(x) != npt.ArrayLike:
+    if type(x) != npt.NDArray:
       eq = self.boundeqs[str(bounds[np.sum(bounds <= x)])]
       return eq.eval(x)
     else:
@@ -153,7 +153,7 @@ class PiecewiseEq(Equation):
       res = [self.boundeqs[bounds[i]].eval(xsets) for i in np.arange(len(xsets))]
       return np.concatenate(res)
   
-  def inv(self, y: float | npt.ArrayLike) -> float | npt.ArrayLike: # NOT numpy compatible
+  def inv(self, y: float | npt.NDArray) -> float | npt.NDArray: # NOT numpy compatible
     bounds = np.fromiter(self.boundeqs.keys(), float)
     curves = list(self.boundeqs.values())
     boundeqval = np.array([curve.eval(bounds[i]) for i, curve in enumerate(curves[:-1])])
@@ -187,21 +187,21 @@ class UnitConv:
     lbs = np.atleast_1d(lbs)
     return lbs * .4535934
 
-def antoine_T(v: npt.ArrayLike, P: npt.ArrayLike) -> npt.ArrayLike:
+def antoine_T(v: npt.NDArray, P: npt.NDArray) -> npt.NDArray:
   '''
   Calculates the temperature of every component for each pressure.
   '''
   v = np.atleast_1d(v); P = np.atleast_1d(P)
   return (-v[:, 1] / (np.log10(P) - np.r_[v[:, 0]])) - v[:, 2]
 
-def antoine_P(v: npt.ArrayLike, T: npt.ArrayLike) -> npt.ArrayLike:
+def antoine_P(v: npt.NDArray, T: npt.NDArray) -> npt.NDArray:
   '''
   Calculates the pressure of every component for each temperature.
   '''
   v = np.atleast_1d(v); T = np.atleast_1d(T)
   return 10 ** (np.c_[v[:, 0]] - np.c_[v[:, 1]] / (T + np.c_[v[:, 2]]))
 
-def raoult_XtoY(x: list, K: list) -> tuple[npt.ArrayLike, float]:
+def raoult_XtoY(x: list, K: list) -> tuple[npt.NDArray, float]:
   '''
   Calculates the vapor mole fraction of a multi-component mixed phase feed (assuming liquid and gas ideality).
 
@@ -225,7 +225,7 @@ def raoult_XtoY(x: list, K: list) -> tuple[npt.ArrayLike, float]:
   error = np.sum(y) - 1
   return y, error
 
-def raoult_YtoX(y: list, K: list) -> tuple[npt.ArrayLike, float]:
+def raoult_YtoX(y: list, K: list) -> tuple[npt.NDArray, float]:
   '''
   Calculates the liquid mole fraction of a multi-component mixed phase feed (assuming liquid and gas ideality).
 
@@ -249,7 +249,7 @@ def raoult_YtoX(y: list, K: list) -> tuple[npt.ArrayLike, float]:
   error = np.sum(x) - 1
   return x, error
 
-def point_separsort(*points: list | tuple | npt.ArrayLike) -> tuple[npt.ArrayLike, npt.ArrayLike]:
+def point_separsort(*points: list | tuple | npt.NDArray) -> tuple[npt.NDArray, npt.NDArray]:
   '''
   Takes an arbitrary set of points and sorts them by x-value. Returns them as two np.arrays, one of x-values and the other of y-values.
   '''
@@ -257,7 +257,7 @@ def point_separsort(*points: list | tuple | npt.ArrayLike) -> tuple[npt.ArrayLik
   points = points[points[:, 0].argsort()]
   return points[:, 0], points[:, 1]
 
-def array_pad(arrs: tuple[npt.ArrayLike]) -> npt.ArrayLike:
+def array_pad(arrs: tuple[npt.NDArray]) -> npt.NDArray:
   '''
   Takes an arbitrary list of np.arrays of varying length and pads each np.array to form a homogeneous 2D array of size len(arrs) x max(lens)
   '''
@@ -267,7 +267,7 @@ def array_pad(arrs: tuple[npt.ArrayLike]) -> npt.ArrayLike:
   out[mask] = np.concatenate(arrs)
   return out
 
-def lin_estimate_error(x_pair: npt.ArrayLike, y_pair: npt.ArrayLike) -> float:
+def lin_estimate_error(x_pair: npt.NDArray, y_pair: npt.NDArray) -> float:
   '''
   Calculates the x-intercept (x=0) for a given pair of x and y distances. Assumes linearity.
   '''
@@ -275,7 +275,7 @@ def lin_estimate_error(x_pair: npt.ArrayLike, y_pair: npt.ArrayLike) -> float:
   x_new = x_pair[0] - y_pair[0] * ((x_pair[1]-x_pair[0])/(y_pair[1]-y_pair[0]))
   return x_new
 
-def err_reduc(err_calc: Callable[[float], float], x: npt.ArrayLike) -> tuple[npt.ArrayLike, npt.ArrayLike]:
+def err_reduc(err_calc: Callable[[float], float], x: npt.NDArray) -> tuple[npt.NDArray, npt.NDArray]:
   '''
   Evaluates an error calculation for a pair of inputs and returns a new set of inputs with a smaller average error.
   '''
@@ -286,7 +286,7 @@ def err_reduc(err_calc: Callable[[float], float], x: npt.ArrayLike) -> tuple[npt
   x[np.argmax(err)] = xnew
   return x, err
 
-def iter(err_calc: Callable[[float], float], x: npt.ArrayLike, tol: float = .001) -> tuple[float, float, int]:
+def iter(err_calc: Callable[[float], float], x: npt.NDArray, tol: float = .001) -> tuple[float, float, int]:
   '''
   Accepts a pair of inputs and an error function. Returns an input with tolerable error, the error, and the iterations required.
   '''
@@ -344,7 +344,7 @@ def linear_intersect(line1: LinearEq, line2: LinearEq) -> tuple[float, float] | 
     x = (line1.b - line2.b)/(line2.m - line1.m)
   return x, line1.eval(x)
 
-def quadratic_formula(coeff: npt.ArrayLike) -> npt.ArrayLike | None:
+def quadratic_formula(coeff: npt.NDArray) -> npt.NDArray | None:
   '''
   Calculates the roots of a quadratic equation. Ignores imaginary roots.
   '''

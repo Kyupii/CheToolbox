@@ -1,7 +1,7 @@
 import numpy as np
 from numpy import typing as npt
 
-def bp_est(g : npt.ArrayLike) -> float:
+def bp_est(g : npt.NDArray) -> float:
   '''
   Estimates the boiling point of a compound via the group contribution method.
 
@@ -82,7 +82,7 @@ def pvap_liq_est(T_b: float, K_F: float, T: float)-> float:
   A = K_F * (8.75 + R * np.log( T_b ))
   return np.exp( (A * (T_b - C)**2 / (0.97 * R * T_b)) * ( 1. / (T_b - C) - 1. / (T - C)))
 
-def Kow_est(f: npt.ArrayLike) -> float:
+def Kow_est(f: npt.NDArray) -> float:
   '''
   Estimates the octanol / water equilibrium constant of a compound via the group contribution method.
 
@@ -162,7 +162,7 @@ def water_sol_est(K_ow: float, c: list = None, T_m: float = None, MW: float = No
   else:               cat = "Very Soluable in Water"
   return sol, cat
 
-def henry_est(g : npt.ArrayLike, T: float = None) -> tuple[float, str | None]: 
+def henry_est(g : npt.NDArray, T: float = None) -> tuple[float, str | None]: 
   '''
   Estimates the Henry's Law constant of a compound by group contribution method.
 
@@ -192,7 +192,7 @@ def henry_est(g : npt.ArrayLike, T: float = None) -> tuple[float, str | None]:
   else:                   cat = "Very Volatile"
   return H, cat
 
-def soil_sorb_est(g: npt.ArrayLike, mole_con: npt.ArrayLike | float) -> float:
+def soil_sorb_est(g: npt.NDArray, mole_con: npt.NDArray | float) -> float:
   '''
   Estimates the soil sobrtion coefficient of a compound via the group contribution method.
 
@@ -201,7 +201,7 @@ def soil_sorb_est(g: npt.ArrayLike, mole_con: npt.ArrayLike | float) -> float:
   g : ArrayLike
     The frequency of a group's appearance and the group's correction factor. Shape must be N x 2.
       Ex) For a molecule containing 4 groups: np.array([[3, 1.233], [1, 23.5], [2, 44.6], [7, 103.6]])
-  mole_con: npt.ArrayLike | float
+  mole_con: npt.NDArray | float
     First order molecular connectivity index of the compound. Must be precomputed (float) or of shape 1 x 2N.
       Ex) np.array([1, 3, 1, 3, 2, 3, 2, 1]) or 2.68
   
@@ -210,14 +210,14 @@ def soil_sorb_est(g: npt.ArrayLike, mole_con: npt.ArrayLike | float) -> float:
   K_oc : float
     Estimated soil sobrtion coefficient in ug*mL/g*mg (the mass ratio of compound to organic carbon in soil [mg/g] divided by the concentration of the compound in water [mg/mL]).
   '''
-  if type(mole_con) == npt.ArrayLike:
+  if type(mole_con) == npt.NDArray:
     mole_con = np.atleast_1d(mole_con).reshape(-1, 2)
     mole_con = np.sum( (1. / (mole_con[:,0]*mole_con[:,1]) )**.5 )
   
   g = np.atleast_1d(g).reshape(-1, 2)
   return 10**(.53 * mole_con + .62 + np.sum( g[:,0] * g[:,1] ))
 
-def biodegrade_est(g: npt.ArrayLike, MW: float) -> tuple[float, str]:
+def biodegrade_est(g: npt.NDArray, MW: float) -> tuple[float, str]:
   '''
   Estimates the biodegradation index of a compound via the group contribution method.
 
@@ -226,7 +226,7 @@ def biodegrade_est(g: npt.ArrayLike, MW: float) -> tuple[float, str]:
   g : ArrayLike
     The frequency of a group's appearance and the group's contribution value. Shape must be N x 2.
       Ex) For a molecule containing 4 groups: np.array([[3, 1.233], [1, 23.5], [2, 44.6], [7, 103.6]])
-  MW: npt.ArrayLike | float
+  MW: npt.NDArray | float
     Molecular weight of the compound in kg/kmol (kilograms per kilomole).
   
   Retruns:
@@ -267,7 +267,7 @@ def cp_est(const: list, T: float) -> float:
 
 # TODO #13 function to solve for ABCD specific heat constants given multiple (T, Cp) pairs
 
-def hess(prod: npt.ArrayLike, reac: npt.ArrayLike):
+def hess(prod: npt.NDArray, reac: npt.NDArray):
   '''
   Estimates change in enthalpy, entropy, or Gibb's free energy based on formation values for delta H, delta S or delta G.
 
@@ -289,7 +289,7 @@ def hess(prod: npt.ArrayLike, reac: npt.ArrayLike):
 
   return np.sum(prod[:,0]*prod[:,1]) - np.sum(reac[:,0]* reac[:,1])
 
-def deltaH_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0: float, T_0: float = 298.) -> float:
+def deltaH_est(prod: npt.NDArray, reac: npt.NDArray, T: float, deltaH_0: float, T_0: float = 298.) -> float:
   '''
   Estimates enthalpy of a balanced chemical reaction. A negative value indicates a net energy release.
 
@@ -320,7 +320,7 @@ def deltaH_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0: flo
   # deltaH = deltaH_0 + integral( Cp dT) = integral( A + B*T + C*T**2 + D/T**2 dT) = AT + .5*B*T**2 + .33*C*T**3 - D/T
   return deltaH_0 + delta[0] * (T - T_0) + delta[1] / 2. * (T**2 - T_0**2) + delta[2] / 3. * (T**3 - T_0**3) + delta[3] / T_0 * ((phi - 1.) / phi)
 
-def deltaS_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaS_0: float, T_0: float = 298.) -> float:
+def deltaS_est(prod: npt.NDArray, reac: npt.NDArray, T: float, deltaS_0: float, T_0: float = 298.) -> float:
   '''
   Estimates entropy of a balanced chemical reaction. A negative value indicates a net increase in order.
 
@@ -370,7 +370,7 @@ def gibbs_rxn(deltaH: float, deltaS: float, T: float) -> float:
   '''
   return deltaH - T * deltaS
 
-def gibbs_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0: float, deltaG_0: float, T_0: float = 298.) -> float:
+def gibbs_est(prod: npt.NDArray, reac: npt.NDArray, T: float, deltaH_0: float, deltaG_0: float, T_0: float = 298.) -> float:
   '''
   Estimates Gibbs free energy of a balanced chemical reaction via its standard net change in enthalpy and Gibbs free energy. A negative value indicates a spontaneous reaction.
 
@@ -402,7 +402,7 @@ def gibbs_est(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0: floa
   delta = np.sum(np.c_[prod[:, 0]]*prod[:, 1:], axis=0) - np.sum(np.c_[reac[:, 0]]*reac[:, 1:], axis=0)
   return deltaH_0 + (deltaG_0 - deltaH_0) * phi + T_0 * delta[0] * (phi - 1. - phi*np.log(phi)) - .5 * T_0**2 * delta[1] * (phi**2 - 2.*phi + 1.) -  (1./6.) * delta[2] * T_0**3 * (phi**3 - 3.*phi + 2.) - delta[3] * ( (phi**2 - 2.*phi + 1.) / phi) / (2.*T_0) 
 
-def gibbs_est_HandS(prod: npt.ArrayLike, reac: npt.ArrayLike, T: float, deltaH_0: float, deltaS_0: float, T_0: float = 298.) -> float:
+def gibbs_est_HandS(prod: npt.NDArray, reac: npt.NDArray, T: float, deltaH_0: float, deltaS_0: float, T_0: float = 298.) -> float:
   '''
   Estimates Gibbs free energy of a balanced chemical reaction via its standard net change in enthalpy and entropy. A negative value indicates a spontaneous reaction.
 
@@ -453,7 +453,7 @@ def k_est_gibbs(G: float, T: float) -> float:
   '''
   return np.exp(G / (-8.314 * T))
 
-def fate_analysis(m: float, props: list, env_vol: list, env_dens : list, env_props: list) -> npt.ArrayLike:
+def fate_analysis(m: float, props: list, env_vol: list, env_dens : list, env_props: list) -> npt.NDArray:
   '''
   Calculates the volumetric retention of a compound in the environment based on its chemical properties.
 
@@ -509,7 +509,7 @@ def fate_analysis(m: float, props: list, env_vol: list, env_dens : list, env_pro
   fate[2] = fate[1] * props[0]
   return fate, env_cap, fugac
 
-def atom_economy(atoms: npt.ArrayLike) -> float:
+def atom_economy(atoms: npt.NDArray) -> float:
   '''
   Calculates the atom economy of a reaction for a specific produced compound by elemental mass.
 

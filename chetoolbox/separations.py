@@ -4,7 +4,7 @@ from typing import Callable
 from matplotlib import pyplot as plt
 import common
 
-def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> common.SolutionObj[float, npt.ArrayLike, npt.ArrayLike, float, int]:
+def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> common.SolutionObj[float, npt.NDArray, npt.NDArray, float, int]:
   '''
   Iteratively solves for the vapor/liquid output feed ratio psi (Ψ) of a multi-component fluid stream.  
   
@@ -51,7 +51,7 @@ def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> common.Soluti
   y_out = (x * K) / (1 + psi * (K - 1))
   return common.SolutionObj(psi = psi, x_out = x_out, y_out = y_out, error = error(psi), i = i)
 
-def bubble_point_stepper(x:list, K:list) -> common.SolutionObj[float, npt.ArrayLike, float]:
+def bubble_point_stepper(x:list, K:list) -> common.SolutionObj[float, npt.NDArray, float]:
   '''
   Intended to be used with a DePriester Chart. Calculates the vapor mole fractions & associated error, then proposes a new temperature on the DePriester chart to try.
 
@@ -77,7 +77,7 @@ def bubble_point_stepper(x:list, K:list) -> common.SolutionObj[float, npt.ArrayL
   err = np.sum(y) - 1 
   return common.SolutionObj(y = y, err = err)
 
-def dew_point_stepper(y:list, K:list) -> common.SolutionObj[float, npt.ArrayLike, float]:
+def dew_point_stepper(y:list, K:list) -> common.SolutionObj[float, npt.NDArray, float]:
   '''
   Intended to be used with a DePriester Chart. Calculates the vapor mole fractions & associated error, then proposes a new temperature on the DePriester chart to try.
 
@@ -103,7 +103,7 @@ def dew_point_stepper(y:list, K:list) -> common.SolutionObj[float, npt.ArrayLike
   err = np.sum(x) - 1 
   return common.SolutionObj(x = x, err = err)
 
-def bubble_point_antoine(x: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> tuple[float, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, float, int]:
+def bubble_point_antoine(x: list, ant_coeff: npt.NDArray, P: float, tol: float = .05) -> tuple[float, npt.NDArray, npt.NDArray, npt.NDArray, float, int]:
   '''
   Iteratively solves for the bubble point temperature of a multi-component liquid mixture.
 
@@ -152,7 +152,7 @@ def bubble_point_antoine(x: list, ant_coeff: npt.ArrayLike, P: float, tol: float
   Pvap, k, y = TtoY(bubbleT)
   return bubbleT, Pvap, k, y, error, i
 
-def dew_point_antoine(y: list, ant_coeff: npt.ArrayLike, P: float, tol: float = .05) -> tuple[float, npt.ArrayLike, npt.ArrayLike, npt.ArrayLike, float, int]:
+def dew_point_antoine(y: list, ant_coeff: npt.NDArray, P: float, tol: float = .05) -> tuple[float, npt.NDArray, npt.NDArray, npt.NDArray, float, int]:
   '''
   Iteratively solves for the dew point temperature of a multi-component vapor mixture.
 
@@ -245,7 +245,7 @@ def liq_frac_superheated(Cpv: float, heatvap: float, Tf: float, Td: float) -> fl
   '''
   return -Cpv * (Tf - Td) / heatvap
 
-def eq_curve_estim(points: npt.ArrayLike, alpha: float = None) -> common.EqualibEq:
+def eq_curve_estim(points: npt.NDArray, alpha: float = None) -> common.EqualibEq:
   '''
   Estimates an equalibrium curve for a binary mixture. Assumes constant equalibrium ratio (K1 / K2) between the two species.
 
@@ -460,7 +460,7 @@ def binary_feed_split(F: float, xf: float, xd: float, xb: float, R: float = None
 
   return D, B, V, L, Vprime, Lprime
 
-def ponchon_savarit_enthalpylines(props: npt.ArrayLike) -> tuple[common.LinearEq, common.LinearEq]:
+def ponchon_savarit_enthalpylines(props: npt.NDArray) -> tuple[common.LinearEq, common.LinearEq]:
   '''
   Calculates the liquid and vapor enthalpy lines on a Pochon Savarit diagram for a binary mixture distilation column.
 
@@ -632,7 +632,7 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
 
   return common.SolutionObj(tieline = tieline, Rmin = Rmin, R = R, min_stages = min_stages, ideal_stages = ideal_stages)
 
-def multicomp_feed_split_est(feed: npt.ArrayLike, keys: tuple[int, int], spec: tuple[float, float]) -> tuple[npt.ArrayLike, npt.ArrayLike]:
+def multicomp_feed_split_est(feed: npt.NDArray, keys: tuple[int, int], spec: tuple[float, float]) -> tuple[npt.NDArray, npt.NDArray]:
   '''
   Estimates the distilate and bottoms outflow rates of a multi-component distilation column.
 
@@ -666,7 +666,7 @@ def multicomp_feed_split_est(feed: npt.ArrayLike, keys: tuple[int, int], spec: t
 
   return distil, feed[:, 0] - distil
 
-def lost_work(inlet: npt.ArrayLike, outlet: npt.ArrayLike, Q: npt.ArrayLike, T_s: npt.ArrayLike, T_0: float,  W_s: float = 0) -> float:
+def lost_work(inlet: npt.NDArray, outlet: npt.NDArray, Q: npt.NDArray, T_s: npt.NDArray, T_0: float,  W_s: float = 0) -> float:
   '''
   Solves for the lost work of a separation process via thermodynamic analysis.  
   
