@@ -164,7 +164,11 @@ class SolutionObj(dict):
       return self[name]
     except KeyError as e:
       raise AttributeError(name) from e
-
+  def __repr__(self):
+    if self.keys():
+        return _dict_formatter(self)
+    else:
+        return self.__class__.__name__ + "()"
   def __dir__(self) -> tuple:
     return tuple(self.keys())
   
@@ -181,6 +185,54 @@ class UnitConv:
   def lbs2kgs(lbs):
     lbs = np.atleast_1d(lbs)
     return lbs * .4535934
+
+def _dict_formatter(d, n=0, mplus=1, sorter=None):
+    """
+    Pretty printer for dictionaries
+
+    `n` keeps track of the starting indentation;
+    lines are indented by this much after a line break.
+    `mplus` is additional left padding applied to keys
+    """
+    if isinstance(d, dict):
+        m = max(map(len, list(d.keys()))) + mplus  # width to print keys
+        s = '\n'.join([k.rjust(m) + ': ' +  # right justified, width m
+                       _indenter(_dict_formatter(v, m+n+2, 0, sorter), m+2)
+                       for k,v in d.items()])  # +2 for ': '
+    else:
+        # By default, NumPy arrays print with linewidth=76. `n` is
+        # the indent at which a line begins printing, so it is subtracted
+        # from the default to avoid exceeding 76 characters total.
+        # `edgeitems` is the number of elements to include before and after
+        # ellipses when arrays are not shown in full.
+        # `threshold` is the maximum number of elements for which an
+        # array is shown in full.
+        # These values tend to work well for use with OptimizeResult.
+        with np.printoptions(linewidth=76-n, edgeitems=2, threshold=12,
+                             formatter={'float_kind': _float_formatter_10}):
+            s = str(d)
+    return s
+
+def _indenter(s, n=0):
+    """
+    Ensures that lines after the first are indented by the specified amount
+    """
+    split = s.split("\n")
+    indent = " "*n
+    return ("\n" + indent).join(split)
+
+def _float_formatter_10(x):
+    """
+    Returns a string representation of a float with exactly ten characters
+    """
+    if np.isposinf(x):
+        return "       inf"
+    elif np.isneginf(x):
+        return "      -inf"
+    elif np.isnan(x):
+        return "       nan"
+    return np.format_float_scientific(x, precision=3, pad_left=2, unique=False)
+
 
 def antoine_T(v: npt.NDArray, P: npt.NDArray) -> npt.NDArray:
   '''
