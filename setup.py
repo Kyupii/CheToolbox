@@ -13,7 +13,6 @@ setup(
     long_description = LONG_DESCRIPTION,
     packages = find_packages(),
     install_requires = ['numpy',
-                        'pandas',
                         'scipy',
                         ],
 
@@ -24,6 +23,4 @@ setup(
                    "Programming Language :: Python :: 3",
                    "Operating System :: Microsoft :: Windows", 
                 ]
-
-
 )

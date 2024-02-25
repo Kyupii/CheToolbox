@@ -630,8 +630,6 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
     for i, domsvals in enumerate(linestograph):
       ax.plot(*domsvals, "rb"[i%2])
     
-    
-
   return common.SolutionObj(tieline = tieline, Rmin = Rmin, R = R, min_stages = min_stages, ideal_stages = ideal_stages)
 
 def multicomp_feed_split_est(feed: npt.NDArray, keys: tuple[int, int], spec: tuple[float, float]) -> tuple[npt.NDArray, npt.NDArray]:

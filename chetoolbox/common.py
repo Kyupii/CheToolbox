@@ -164,11 +164,13 @@ class SolutionObj(dict):
       return self[name]
     except KeyError as e:
       raise AttributeError(name) from e
+    
   def __repr__(self):
     if self.keys():
         return _dict_formatter(self)
     else:
         return self.__class__.__name__ + "()"
+    
   def __dir__(self) -> tuple:
     return tuple(self.keys())
   
@@ -179,131 +181,64 @@ class UnitConv:
   def faren2kelvin(T):
     T = np.atleast_1d(T)
     return (T - 32.) * (5./9.) + 273.15
+  
   def ft2meters(ft):
     ft = np.atleast_1d(ft)
     return ft * .3048
+  
   def lbs2kgs(lbs):
     lbs = np.atleast_1d(lbs)
     return lbs * .4535934
 
-def _dict_formatter(d, n=0, mplus=1, sorter=None):
-    """
-    Pretty printer for dictionaries
+# region String Operations
+def _dict_formatter(d, n = 0, mplus = 1, sorter = None):
+  '''
+  Pretty printer for dictionaries
 
-    `n` keeps track of the starting indentation;
-    lines are indented by this much after a line break.
-    `mplus` is additional left padding applied to keys
-    """
-    if isinstance(d, dict):
-        m = max(map(len, list(d.keys()))) + mplus  # width to print keys
-        s = '\n'.join([k.rjust(m) + ': ' +  # right justified, width m
-                       _indenter(_dict_formatter(v, m+n+2, 0, sorter), m+2)
-                       for k,v in d.items()])  # +2 for ': '
-    else:
-        # By default, NumPy arrays print with linewidth=76. `n` is
-        # the indent at which a line begins printing, so it is subtracted
-        # from the default to avoid exceeding 76 characters total.
-        # `edgeitems` is the number of elements to include before and after
-        # ellipses when arrays are not shown in full.
-        # `threshold` is the maximum number of elements for which an
-        # array is shown in full.
-        # These values tend to work well for use with OptimizeResult.
-        with np.printoptions(linewidth=76-n, edgeitems=2, threshold=12,
-                             formatter={'float_kind': _float_formatter_10}):
-            s = str(d)
-    return s
+  `n` keeps track of the starting indentation;
+  lines are indented by this much after a line break.
+  `mplus` is additional left padding applied to keys
+  '''
+  if isinstance(d, dict):
+    m = max(map(len, list(d.keys()))) + mplus  # width to print keys
+    s = '\n'.join([k.rjust(m) + ': ' +  # right justified, width m
+    _indenter(_dict_formatter(v, m+n+2, 0, sorter), m+2)
+    for k,v in d.items()])  # +2 for ': '
+  else:
+    # By default, NumPy arrays print with linewidth=76. `n` is
+    # the indent at which a line begins printing, so it is subtracted
+    # from the default to avoid exceeding 76 characters total.
+    # `edgeitems` is the number of elements to include before and after
+    # ellipses when arrays are not shown in full.
+    # `threshold` is the maximum number of elements for which an
+    # array is shown in full.
+    # These values tend to work well for use with OptimizeResult.
+    with np.printoptions(linewidth=76-n, edgeitems=2, threshold=12, formatter={'float_kind': _float_formatter_10}):
+      s = str(d)
+  return s
 
-def _indenter(s, n=0):
-    """
-    Ensures that lines after the first are indented by the specified amount
-    """
-    split = s.split("\n")
-    indent = " "*n
-    return ("\n" + indent).join(split)
+def _indenter(s, n = 0):
+  '''
+  Ensures that lines after the first are indented by the specified amount
+  '''
+  split = s.split("\n")
+  indent = " "*n
+  return ("\n" + indent).join(split)
 
 def _float_formatter_10(x):
-    """
-    Returns a string representation of a float with exactly ten characters
-    """
-    if np.isposinf(x):
-        return "       inf"
-    elif np.isneginf(x):
-        return "      -inf"
-    elif np.isnan(x):
-        return "       nan"
-    return np.format_float_scientific(x, precision=3, pad_left=2, unique=False)
+  '''
+  Returns a string representation of a float with exactly ten characters
+  '''
+  if np.isposinf(x):
+      return "       inf"
+  elif np.isneginf(x):
+      return "      -inf"
+  elif np.isnan(x):
+      return "       nan"
+  return np.format_float_scientific(x, precision=3, pad_left=2, unique=False)
+# endregion
 
-
-def antoine_T(v: npt.NDArray, P: npt.NDArray) -> npt.NDArray:
-  '''
-  Calculates the temperature of every component for each pressure.
-  '''
-  v = np.atleast_1d(v); P = np.atleast_1d(P)
-  return (-v[:, 1] / (np.log10(P) - np.r_[v[:, 0]])) - v[:, 2]
-
-def antoine_P(v: npt.NDArray, T: npt.NDArray) -> npt.NDArray:
-  '''
-  Calculates the pressure of every component for each temperature.
-  '''
-  v = np.atleast_1d(v); T = np.atleast_1d(T)
-  return 10 ** (np.c_[v[:, 0]] - np.c_[v[:, 1]] / (T + np.c_[v[:, 2]]))
-
-def raoult_XtoY(x: list, K: list) -> tuple[npt.NDArray, float]:
-  '''
-  Calculates the vapor mole fraction of a multi-component mixed phase feed (assuming liquid and gas ideality).
-
-  Parameters
-  ---------
-  x : list
-    Component mole fractions of the feed's liquid phase (unitless). Must sum to 1.
-  K : list 
-    Equalibrium constant for each component at a specific temperature and pressure (units vary). Length must equal x.
-  
-  Returns
-  ---------
-  y : ArrayLike
-    Component mole fractions of the feed's vapor phase (unitless).
-  error : float
-    Error of calculated vapor phase component mole fractions.
-  '''
-  x = np.atleast_1d(x)
-  K = np.atleast_1d(K)
-  y = np.c_[x] * K
-  error = np.sum(y) - 1
-  return y, error
-
-def raoult_YtoX(y: list, K: list) -> tuple[npt.NDArray, float]:
-  '''
-  Calculates the liquid mole fraction of a multi-component mixed phase feed (assuming liquid and gas ideality).
-
-  Parameters
-  ---------
-  y : list
-    Component mole fractions of the feed's vapor phase (unitless). Must sum to 1.
-  K : list 
-    Equalibrium constant for each component at a specific temperature and pressure (units vary). Length must equal y.
-    
-  Returns
-  ---------
-  x : ArrayLike
-    Component mole fractions of the feed's liquid phase (unitless).
-  error : float
-    Error of calculated liquid phase component mole fractions.
-  '''
-  y = np.atleast_1d(y)
-  K = np.atleast_1d(K)
-  x = np.c_[y] / K
-  error = np.sum(x) - 1
-  return x, error
-
-def point_separsort(*points: list | tuple | npt.NDArray) -> tuple[npt.NDArray, npt.NDArray]:
-  '''
-  Takes an arbitrary set of points and sorts them by x-value. Returns them as two np.arrays, one of x-values and the other of y-values.
-  '''
-  points = np.atleast_1d(points).reshape(-1, 2)
-  points = points[points[:, 0].argsort()]
-  return points[:, 0], points[:, 1]
-
+# region Array Operations
 def array_pad(arrs: tuple[npt.NDArray]) -> npt.NDArray:
   '''
   Takes an arbitrary list of np.arrays of varying length and pads each np.array to form a homogeneous 2D array of size len(arrs) x max(lens)
@@ -314,37 +249,16 @@ def array_pad(arrs: tuple[npt.NDArray]) -> npt.NDArray:
   out[mask] = np.concatenate(arrs)
   return out
 
-def lin_estimate_error(x_pair: npt.NDArray, y_pair: npt.NDArray) -> float:
+def point_separsort(*points: list | tuple | npt.NDArray) -> tuple[npt.NDArray, npt.NDArray]:
   '''
-  Calculates the x-intercept (x=0) for a given pair of x and y distances. Assumes linearity.
+  Takes an arbitrary set of points and sorts them by x-value. Returns them as two np.arrays, one of x-values and the other of y-values.
   '''
-  x_pair = np.atleast_1d(x_pair); y_pair = np.atleast_1d(y_pair)
-  x_new = x_pair[0] - y_pair[0] * ((x_pair[1]-x_pair[0])/(y_pair[1]-y_pair[0]))
-  return x_new
+  points = np.atleast_1d(points).reshape(-1, 2)
+  points = points[points[:, 0].argsort()]
+  return points[:, 0], points[:, 1]
+# endregion
 
-def err_reduc(err_calc: Callable[[float], float], x: npt.NDArray) -> tuple[npt.NDArray, npt.NDArray]:
-  '''
-  Evaluates an error calculation for a pair of inputs and returns a new set of inputs with a smaller average error.
-  '''
-  x = np.atleast_1d(x)
-  err = err_calc(x)
-  xnew = lin_estimate_error(x, err)
-  err = np.abs(err)
-  x[np.argmax(err)] = xnew
-  return x, err
-
-def iter(err_calc: Callable[[float], float], x: npt.NDArray, tol: float = .001) -> tuple[float, float, int]:
-  '''
-  Accepts a pair of inputs and an error function. Returns an input with tolerable error, the error, and the iterations required.
-  '''
-  x = np.atleast_1d(x)
-  error = 10000.
-  i = 0
-  while np.min(error) > tol:
-    x, error = err_reduc(err_calc, x)
-    i += 1
-  return x[np.argmin(error)], np.min(error), i
-
+# region Geometry
 def vertical_line(x) -> LinearEq:
   return LinearEq(np.NaN, np.NaN, x)
 
@@ -418,3 +332,101 @@ def curve_bouncer(upper: Equation, lower: Equation, x_start: float, x_stop: floa
     x = upper.inv(y)
     i += 1
   return (i - 1.) + (xprev - x_stop) / (xprev - x)
+# endregion
+
+# region Chemistry
+def antoine_T(v: npt.NDArray, P: npt.NDArray) -> npt.NDArray:
+  '''
+  Calculates the temperature of every component for each pressure.
+  '''
+  v = np.atleast_1d(v); P = np.atleast_1d(P)
+  return (-v[:, 1] / (np.log10(P) - np.r_[v[:, 0]])) - v[:, 2]
+
+def antoine_P(v: npt.NDArray, T: npt.NDArray) -> npt.NDArray:
+  '''
+  Calculates the pressure of every component for each temperature.
+  '''
+  v = np.atleast_1d(v); T = np.atleast_1d(T)
+  return 10 ** (np.c_[v[:, 0]] - np.c_[v[:, 1]] / (T + np.c_[v[:, 2]]))
+
+def raoult_XtoY(x: list, K: list) -> tuple[npt.NDArray, float]:
+  '''
+  Calculates the vapor mole fraction of a multi-component mixed phase feed (assuming liquid and gas ideality).
+
+  Parameters
+  ---------
+  x : list
+    Component mole fractions of the feed's liquid phase (unitless). Must sum to 1.
+  K : list 
+    Equalibrium constant for each component at a specific temperature and pressure (units vary). Length must equal x.
+  
+  Returns
+  ---------
+  y : ArrayLike
+    Component mole fractions of the feed's vapor phase (unitless).
+  error : float
+    Error of calculated vapor phase component mole fractions.
+  '''
+  x = np.atleast_1d(x)
+  K = np.atleast_1d(K)
+  y = np.c_[x] * K
+  error = np.sum(y) - 1
+  return y, error
+
+def raoult_YtoX(y: list, K: list) -> tuple[npt.NDArray, float]:
+  '''
+  Calculates the liquid mole fraction of a multi-component mixed phase feed (assuming liquid and gas ideality).
+
+  Parameters
+  ---------
+  y : list
+    Component mole fractions of the feed's vapor phase (unitless). Must sum to 1.
+  K : list 
+    Equalibrium constant for each component at a specific temperature and pressure (units vary). Length must equal y.
+    
+  Returns
+  ---------
+  x : ArrayLike
+    Component mole fractions of the feed's liquid phase (unitless).
+  error : float
+    Error of calculated liquid phase component mole fractions.
+  '''
+  y = np.atleast_1d(y)
+  K = np.atleast_1d(K)
+  x = np.c_[y] / K
+  error = np.sum(x) - 1
+  return x, error
+# endregion
+
+# region Iterative Tools
+def lin_estimate_error(x_pair: npt.NDArray, y_pair: npt.NDArray) -> float:
+  '''
+  Calculates the x-intercept (x=0) for a given pair of x and y distances. Assumes linearity.
+  '''
+  x_pair = np.atleast_1d(x_pair); y_pair = np.atleast_1d(y_pair)
+  x_new = x_pair[0] - y_pair[0] * ((x_pair[1]-x_pair[0])/(y_pair[1]-y_pair[0]))
+  return x_new
+
+def err_reduc(err_calc: Callable[[float], float], x: npt.NDArray) -> tuple[npt.NDArray, npt.NDArray]:
+  '''
+  Evaluates an error calculation for a pair of inputs and returns a new set of inputs with a smaller average error.
+  '''
+  x = np.atleast_1d(x)
+  err = err_calc(x)
+  xnew = lin_estimate_error(x, err)
+  err = np.abs(err)
+  x[np.argmax(err)] = xnew
+  return x, err
+
+def iter(err_calc: Callable[[float], float], x: npt.NDArray, tol: float = .001) -> tuple[float, float, int]:
+  '''
+  Accepts a pair of inputs and an error function. Returns an input with tolerable error, the error, and the iterations required.
+  '''
+  x = np.atleast_1d(x)
+  error = 10000.
+  i = 0
+  while np.min(error) > tol:
+    x, error = err_reduc(err_calc, x)
+    i += 1
+  return x[np.argmin(error)], np.min(error), i
+# endregion
