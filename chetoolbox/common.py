@@ -191,6 +191,7 @@ class UnitConv:
     return lbs * .4535934
 
 # region String Operations
+# credit to scipy team for _dict_formatter
 def _dict_formatter(d, n = 0, mplus = 1, sorter = None):
   '''
   Pretty printer for dictionaries
