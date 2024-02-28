@@ -144,13 +144,14 @@ class PiecewiseEq(Equation):
     self.posSlope = eqs[0].eval(self.bounds[0] - .05) < eqs[0].eval(self.bounds[0])
 
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
-    eq_index = (np.c_[np.atleast_1d(x)] > self.bounds).sum(axis=1)
-    ind_eq = np.hstack([np.c_[np.arange(len(np.atleast_1d(x)))], np.c_[eq_index], np.c_[np.atleast_1d(x)]])
+    xfloat = type(x) == float; x = np.c_[np.atleast_1d(x)]
+    eq_index = (x > self.bounds).sum(axis=1)
+    ind_eq = np.hstack([np.c_[np.arange(len(x))], np.c_[eq_index], x])
     ind_eq = ind_eq[ind_eq[:, 1].argsort()]
     func_split_ind = np.where(ind_eq[:, 1][:-1] != ind_eq[:, 1][1:])[0] + 1
     xs_per_eq = np.split(ind_eq, func_split_ind)
     res = np.vstack([np.concatenate([xset[:, 0], self.eqs[xset[0, 1].astype(int)].eval(xset[:, 2])]) for xset in xs_per_eq])
-    return res[0, 1] if type(x) == float else res[res[:, 0].argsort()][:, 1]
+    return res[0, 1] if xfloat else res[res[:, 0].argsort()][:, 1]
   
   def inv(self, y: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     boundval = np.array([curve.eval(self.bounds[i]) for i, curve in enumerate(self.eqs[:-1])])
@@ -172,15 +173,17 @@ class PiecewiseEq(Equation):
       return np.concatenate(res)
   
   def deriv(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
-    eq_index = (np.c_[np.atleast_1d(x)] > self.bounds).sum(axis=1)
-    ind_eq = np.hstack([np.c_[np.arange(len(np.atleast_1d(x)))], np.c_[eq_index], np.c_[np.atleast_1d(x)]])
+    xfloat = type(x) == float; x = np.c_[np.atleast_1d(x)]
+    eq_index = (x > self.bounds).sum(axis=1)
+    ind_eq = np.hstack([np.c_[np.arange(len(x))], np.c_[eq_index], x])
     ind_eq = ind_eq[ind_eq[:, 1].argsort()]
     func_split_ind = np.where(ind_eq[:, 1][:-1] != ind_eq[:, 1][1:])[0] + 1
     xs_per_eq = np.split(ind_eq, func_split_ind)
     res = np.vstack([np.concatenate([xset[:, 0], self.eqs[xset[0, 1].astype(int)].deriv(xset[:, 2])]) for xset in xs_per_eq])
-    return res[0, 1] if type(x) == float else res[res[:, 0].argsort()][:, 1]
+    return res[0, 1] if xfloat else res[res[:, 0].argsort()][:, 1]
 
   def integ(self, x1: float | npt.NDArray, x2: float | npt.NDArray) -> float | npt.NDArray:
+    dualfloat = type(x1) == float & type(x2) == float
     x1 = np.c_[np.atleast_1d(x1)]; x2 = np.c_[np.atleast_1d(x2)]
     truth = (np.less_equal(x1, self.bounds) & np.greater(x2, self.bounds))
     singles_index = np.arange(len(x1))[truth.sum(axis=1) == 0] # x-range within single eq
