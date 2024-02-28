@@ -138,36 +138,35 @@ class PiecewiseEq(Equation):
   def __init__(self, eqs: tuple[Equation], upperdomainlims: tuple[float]):
     if len(eqs) - 1 != len(upperdomainlims):
       raise AttributeError("Number of bounds do not match number of equations minus one.")
-    upperdomainlims = np.array(list(upperdomainlims) + [np.inf])
-    self.boundeqs = dict(zip(upperdomainlims.astype(str), eqs))
-    self.posSlope = eqs[0].eval(upperdomainlims[0] - .05) < eqs[0].eval(upperdomainlims[0])
+    self.bounds = np.array(list(upperdomainlims) + [np.inf])
+    self.boundeqs = dict(zip(self.bounds.astype(str), eqs))
+    self.posSlope = eqs[0].eval(self.bounds[0] - .05) < eqs[0].eval(self.bounds[0])
 
-  def eq_chooser_x(self, method: str, x: float | npt.NDArray, ) -> float | npt.NDArray:
+  def eq_chooser_x(self, method: str, x: float | npt.NDArray, ) -> tuple[float | npt.NDArray, Callable | list[Callable]]:
     # want to generalize function grabbing for application to integrals, would need serious work unfortunately
-    bounds = np.fromiter(self.boundeqs.keys(), float)
     if type(x) != np.ndarray:
-      eq = self.boundeqs[str(bounds[np.sum(x >= bounds)])]
+      eq = self.boundeqs[str(self.bounds[np.sum(x >= self.bounds)])]
       func = getattr(eq, method)
-      return func(x)
+      return func(x), func
     else:
       x.sort()
-      splitind = (x <= np.c_[bounds][:-1]).sum(axis=1)
+      splitind = (x <= np.c_[self.bounds][:-1]).sum(axis=1)
       xsets = np.split(x, splitind)
-      res = [getattr(self.boundeqs[str(bounds[i])], method)(xsets[i]) for i in np.arange(len(xsets))]
-      return np.concatenate(res)
+      funcs = [getattr(self.boundeqs[str(self.bounds[i])], method) for i in np.arange(len(xsets))]
+      return np.concatenate([funcs[i](xsets[i]) for i in np.arange(len(xsets))]), funcs
 
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
-    return self.eq_chooser_x("eval", x)
+    x, _ = self.eq_chooser_x("eval", x)
+    return x
   
   def inv(self, y: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
-    bounds = np.fromiter(self.boundeqs.keys(), float)
     curves = list(self.boundeqs.values())
-    boundval = np.array([curve.eval(bounds[i]) for i, curve in enumerate(curves[:-1])])
+    boundval = np.array([curve.eval(self.bounds[i]) for i, curve in enumerate(curves[:-1])])
     if type(y) != np.ndarray:
       if self.posSlope:
-        eq = self.boundeqs[str(bounds[np.sum(boundval <= y)])]
+        eq = self.boundeqs[str(self.bounds[np.sum(boundval <= y)])]
       else:
-        eq = self.boundeqs[str(bounds[np.sum(boundval >= y)])]
+        eq = self.boundeqs[str(self.bounds[np.sum(boundval >= y)])]
       return eq.inv(y)
     else:
       y.sort()
@@ -177,12 +176,21 @@ class PiecewiseEq(Equation):
         y = y[::-1] # account for dy = -dx
         splitind = (y >= np.c_[boundval]).sum(axis=1)
       ysets = np.split(y, splitind)
-      res = [self.boundeqs[str(bounds[i])].inv(ysets[i]) for i in np.arange(len(ysets))]
+      res = [self.boundeqs[str(self.bounds[i])].inv(ysets[i]) for i in np.arange(len(ysets))]
       return np.concatenate(res)
   
   def deriv(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
-    return self.eq_chooser_x("deriv", x)
-  
+    dx, _ = self.eq_chooser_x("deriv", x)
+    return dx
+
+  def integ(self, x1: float | npt.NDArray, x2: float | npt.NDArray) -> float | npt.NDArray:
+    truth = (np.less_equal(x1, self.bounds) & np.greater(x2, self.bounds))
+    singles_index = np.arange(len(x1))[truth.sum(axis=1) == 0] # x-range within single eq
+    splits_index = np.arange(len(x1))[truth.sum(axis=1) != 0] # x-range across multiple eq
+    singles = np.hstack([x1[singles_index], x2[singles_index]])
+    singles_eq_index = np.sum(np.c_[singles[:, 0]] >= self.bounds, axis=1)
+    singlesres = [self.boundeqs[str(self.bounds[i])].integ(singles[:, 0], singles[:, 1]) for i in singles_eq_index]
+    return 
 
 class SolutionObj(dict):
   def __getattr__(self, name):
