@@ -1,4 +1,5 @@
 import numpy as np
+from numpy._typing import NDArray
 import numpy.typing as npt
 from typing import Callable, Optional
 
@@ -34,11 +35,17 @@ class Equation:
   def __init__(self):
     return
   
-  def eval(self, x: float) -> float:
+  def eval(self, x: float | npt.NDArray) -> float | npt.NDArray:
     return x
   
-  def inv(self, y: float) -> float:
+  def inv(self, y: float | npt.NDArray) -> float | npt.NDArray:
     return y
+  
+  def deriv(self, x: float | npt.NDArray) -> float | npt.NDArray:
+    return x
+  
+  def integ(self, x1: float | npt.NDArray, x2: float | npt.NDArray) -> float | npt.NDArray:
+    return x2 - x1
 
 class LinearEq(Equation):
   '''
@@ -52,14 +59,20 @@ class LinearEq(Equation):
     Return the output of the function (y) when evaluated at an input (x).
   inv : Callable
     Return the input of the function (x) that evaluates to an output (y).
+  deriv : Callable
+    Return the derivative of the function at an input (x).
+  inv : Callable
+    Return the integral (area under the curve) of a function between inputs (x1 and x2).
   '''
   def __init__(self, m: float, b: float, x_int: float | None = None) -> None:
     self.m = m
     self.b = b
     if np.isnan(self.m): # vertical lines
-      self.m = np.NaN
-      self.b = np.NaN
       self.x_int = x_int
+      if self.x_int == 0.:
+        self.b = 0.
+      else:
+        self.b = np.NaN
     else:
       if b == 0.: # intersects the origin
         self.x_int = 0.
@@ -70,28 +83,22 @@ class LinearEq(Equation):
           self.x_int = -m/b
   
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
-    if np.isnan(self.m): # vertical line
-      return x * np.NaN
-    elif self.m == 0.: # horizontal line
-      return x * 0. + self.b
-    else:
-      return self.m * x + self.b
+    return self.m * x + self.b
   
   def inv(self, y: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
-    if np.isnan(self.m): # vertical line
-      return y * 0. + self.x_int
-    elif self.m == 0.: # horizontal line
+    if self.m == 0.: # horizontal line
       return y * np.NaN
     else:
       return (y - self.b) / self.m
   
   def deriv(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
-    if np.isnan(self.m): # vertical line
-      return x * np.NaN
-    elif self.m == 0.: # horizontal line
-      return x * 0.
-    else:
-      return self.m * x + self.b
+    return x * 0 + self.m
+  
+  def integ(self, x1: float | npt.NDArray, x2: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
+    '''
+    x1 and x2 must be the same size if both are arrays.
+    '''
+    return .5 * self.m * x2 ** 2 - .5 * self.m * x1 ** 2
 
 class EqualibEq(Equation):
   '''
@@ -107,10 +114,12 @@ class EqualibEq(Equation):
   
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     # breaks if x = -1. / (1. - self.alpha)
+    x = np.min(1., np.max(0., x))
     return (self.alpha * x ) / (1. + (self.alpha - 1.) * x)
   
   def inv(self, y: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     # breaks if y = -self.alpha / (1. - self.alpha)
+    y = np.min(1., np.max(0., y))
     return y / (self.alpha + y * (1. - self.alpha))
 
 class PiecewiseEq(Equation):
@@ -133,17 +142,22 @@ class PiecewiseEq(Equation):
     self.boundeqs = dict(zip(upperdomainlims.astype(str), eqs))
     self.posSlope = eqs[0].eval(upperdomainlims[0] - .05) < eqs[0].eval(upperdomainlims[0])
 
-  def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
+  def eq_chooser_x(self, method: str, x: float | npt.NDArray, ) -> float | npt.NDArray:
+    # want to generalize function grabbing for application to integrals, would need serious work unfortunately
     bounds = np.fromiter(self.boundeqs.keys(), float)
     if type(x) != np.ndarray:
       eq = self.boundeqs[str(bounds[np.sum(x >= bounds)])]
-      return eq.eval(x)
+      func = getattr(eq, method)
+      return func(x)
     else:
       x.sort()
-      splitind = np.less_equal(x, bounds[:-1, np.newaxis]).sum(axis=1)
+      splitind = (x <= np.c_[bounds][:-1]).sum(axis=1)
       xsets = np.split(x, splitind)
-      res = [self.boundeqs[str(bounds[i])].eval(xsets[i]) for i in np.arange(len(xsets))]
+      res = [getattr(self.boundeqs[str(bounds[i])], method)(xsets[i]) for i in np.arange(len(xsets))]
       return np.concatenate(res)
+
+  def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
+    return self.eq_chooser_x("eval", x)
   
   def inv(self, y: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     bounds = np.fromiter(self.boundeqs.keys(), float)
@@ -158,13 +172,17 @@ class PiecewiseEq(Equation):
     else:
       y.sort()
       if self.posSlope:
-        splitind = np.greater_equal(boundval, y[:, np.newaxis]).sum(axis=0)
+        splitind = (y <= np.c_[boundval]).sum(axis=1)
       else:
         y = y[::-1] # account for dy = -dx
-        splitind = np.less_equal(boundval, y[:, np.newaxis]).sum(axis=0)
+        splitind = (y >= np.c_[boundval]).sum(axis=1)
       ysets = np.split(y, splitind)
       res = [self.boundeqs[str(bounds[i])].inv(ysets[i]) for i in np.arange(len(ysets))]
       return np.concatenate(res)
+  
+  def deriv(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
+    return self.eq_chooser_x("deriv", x)
+  
 
 class SolutionObj(dict):
   def __getattr__(self, name):
