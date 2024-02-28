@@ -702,3 +702,10 @@ def lost_work(inlet: npt.NDArray, outlet: npt.NDArray, Q: npt.NDArray, T_s: npt.
     return h - T_0 * s
   return np.sum(inlet[:,0] * b(inlet[:,1], inlet[:,2]) + Q[0] * (1 - T_0/T_s[0]) + W_s) - np.sum(outlet[:,0] * b(outlet[:,1], outlet[:,2]) + Q[1] * (1 - T_0/T_s[1]) + W_s)
  
+def gilliland(Nmin, Rmin, Rmin_mult = 1.3):
+  R = Rmin_mult * Rmin
+  X = (R - Rmin) / (R + 1)
+  Y = 1 - np.exp((1 + 54.4 * X) / (11 + 117.2 * X) * ((X - 1) / np.sqrt(X)))
+  return (Nmin + Y) / (1 - Y)
+
+
