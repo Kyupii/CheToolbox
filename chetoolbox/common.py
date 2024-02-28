@@ -139,34 +139,26 @@ class PiecewiseEq(Equation):
     if len(eqs) - 1 != len(upperdomainlims):
       raise AttributeError("Number of bounds do not match number of equations minus one.")
     self.bounds = np.array(list(upperdomainlims) + [np.inf])
+    self.eqs = np.array(eqs)
     self.boundeqs = dict(zip(self.bounds.astype(str), eqs))
     self.posSlope = eqs[0].eval(self.bounds[0] - .05) < eqs[0].eval(self.bounds[0])
 
-  def eq_chooser_x(self, method: str, x: float | npt.NDArray, ) -> tuple[float | npt.NDArray, Callable | list[Callable]]:
-    # want to generalize function grabbing for application to integrals, would need serious work unfortunately
-    if type(x) != np.ndarray:
-      eq = self.boundeqs[str(self.bounds[np.sum(x >= self.bounds)])]
-      func = getattr(eq, method)
-      return func(x), func
-    else:
-      x.sort()
-      splitind = (x <= np.c_[self.bounds][:-1]).sum(axis=1)
-      xsets = np.split(x, splitind)
-      funcs = [getattr(self.boundeqs[str(self.bounds[i])], method) for i in np.arange(len(xsets))]
-      return np.concatenate([funcs[i](xsets[i]) for i in np.arange(len(xsets))]), funcs
-
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
-    x, _ = self.eq_chooser_x("eval", x)
-    return x
+    eq_index = (np.c_[np.atleast_1d(x)] > self.bounds).sum(axis=1)
+    ind_eq = np.hstack([np.c_[np.arange(len(np.atleast_1d(x)))], np.c_[eq_index], np.c_[np.atleast_1d(x)]])
+    ind_eq = ind_eq[ind_eq[:, 1].argsort()]
+    func_split_ind = np.where(ind_eq[:, 1][:-1] != ind_eq[:, 1][1:])[0] + 1
+    xs_per_eq = np.split(ind_eq, func_split_ind)
+    res = np.vstack([np.concatenate([xset[:, 0], self.eqs[xset[0, 1].astype(int)].eval(xset[:, 2])]) for xset in xs_per_eq])
+    return res[0, 1] if type(x) == float else res[res[:, 0].argsort()][:, 1]
   
   def inv(self, y: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
-    curves = list(self.boundeqs.values())
-    boundval = np.array([curve.eval(self.bounds[i]) for i, curve in enumerate(curves[:-1])])
+    boundval = np.array([curve.eval(self.bounds[i]) for i, curve in enumerate(self.eqs[:-1])])
     if type(y) != np.ndarray:
       if self.posSlope:
-        eq = self.boundeqs[str(self.bounds[np.sum(boundval <= y)])]
+        eq = self.eqs[np.sum(boundval <= y)]
       else:
-        eq = self.boundeqs[str(self.bounds[np.sum(boundval >= y)])]
+        eq = self.eqs[np.sum(boundval >= y)]
       return eq.inv(y)
     else:
       y.sort()
@@ -176,20 +168,26 @@ class PiecewiseEq(Equation):
         y = y[::-1] # account for dy = -dx
         splitind = (y >= np.c_[boundval]).sum(axis=1)
       ysets = np.split(y, splitind)
-      res = [self.boundeqs[str(self.bounds[i])].inv(ysets[i]) for i in np.arange(len(ysets))]
+      res = [self.eqs[i].inv(ysets[i]) for i in np.arange(len(ysets))]
       return np.concatenate(res)
   
   def deriv(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
-    dx, _ = self.eq_chooser_x("deriv", x)
-    return dx
+    eq_index = (np.c_[np.atleast_1d(x)] > self.bounds).sum(axis=1)
+    ind_eq = np.hstack([np.c_[np.arange(len(np.atleast_1d(x)))], np.c_[eq_index], np.c_[np.atleast_1d(x)]])
+    ind_eq = ind_eq[ind_eq[:, 1].argsort()]
+    func_split_ind = np.where(ind_eq[:, 1][:-1] != ind_eq[:, 1][1:])[0] + 1
+    xs_per_eq = np.split(ind_eq, func_split_ind)
+    res = np.vstack([np.concatenate([xset[:, 0], self.eqs[xset[0, 1].astype(int)].deriv(xset[:, 2])]) for xset in xs_per_eq])
+    return res[0, 1] if type(x) == float else res[res[:, 0].argsort()][:, 1]
 
   def integ(self, x1: float | npt.NDArray, x2: float | npt.NDArray) -> float | npt.NDArray:
+    x1 = np.c_[np.atleast_1d(x1)]; x2 = np.c_[np.atleast_1d(x2)]
     truth = (np.less_equal(x1, self.bounds) & np.greater(x2, self.bounds))
     singles_index = np.arange(len(x1))[truth.sum(axis=1) == 0] # x-range within single eq
-    splits_index = np.arange(len(x1))[truth.sum(axis=1) != 0] # x-range across multiple eq
+    spreads_index = np.arange(len(x1))[truth.sum(axis=1) != 0] # x-range across multiple eq
     singles = np.hstack([x1[singles_index], x2[singles_index]])
     singles_eq_index = np.sum(np.c_[singles[:, 0]] >= self.bounds, axis=1)
-    singlesres = [self.boundeqs[str(self.bounds[i])].integ(singles[:, 0], singles[:, 1]) for i in singles_eq_index]
+    singlesres = [self.eqs[i].integ(singles[:, 0], singles[:, 1]) for i in singles_eq_index]
     return 
 
 class SolutionObj(dict):
