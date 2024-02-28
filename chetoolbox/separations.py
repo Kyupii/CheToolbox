@@ -703,6 +703,23 @@ def lost_work(inlet: npt.NDArray, outlet: npt.NDArray, Q: npt.NDArray, T_s: npt.
   return np.sum(inlet[:,0] * b(inlet[:,1], inlet[:,2]) + Q[0] * (1 - T_0/T_s[0]) + W_s) - np.sum(outlet[:,0] * b(outlet[:,1], outlet[:,2]) + Q[1] * (1 - T_0/T_s[1]) + W_s)
  
 def gilliland(Nmin, Rmin, Rmin_mult = 1.3):
+  '''
+  Solves for the number of real trays required to operate a distillation column  
+  
+  Parameters
+  ----------
+  Nmin : float
+    Minimum number of trays required to operate a column. Usually calculated from the Fenske equation 
+  Rmin : float
+    Minimum reflux ratio required to operate a column.
+  Rmin_mult : float
+    Multiplcation factor for which the actual reflux ratio is found. Default is taken to be 1.3
+  
+  Returns
+  ----------
+  N : float
+    Actual number of trays required to operate the column
+  '''
   R = Rmin_mult * Rmin
   X = (R - Rmin) / (R + 1)
   Y = 1 - np.exp((1 + 54.4 * X) / (11 + 117.2 * X) * ((X - 1) / np.sqrt(X)))
