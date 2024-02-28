@@ -702,7 +702,34 @@ def lost_work(inlet: npt.NDArray, outlet: npt.NDArray, Q: npt.NDArray, T_s: npt.
     return h - T_0 * s
   return np.sum(inlet[:,0] * b(inlet[:,1], inlet[:,2]) + Q[0] * (1 - T_0/T_s[0]) + W_s) - np.sum(outlet[:,0] * b(outlet[:,1], outlet[:,2]) + Q[1] * (1 - T_0/T_s[1]) + W_s)
  
-def gilliland(Nmin, Rmin, Rmin_mult = 1.3):
+def underwood_type1(alpha, L_F, D, HK, LK):
+  '''
+  Solves for the minimum reflux ratio for a type I system using underwood equations  
+  Parameters
+  ----------
+  alpha : float
+    Relative volatility of the two species equalibrium constants (K) (unitless). This alpha is to be calculated at the feed stage
+  L_F : float
+    Molar liquid feed in moles/time (mol/h, mol/s, etc.) 
+  D : float
+    Distillate flow rate
+  HK : ArrayLike
+    Liquid mole fraction of high key components in the distillate and feed. 
+      ex) np.array([x_D,x_F]
+  LK : ArrayLike
+    Liquid mole fraction of low key components in the distillate and feed. 
+      ex) np.array([x_D,x_F]
+  Returns
+  ----------
+  R_min : float
+    Minimum reflux ratio for a type I system
+  '''
+  HK = np.atleast_1d(HK)
+  LK = np.atleast_1d(LK)
+
+  return (L_F) * ( (D * LK[0]) / (L_F * LK[1]) - (alpha) * (D * HK[0]) / (L_F * HK[1])) / (alpha - 1) / D
+
+def gilliland(Nmin: float, Rmin: float, Rmin_mult: float = 1.3):
   '''
   Solves for the number of real trays required to operate a distillation column  
   
