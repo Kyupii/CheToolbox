@@ -71,25 +71,25 @@ class LinearEq(Equation):
   
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     if np.isnan(self.m): # vertical line
-      return x.fill(np.NaN) if type(x) == np.ndarray else np.NaN
+      return x * np.NaN
     elif self.m == 0.: # horizontal line
-      return x.fill(self.b) if type(x) == np.ndarray else self.b
+      return x * 0. + self.b
     else:
       return self.m * x + self.b
   
   def inv(self, y: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     if np.isnan(self.m): # vertical line
-      return y.fill(self.x_int) if type(y) == np.ndarray else self.x_int
+      return y * 0. + self.x_int
     elif self.m == 0.: # horizontal line
-      return y.fill(np.NaN) if type(y) == np.ndarray else np.NaN
+      return y * np.NaN
     else:
       return (y - self.b) / self.m
   
   def deriv(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     if np.isnan(self.m): # vertical line
-      return np.full_like(x, np.NaN)
+      return x * np.NaN
     elif self.m == 0.: # horizontal line
-      return np.full_like(x, self.b)
+      return x * 0.
     else:
       return self.m * x + self.b
 
