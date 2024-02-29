@@ -146,10 +146,9 @@ class PiecewiseEq(Equation):
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     xfloat = type(x) not in {list, np.ndarray}; x = np.c_[np.atleast_1d(x)]
     eq_index = (x > self.bounds).sum(axis=1)
-    ind_eq = np.hstack([np.c_[np.arange(len(x))], np.c_[eq_index], x])
-    ind_eq = ind_eq[ind_eq[:, 1].argsort()]
-    func_split_ind = np.where(ind_eq[:, 1][:-1] != ind_eq[:, 1][1:])[0] + 1
-    xs_per_eq = np.split(ind_eq, func_split_ind)
+    ind_eq_x = np.hstack([np.c_[np.arange(len(x))], np.c_[eq_index], x])
+    ind_eq_x = ind_eq_x[ind_eq_x[:, 1].argsort()]
+    xs_per_eq = np.split(ind_eq_x, np.where(ind_eq_x[:, 1][:-1] != ind_eq_x[:, 1][1:])[0] + 1)
     res = np.vstack([np.hstack([np.c_[xset[:, 0]], np.c_[self.eqs[xset[0, 1].astype(int)].eval(xset[:, 2])]]) for xset in xs_per_eq])
     return res[0, 1] if xfloat else res[res[:, 0].argsort()][:, 1]
 
@@ -157,37 +156,34 @@ class PiecewiseEq(Equation):
     yfloat = type(y) not in {list, np.ndarray}; y = np.c_[np.atleast_1d(y)]
     boundval = np.array([eq.eval(self.bounds[i]) for i, eq in enumerate(self.eqs)])
     eq_index = (y > boundval).sum(axis=1) if self.posSlope else (y < boundval).sum(axis=1)
-    ind_eq = np.hstack([np.c_[np.arange(len(y))], np.c_[eq_index], y])
-    ind_eq = ind_eq[ind_eq[:, 1].argsort()]
-    func_split_ind = np.where(ind_eq[:, 1][:-1] != ind_eq[:, 1][1:])[0] + 1
-    ys_per_eq = np.split(ind_eq, func_split_ind)
+    ind_eq_y = np.hstack([np.c_[np.arange(len(y))], np.c_[eq_index], y])
+    ind_eq_y = ind_eq_y[ind_eq_y[:, 1].argsort()]
+    ys_per_eq = np.split(ind_eq_y, np.where(ind_eq_y[:, 1][:-1] != ind_eq_y[:, 1][1:])[0] + 1)
     res = np.vstack([np.hstack([np.c_[yset[:, 0]], np.c_[self.eqs[yset[0, 1].astype(int)].inv(yset[:, 2])]]) for yset in ys_per_eq])
     return res[0, 1] if yfloat else res[res[:, 0].argsort()][:, 1]
 
   def deriv(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     xfloat = type(x) not in {list, np.ndarray}; x = np.c_[np.atleast_1d(x)]
     eq_index = (x > self.bounds).sum(axis=1)
-    ind_eq = np.hstack([np.c_[np.arange(len(x))], np.c_[eq_index], x])
-    ind_eq = ind_eq[ind_eq[:, 1].argsort()]
-    func_split_ind = np.where(ind_eq[:, 1][:-1] != ind_eq[:, 1][1:])[0] + 1
-    xs_per_eq = np.split(ind_eq, func_split_ind)
+    ind_eq_x = np.hstack([np.c_[np.arange(len(x))], np.c_[eq_index], x])
+    ind_eq_x = ind_eq_x[ind_eq_x[:, 1].argsort()]
+    xs_per_eq = np.split(ind_eq_x, np.where(ind_eq_x[:, 1][:-1] != ind_eq_x[:, 1][1:])[0] + 1)
     res = np.vstack([np.hstack([np.c_[xset[:, 0]], np.c_[self.eqs[xset[0, 1].astype(int)].deriv(xset[:, 2])]]) for xset in xs_per_eq])
     return res[0, 1] if xfloat else res[res[:, 0].argsort()][:, 1]
 
   def integ(self, x1: float | npt.NDArray, x2: float | npt.NDArray) -> float | npt.NDArray: 
     dualfloat = type(x1) not in {list, np.ndarray} & type(x2) not in {list, np.ndarray}
     x1 = np.c_[np.atleast_1d(x1)]; x2 = np.c_[np.atleast_1d(x2)]
-    truth = (x1 > self.bounds) ^ (x2 > self.bounds)
+    eq_index = (x1 > self.bounds) ^ (x2 > self.bounds) # XOR both bounds
 
-    singles_index = np.arange(len(x1))[truth.sum(axis=1) == 0]
-    singles_eq_ind = (np.c_[x1[truth.sum(axis=1) == 0]] > self.bounds).sum(axis=1)
+    singles_index = np.arange(len(x1))[eq_index.sum(axis=1) == 0]
+    singles_eq_ind = (np.c_[x1[eq_index.sum(axis=1) == 0]] > self.bounds).sum(axis=1)
     singles = np.hstack([np.c_[singles_index], np.c_[singles_eq_ind], np.c_[x1[singles_index]], np.c_[x2[singles_index]]])
     singles = singles[singles[:, 1].argsort()]
-    singles_split = np.where(singles[:, 1][:-1] != singles[:, 1][1:])[0] + 1
-    singles_per_eq = np.split(singles, singles_split)
+    singles_per_eq = np.split(singles, np.where(singles[:, 1][:-1] != singles[:, 1][1:])[0] + 1)
     singles_res = [np.hstack([np.c_[xset[:, 0]], np.c_[self.eqs[xset[0, 1]].integ(xset[:, 2], xset[:, 3])]]) for xset in singles_per_eq]
 
-    spreads_index = np.arange(len(x1))[truth.sum(axis=1) != 0] # x-range across multiple eq
+    spreads_index = np.arange(len(x1))[eq_index.sum(axis=1) != 0] # x-range across multiple eq
 
 
 
