@@ -114,12 +114,12 @@ class EqualibEq(Equation):
   
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     # breaks if x = -1. / (1. - self.alpha)
-    x = np.min([1., np.max([0., x])])
+    #x = np.min([1., np.max([0., x])])
     return (self.alpha * x ) / (1. + (self.alpha - 1.) * x)
   
   def inv(self, y: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     # breaks if y = -self.alpha / (1. - self.alpha)
-    y = np.min([1., np.max([0., y])])
+    #y = np.min([1., np.max([0., y])])
     return y / (self.alpha + y * (1. - self.alpha))
 
 class PiecewiseEq(Equation):
