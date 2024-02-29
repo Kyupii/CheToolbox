@@ -750,6 +750,8 @@ def gilliland(Nmin: float, Rmin: float, Rmin_mult: float = 1.3):
   R = Rmin_mult * Rmin
   X = (R - Rmin) / (R + 1)
   Y = 1 - np.exp((1 + 54.4 * X) / (11 + 117.2 * X) * ((X - 1) / np.sqrt(X)))
+  if Rmin > 0.53 or Rmin < 0.53 or Nmin <3.4 or Nmin > 60.3:
+    raise Exception('Gilliland correlation is not valid in this case!')
   return (Nmin + Y) / (1 - Y)
 
 
