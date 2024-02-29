@@ -388,11 +388,11 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
   linestograph = []
   def x_graphcapture(x):
     y = eq_curve.eval(x)
-    linestograph.append(common.point_separsort((x, y), (x, y_operlines.eval(x))))
+    linestograph.append(common.point_separsort((x, y), (x, float(y_operlines.eval(x)))))
     return x
   def y_graphcapture(y):
     x = y_operlines.inv(y)
-    linestograph.append(common.point_separsort((x, y), (eq_curve.inv(y), y)))
+    linestograph.append(common.point_separsort((x, y), (float(eq_curve.inv(y)), y)))
     return y
   
   ideal_stages = common.curve_bouncer(eq_curve, y_operlines, xd, xb, x_graphcapture, y_graphcapture)
