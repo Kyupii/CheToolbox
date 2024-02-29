@@ -144,7 +144,7 @@ class PiecewiseEq(Equation):
     self.posSlope = eqs[0].eval(self.bounds[0] - .05) < eqs[0].eval(self.bounds[0])
 
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
-    xfloat = type(x) == float; x = np.c_[np.atleast_1d(x)]
+    xfloat = type(x) not in {list, np.ndarray}; x = np.c_[np.atleast_1d(x)]
     eq_index = (x > self.bounds).sum(axis=1)
     ind_eq = np.hstack([np.c_[np.arange(len(x))], np.c_[eq_index], x])
     ind_eq = ind_eq[ind_eq[:, 1].argsort()]
@@ -155,7 +155,7 @@ class PiecewiseEq(Equation):
   
   def inv(self, y: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     boundval = np.array([curve.eval(self.bounds[i]) for i, curve in enumerate(self.eqs[:-1])])
-    if type(y) != np.ndarray:
+    if type(y) not in {list, np.ndarray}:
       if self.posSlope:
         eq = self.eqs[np.sum(boundval <= y)]
       else:
@@ -173,7 +173,7 @@ class PiecewiseEq(Equation):
       return np.concatenate(res)
   
   def deriv(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
-    xfloat = type(x) == float; x = np.c_[np.atleast_1d(x)]
+    xfloat = type(x) not in {list, np.ndarray}; x = np.c_[np.atleast_1d(x)]
     eq_index = (x > self.bounds).sum(axis=1)
     ind_eq = np.hstack([np.c_[np.arange(len(x))], np.c_[eq_index], x])
     ind_eq = ind_eq[ind_eq[:, 1].argsort()]
@@ -183,7 +183,7 @@ class PiecewiseEq(Equation):
     return res[0, 1] if xfloat else res[res[:, 0].argsort()][:, 1]
 
   def integ(self, x1: float | npt.NDArray, x2: float | npt.NDArray) -> float | npt.NDArray: 
-    dualfloat = type(x1) == float & type(x2) == float
+    dualfloat = type(x1) not in {list, np.ndarray} & type(x2) not in {list, np.ndarray}
     x1 = np.c_[np.atleast_1d(x1)]; x2 = np.c_[np.atleast_1d(x2)]
     truth = (x1 > self.bounds) ^ (x2 > self.bounds)
 

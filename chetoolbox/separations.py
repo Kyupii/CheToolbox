@@ -384,17 +384,14 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
 
   y_operlines = common.PiecewiseEq((stripline, rectifyline), (feedpoint[0],))
 
-  global linestographx
   linestograph = []
   def x_graphcapture(x):
-    x = float(x)
-    y = float(eq_curve.eval(x))
-    linestograph.append(common.point_separsort((x, y), (x, float(y_operlines.eval(float(x))))))
+    y = eq_curve.eval(x)
+    linestograph.append(common.point_separsort((x, y), (x, y_operlines.eval(x))))
     return x
   def y_graphcapture(y):
-    y = float(y)
-    x = float(y_operlines.inv(y))
-    linestograph.append(common.point_separsort((x, y), (float(eq_curve.inv(float(y))), y)))
+    x = y_operlines.inv(y)
+    linestograph.append(common.point_separsort((x, y), (eq_curve.inv(y), y)))
     return y
   
   ideal_stages = common.curve_bouncer(eq_curve, y_operlines, xd, xb, x_graphcapture, y_graphcapture)
@@ -703,7 +700,7 @@ def lost_work(inlet: npt.NDArray, outlet: npt.NDArray, Q: npt.NDArray, T_s: npt.
   def b(h,s):
     return h - T_0 * s
   return np.sum(inlet[:,0] * b(inlet[:,1], inlet[:,2]) + Q[0] * (1 - T_0/T_s[0]) + W_s) - np.sum(outlet[:,0] * b(outlet[:,1], outlet[:,2]) + Q[1] * (1 - T_0/T_s[1]) + W_s)
- 
+
 def underwood_type1(alpha: float , L_F: float, D: float, HK: npt.ArrayLike, LK: npt.ArrayLike) -> float:
   '''
   Solves for the minimum reflux ratio for a type I system using underwood equations  
