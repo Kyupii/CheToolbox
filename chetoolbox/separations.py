@@ -704,7 +704,7 @@ def lost_work(inlet: npt.NDArray, outlet: npt.NDArray, Q: npt.NDArray, T_s: npt.
     return h - T_0 * s
   return np.sum(inlet[:,0] * b(inlet[:,1], inlet[:,2]) + Q[0] * (1 - T_0/T_s[0]) + W_s) - np.sum(outlet[:,0] * b(outlet[:,1], outlet[:,2]) + Q[1] * (1 - T_0/T_s[1]) + W_s)
  
-def underwood_type1(alpha, L_F, D, HK, LK):
+def underwood_type1(alpha: float , L_F: float, D: float, HK: npt.ArrayLike, LK: npt.ArrayLike) -> float:
   '''
   Solves for the minimum reflux ratio for a type I system using underwood equations  
   Parameters
@@ -731,7 +731,7 @@ def underwood_type1(alpha, L_F, D, HK, LK):
 
   return (L_F) * ( (D * LK[0]) / (L_F * LK[1]) - (alpha) * (D * HK[0]) / (L_F * HK[1])) / (alpha - 1) / D
 
-def gilliland(Nmin: float, Rmin: float, Rmin_mult: float = 1.3):
+def gilliland(Nmin: float, Rmin: float, Rmin_mult: float = 1.3) -> float:
   '''
   Solves for the number of real trays required to operate a distillation column  
   
