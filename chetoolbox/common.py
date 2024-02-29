@@ -150,7 +150,7 @@ class PiecewiseEq(Equation):
     ind_eq = ind_eq[ind_eq[:, 1].argsort()]
     func_split_ind = np.where(ind_eq[:, 1][:-1] != ind_eq[:, 1][1:])[0] + 1
     xs_per_eq = np.split(ind_eq, func_split_ind)
-    res = np.vstack([np.concatenate([xset[:, 0], self.eqs[xset[0, 1].astype(int)].eval(xset[:, 2])]) for xset in xs_per_eq])
+    res = np.vstack([np.hstack([np.c_[xset[:, 0]], np.c_[self.eqs[xset[0, 1].astype(int)].eval(xset[:, 2])]]) for xset in xs_per_eq])
     return res[0, 1] if xfloat else res[res[:, 0].argsort()][:, 1]
   
   def inv(self, y: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
@@ -179,19 +179,33 @@ class PiecewiseEq(Equation):
     ind_eq = ind_eq[ind_eq[:, 1].argsort()]
     func_split_ind = np.where(ind_eq[:, 1][:-1] != ind_eq[:, 1][1:])[0] + 1
     xs_per_eq = np.split(ind_eq, func_split_ind)
-    res = np.vstack([np.concatenate([xset[:, 0], self.eqs[xset[0, 1].astype(int)].deriv(xset[:, 2])]) for xset in xs_per_eq])
+    res = np.vstack([np.hstack([np.c_[xset[:, 0]], np.c_[self.eqs[xset[0, 1].astype(int)].deriv(xset[:, 2])]]) for xset in xs_per_eq])
     return res[0, 1] if xfloat else res[res[:, 0].argsort()][:, 1]
 
-  # def integ(self, x1: float | npt.NDArray, x2: float | npt.NDArray) -> float | npt.NDArray: 
-  #   dualfloat = type(x1) == float & type(x2) == float
-  #   x1 = np.c_[np.atleast_1d(x1)]; x2 = np.c_[np.atleast_1d(x2)]
-  #   truth = (np.less_equal(x1, self.bounds) & np.greater(x2, self.bounds))
-  #   singles_index = np.arange(len(x1))[truth.sum(axis=1) == 0] # x-range within single eq
-  #   spreads_index = np.arange(len(x1))[truth.sum(axis=1) != 0] # x-range across multiple eq
-  #   singles = np.hstack([x1[singles_index], x2[singles_index]])
-  #   singles_eq_index = np.sum(np.c_[singles[:, 0]] >= self.bounds, axis=1)
-  #   singlesres = [self.eqs[i].integ(singles[:, 0], singles[:, 1]) for i in singles_eq_index]
-  #   return 
+  def integ(self, x1: float | npt.NDArray, x2: float | npt.NDArray) -> float | npt.NDArray: 
+    dualfloat = type(x1) == float & type(x2) == float
+    x1 = np.c_[np.atleast_1d(x1)]; x2 = np.c_[np.atleast_1d(x2)]
+    truth = (x1 > self.bounds) ^ (x2 > self.bounds)
+
+    singles_index = np.arange(len(x1))[truth.sum(axis=1) == 0]
+    singles_eq_ind = (np.c_[x1[truth.sum(axis=1) == 0]] > self.bounds).sum(axis=1)
+    singles = np.hstack([np.c_[singles_index], np.c_[singles_eq_ind], np.c_[x1[singles_index]], np.c_[x2[singles_index]]])
+    singles = singles[singles[:, 1].argsort()]
+    singles_split = np.where(singles[:, 1][:-1] != singles[:, 1][1:])[0] + 1
+    singles_per_eq = np.split(singles, singles_split)
+    singles_res = [np.hstack([np.c_[xset[:, 0]], np.c_[self.eqs[xset[0, 1]].integ(xset[:, 2], xset[:, 3])]]) for xset in singles_per_eq]
+
+    spreads_index = np.arange(len(x1))[truth.sum(axis=1) != 0] # x-range across multiple eq
+
+
+
+    res = singles_res[0, 1] if dualfloat else singles_res[singles_res[:, 0].argsort()][:, 1]
+
+
+
+
+    
+    return 
 
 class SolutionObj(dict):
   def __getattr__(self, name):
