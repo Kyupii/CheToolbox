@@ -131,9 +131,9 @@ class PiecewiseEq(Equation):
   upperdomainlims : float
     The upper domain limit of each equation, except the last equation which has an upper domain limit of np.inf. Upperbounds must be ordered smallest to largest. Length must be len(eqs) - 1.
   eval : Callable
-    Return the output of the function (y) when evaluated at an input (x). If passing an np.array of x, it must be sorted first.
+    Return the output of the function (y) when evaluated at an input (x).
   inv : Callable
-    Return the input of the function (x) that evaluates to an output (y). If passing an np.array of y, it must be sorted first.
+    Return the input of the function (x) that evaluates to an output (y).
   '''
   def __init__(self, eqs: tuple[Equation], upperdomainlims: tuple[float]):
     if len(eqs) - 1 != len(upperdomainlims):
@@ -152,26 +152,18 @@ class PiecewiseEq(Equation):
     xs_per_eq = np.split(ind_eq, func_split_ind)
     res = np.vstack([np.hstack([np.c_[xset[:, 0]], np.c_[self.eqs[xset[0, 1].astype(int)].eval(xset[:, 2])]]) for xset in xs_per_eq])
     return res[0, 1] if xfloat else res[res[:, 0].argsort()][:, 1]
-  
+
   def inv(self, y: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
-    boundval = np.array([curve.eval(self.bounds[i]) for i, curve in enumerate(self.eqs[:-1])])
-    if type(y) not in {list, np.ndarray}:
-      if self.posSlope:
-        eq = self.eqs[np.sum(boundval <= y)]
-      else:
-        eq = self.eqs[np.sum(boundval >= y)]
-      return eq.inv(y)
-    else:
-      y.sort()
-      if self.posSlope:
-        splitind = (y <= np.c_[boundval]).sum(axis=1)
-      else:
-        y = y[::-1] # account for dy = -dx
-        splitind = (y >= np.c_[boundval]).sum(axis=1)
-      ysets = np.split(y, splitind)
-      res = [self.eqs[i].inv(ysets[i]) for i in np.arange(len(ysets))]
-      return np.concatenate(res)
-  
+    yfloat = type(y) not in {list, np.ndarray}; y = np.c_[np.atleast_1d(y)]
+    boundval = np.array([eq.eval(self.bounds[i]) for i, eq in enumerate(self.eqs)])
+    eq_index = (y > boundval).sum(axis=1) if self.posSlope else (y < boundval).sum(axis=1)
+    ind_eq = np.hstack([np.c_[np.arange(len(y))], np.c_[eq_index], y])
+    ind_eq = ind_eq[ind_eq[:, 1].argsort()]
+    func_split_ind = np.where(ind_eq[:, 1][:-1] != ind_eq[:, 1][1:])[0] + 1
+    ys_per_eq = np.split(ind_eq, func_split_ind)
+    res = np.vstack([np.hstack([np.c_[yset[:, 0]], np.c_[self.eqs[yset[0, 1].astype(int)].inv(yset[:, 2])]]) for yset in ys_per_eq])
+    return res[0, 1] if yfloat else res[res[:, 0].argsort()][:, 1]
+
   def deriv(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     xfloat = type(x) not in {list, np.ndarray}; x = np.c_[np.atleast_1d(x)]
     eq_index = (x > self.bounds).sum(axis=1)
