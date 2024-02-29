@@ -756,4 +756,30 @@ def gilliland(Nmin: float, Rmin: float, Rmin_mult: float = 1.3) -> float:
     raise Exception('Gilliland correlation is not valid in this case!')
   return (Nmin + Y) / (1 - Y)
 
+def type1_distro(D, L_F, LK, HK, i):
+  '''
+  Solves for the mole fraction of non key components. All relative volitilities (α) are in relation to the high key
 
+  Parameters
+  ----------
+  D : float
+    Distillate flow rate
+  L_F : float
+    Molar liquid feed in moles/time (mol/h, mol/s, etc.) 
+  LK : ArrayLike
+    Low key component properties. must follow order [x_D_LK, x_F_LK, alpha_LK]
+  HK : ArrayLike
+    High key component properites must follow order [x_D_HK, x_F_HK]
+  i : ArrayLike
+    Non key component relative volatilities (α) []
+  
+  Returns
+  ----------
+  res : ArrayLike
+    Array of component distributions (D x_i_D) / (L_F, x_i_F)
+  '''
+  res = ((i - 1) / (LK[2] -1)) * ((D * LK[0]) / (L_F * LK[1])) + ((LK[2] - i) / (LK[2] - 1)) * ((D * HK[0]) / (L_F * HK[1]))
+  if (res < 0 or res > 1).any():
+    raise Exception('One or more non key components do not distribute. This is a type II system')
+  else:
+    return res
