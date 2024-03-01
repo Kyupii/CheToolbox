@@ -49,6 +49,8 @@ class Equation:
 
 class LinearEq(Equation):
   '''
+  Equation of the form y = m*x + b
+  -----------
   m : float
     Slope of the line.
   b : float
@@ -98,7 +100,67 @@ class LinearEq(Equation):
     '''
     x1 and x2 must be the same size if both are arrays.
     '''
-    return .5 * self.m * x2 ** 2 - .5 * self.m * x1 ** 2
+    return .5 * self.m * (x2**2 - x1**2)
+
+class QuadraticEq(Equation):
+  '''
+  Equation of the form y = a*(x - s1)**2 + b*(x - s2) + c
+  -----------
+  a : float
+    Coefficient of the x^2 term
+  b : float
+    Coefficient of the x term
+  c : float
+    Y-intercept of the curve.
+  s1 : float
+    Curve shift in the quadratic term.
+  s2 : float
+    Curve shift in the linear term.
+  eval : Callable
+    Return the output of the function (y) when evaluated at an input (x).
+  inv : Callable
+    Return the input of the function (x) that evaluates to an output (y).
+  deriv : Callable
+    Return the derivative of the function at an input (x).
+  inv : Callable
+    Return the integral (area under the curve) of a function between inputs (x1 and x2). If both x1 and x2 are np.arrays then size must match.
+  '''
+  def __init__(self, a: float, b: float, c: float, s1: float = 0., s2: float = 0.) -> None:
+    self.a = a
+    self.b = 2. * self.a * s1 + b
+    self.c = a * s1**2. - b * s2 + c
+    self.determ = self.b**2 - 4.*self.a*self.c
+    self.roots = quadratic_formula([self.a, self.b, self.c])
+  
+  def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
+    return self.a*(x - self.s1)**2 + self.b*(x - self.s2) + self.c
+  
+  def inv(self, y: float | npt.NDArray, mode: str = "both") -> float | npt.NDArray | None: # numpy compatible
+    '''
+    mode must be "both", "left", or "right"
+    '''
+    leftailias = {"left", "l"}; rightalias = {"right", "r"}
+    w = self.b / (self.a * 2.)
+    z = self.c / self.a - w
+    revdescrim = y - z
+    if revdescrim < 0.:
+      return None
+    if mode in leftailias:
+      return -np.sqrt(revdescrim) - w
+    elif mode in rightalias:
+      return np.sqrt(revdescrim) - w
+    else:
+      return np.array([1., -1.]) * np.sqrt(revdescrim) - w
+  
+  def deriv(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
+    return 2. * self.a * x + self.b
+  
+  def integ(self, x1: float | npt.NDArray, x2: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
+    '''
+    x1 and x2 must be the same size if both are arrays.
+    '''
+    return (1./3.) * self.m * (x2**3 -  x1**3)
+
 
 class EqualibEq(Equation):
   '''
@@ -125,7 +187,7 @@ class EqualibEq(Equation):
 class PiecewiseEq(Equation):
   '''
   Piecewise must be continuous (component equations must be equal at each bound) and injective (must have only one x per y value).
-
+  -----------
   eqs : tuple[Equation]
     All equations that compose the piecewise function. Equations must be ordered from smallest to largest upper domain limit.
   upperdomainlims : float
@@ -361,10 +423,10 @@ def quadratic_formula(coeff: npt.NDArray) -> npt.NDArray | None:
   Calculates the roots of a quadratic equation. Ignores imaginary roots.
   '''
   coeff = np.atleast_1d(coeff)
-  descrim = coeff[1]**2 - 4*coeff[0]*coeff[2]
-  if descrim < 0:
+  descrim = coeff[1]**2 - 4.*coeff[0]*coeff[2]
+  if descrim < 0.:
     return None
-  return (- coeff[1] + np.sqrt(np.array([descrim])) * np.array([1, -1])) / (2. * coeff[0])
+  return (- coeff[1] + np.sqrt(descrim) * np.array([1., -1.])) / (2. * coeff[0])
 
 def curve_bouncer(upper: Equation, lower: Equation, x_start: float, x_stop: float, x_transform: Callable[[float, float], float] | None = None, y_transform: Callable[[float, float], float] | None = None) -> float:
   '''
