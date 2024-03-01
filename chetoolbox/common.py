@@ -62,7 +62,7 @@ class LinearEq(Equation):
   deriv : Callable
     Return the derivative of the function at an input (x).
   inv : Callable
-    Return the integral (area under the curve) of a function between inputs (x1 and x2).
+    Return the integral (area under the curve) of a function between inputs (x1 and x2). If both x1 and x2 are np.arrays then size must match.
   '''
   def __init__(self, m: float, b: float, x_int: float | None = None) -> None:
     self.m = m
@@ -134,6 +134,10 @@ class PiecewiseEq(Equation):
     Return the output of the function (y) when evaluated at an input (x).
   inv : Callable
     Return the input of the function (x) that evaluates to an output (y).
+    deriv : Callable
+    Return the derivative of the function at an input (x).
+  inv : Callable
+    Return the integral (area under the curve) of a function between inputs (x1 and x2). If both x1 and x2 are np.arrays then size must match.
   '''
   def __init__(self, eqs: tuple[Equation], upperdomainlims: tuple[float]):
     if len(eqs) - 1 != len(upperdomainlims):
@@ -172,28 +176,38 @@ class PiecewiseEq(Equation):
     return res[0, 1] if xfloat else res[res[:, 0].argsort()][:, 1]
 
   def integ(self, x1: float | npt.NDArray, x2: float | npt.NDArray) -> float | npt.NDArray: 
-    dualfloat = type(x1) not in {list, np.ndarray} & type(x2) not in {list, np.ndarray}
+    dualfloat = (type(x1) not in {list, np.ndarray}) & (type(x2) not in {list, np.ndarray})
+    typemix = type(x1) != type(x2)
     x1 = np.c_[np.atleast_1d(x1)]; x2 = np.c_[np.atleast_1d(x2)]
-    eq_index = (x1 > self.bounds) ^ (x2 > self.bounds) # XOR both bounds
+    if typemix:
+      if len(x1) > len(x2):
+        x2 = np.full_like(x1, x2)
+      else:
+        x1 = np.full_like(x2, x1)
+    eq_index = ((x1 > self.bounds) ^ (x2 > self.bounds)) # XOR both bounds
 
+    # within one equation piece
     singles_index = np.arange(len(x1))[eq_index.sum(axis=1) == 0]
-    singles_eq_ind = (np.c_[x1[eq_index.sum(axis=1) == 0]] > self.bounds).sum(axis=1)
-    singles = np.hstack([np.c_[singles_index], np.c_[singles_eq_ind], np.c_[x1[singles_index]], np.c_[x2[singles_index]]])
-    singles = singles[singles[:, 1].argsort()]
-    singles_per_eq = np.split(singles, np.where(singles[:, 1][:-1] != singles[:, 1][1:])[0] + 1)
-    singles_res = [np.hstack([np.c_[xset[:, 0]], np.c_[self.eqs[xset[0, 1]].integ(xset[:, 2], xset[:, 3])]]) for xset in singles_per_eq]
+    singles = np.zeros((1,4))
+    if len(singles_index) != 0:
+      singles_eq_ind = (np.c_[x1[eq_index.sum(axis=1) == 0]] > self.bounds).sum(axis=1)
+      singles = np.hstack([np.c_[singles_index], np.c_[singles_eq_ind], np.c_[x1[singles_index]], np.c_[x2[singles_index]]])
 
-    spreads_index = np.arange(len(x1))[eq_index.sum(axis=1) != 0] # x-range across multiple eq
+    # split across multiple equation pieces
+    splits_index = np.arange(len(x1))[eq_index.sum(axis=1) != 0]
+    splits = np.zeros((1,4))
+    if len(splits_index) != 0:
+      eq_index[np.where(eq_index[:, :-1] > eq_index[:, 1:])[0], np.where(eq_index[:, :-1] > eq_index[:, 1:])[1] + 1] = True
+      regions = [np.concatenate([x1[splits_index[i]], self.bounds[ind][:-1], x2[splits_index[i]]]) for i, ind in enumerate(eq_index[eq_index.sum(axis=1) != 0])]
+      boundpairs = np.vstack([np.lib.stride_tricks.sliding_window_view(reg, 2) for reg in regions])
+      splits = np.hstack( (np.transpose(np.where(eq_index == True)), boundpairs))
 
-
-
-    res = singles_res[0, 1] if dualfloat else singles_res[singles_res[:, 0].argsort()][:, 1]
-
-
-
-
-    
-    return 
+    callstack = np.vstack((singles, splits))
+    callstack = callstack[callstack[:, 1].argsort()]
+    xs_per_eq = np.split(callstack, np.where(callstack[:, 1][:-1] != callstack[:, 1][1:])[0] + 1)
+    res_per_eq = np.vstack([np.hstack([np.c_[xset[:, 0]], np.c_[self.eqs[xset[0, 1].astype(int)].integ(xset[:, 2], xset[:, 3])]]) for xset in xs_per_eq])
+    res = np.hstack([np.sum(res_per_eq[:, 1], where=(res_per_eq[:, 0] == i)) for i in np.arange(len(x1))])
+    return res[0] if dualfloat else res
 
 class SolutionObj(dict):
   def __getattr__(self, name):
