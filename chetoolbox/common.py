@@ -1,7 +1,7 @@
 import numpy as np
 from numpy._typing import NDArray
 import numpy.typing as npt
-from typing import Callable, Optional
+from typing import Callable
 
 class TESTVARS:
   '''
