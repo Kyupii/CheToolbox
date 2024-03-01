@@ -134,7 +134,7 @@ class PiecewiseEq(Equation):
     Return the output of the function (y) when evaluated at an input (x).
   inv : Callable
     Return the input of the function (x) that evaluates to an output (y).
-    deriv : Callable
+  deriv : Callable
     Return the derivative of the function at an input (x).
   inv : Callable
     Return the integral (area under the curve) of a function between inputs (x1 and x2). If both x1 and x2 are np.arrays then size must match.
