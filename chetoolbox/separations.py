@@ -51,7 +51,7 @@ def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> common.Soluti
   y_out = (x * K) / (1 + psi * (K - 1))
   return common.SolutionObj(psi = psi, x_out = x_out, y_out = y_out, error = error(psi), i = i)
 
-def bubble_point_stepper(x:list, K:list) -> common.SolutionObj[float, npt.NDArray, float]:
+def bubble_point_stepper(x: list, K: list) -> common.SolutionObj[float, npt.NDArray, float]:
   '''
   Intended to be used with a DePriester Chart. Calculates the vapor mole fractions & associated error, then proposes a new temperature on the DePriester chart to try.
 
@@ -77,7 +77,7 @@ def bubble_point_stepper(x:list, K:list) -> common.SolutionObj[float, npt.NDArra
   err = np.sum(y) - 1 
   return common.SolutionObj(y = y, err = err)
 
-def dew_point_stepper(y:list, K:list) -> common.SolutionObj[float, npt.NDArray, float]:
+def dew_point_stepper(y: list, K: list) -> common.SolutionObj[float, npt.NDArray, float]:
   '''
   Intended to be used with a DePriester Chart. Calculates the vapor mole fractions & associated error, then proposes a new temperature on the DePriester chart to try.
 
