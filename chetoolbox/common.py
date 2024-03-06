@@ -158,7 +158,7 @@ class QuadraticEq(Equation):
     '''
     x1 and x2 must be the same size if both are arrays.
     '''
-    return (1./3.) * self.m * (x2**3 -  x1**3) + .5 * self.b * (x2**2 - x1**2) + self.c * (x2 - x1)
+    return (1./3.) * self.m * (x2**3 - x1**3) + .5 * self.b * (x2**2 - x1**2) + self.c * (x2 - x1)
 
 class CubicEq(Equation):
   '''
@@ -217,7 +217,7 @@ class CubicEq(Equation):
     '''
     x1 and x2 must be the same size if both are arrays.
     '''
-    return
+    return (1./4.)*self.a*(x2**4 - x1**4) + (1./3.)*self.b*(x2**3 - x1**3) + (1./2.)*self.c*(x2**2 - x1**2) + self.d*(x2 - x1)
 
 class EqualibEq(Equation):
   '''
