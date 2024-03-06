@@ -426,6 +426,25 @@ def quadratic_formula(coeff: npt.NDArray) -> npt.NDArray | None:
     return None
   return (- coeff[1] + np.sqrt(descrim) * np.array([1., -1.])) / (2. * coeff[0])
 
+def cubic_formula(coeff: npt.NDArray) -> npt.NDArray | None:
+  '''
+  Calculates the roots of a cubic equation. Ignores imaginary roots.
+  '''
+  coeff = np.atleast_1d(coeff)
+  descrim = 18.*np.prod(coeff) - 4.*coeff[3]*coeff[1]**3 + coeff[2]**2*coeff[1]**2 - 4.*coeff[0]*coeff[2] - 27.*coeff[0]**2*coeff[3]**2
+  if descrim == 0.: # multiple root present!
+    trip = coeff[1]**2 - 3.*coeff[0]*coeff[2]
+    if trip == 0.:
+      return np.full(3, -coeff[1] / 3.*coeff[0])
+    else:
+      doub = (9.*coeff[0]*coeff[3] - coeff[1]*coeff[2]) / (2.*trip)
+      sing = (4.*np.prod(coeff[:-1]) - 9.*coeff[3]*coeff[0]**2 - coeff[1]**3) / (coeff[0]*trip)
+      return np.array([doub, doub, sing])
+  else: # three real roots if descrim > 0 or one real, two complex conjugate roots if descrim < 0
+    # i wanted to write this myself but do NOT want to work with imaginary numbers, sorry
+    roots = np.roots(coeff)
+    return roots[np.isreal(roots)].real
+
 def curve_bouncer(upper: Equation, lower: Equation, x_start: float, x_stop: float, x_transform: Callable[[float, float], float] | None = None, y_transform: Callable[[float, float], float] | None = None) -> float:
   '''
   Bounce between two curves and return the number of bounces required to reach x_stop. x_start must cross both curves. If x_transform is None, move straight vertically. If y_transform is None, move straight horizontal. Each transform function must accept only its own variable and return only its own variable.
