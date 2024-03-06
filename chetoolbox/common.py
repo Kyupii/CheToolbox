@@ -285,7 +285,7 @@ class PiecewiseEq(Equation):
     res = np.vstack([np.hstack([np.c_[xset[:, 0]], np.c_[self.eqs[xset[0, 1].astype(int)].deriv(xset[:, 2])]]) for xset in xs_per_eq])
     return res[0, 1] if xfloat else res[res[:, 0].argsort()][:, 1]
 
-  def integ(self, x1: float | npt.NDArray, x2: float | npt.NDArray) -> float | npt.NDArray: 
+  def integ(self, x1: float | npt.NDArray, x2: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     dualfloat = (type(x1) not in {list, np.ndarray}) & (type(x2) not in {list, np.ndarray})
     typemix = type(x1) != type(x2)
     x1 = np.c_[np.atleast_1d(x1)]; x2 = np.c_[np.atleast_1d(x2)]
