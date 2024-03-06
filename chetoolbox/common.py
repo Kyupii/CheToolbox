@@ -126,7 +126,7 @@ class QuadraticEq(Equation):
   '''
   def __init__(self, a: float, b: float, c: float, s1: float = 0., s2: float = 0.):
     self.a = a
-    self.b = 2. * self.a * s1 + b
+    self.b = 2. * a * s1 + b
     self.c = a * s1**2. - b * s2 + c
     self.determ = self.b**2 - 4.*self.a*self.c
     self.roots = quadratic_formula([self.a, self.b, self.c])
@@ -188,10 +188,10 @@ class CubicEq(Equation):
     Return the integral (area under the curve) of a function between inputs (x1 and x2). If both x1 and x2 are np.arrays then size must match.
   '''
   def __init__(self, a: float, b: float, c: float, d: float, s1: float = 0., s2: float = 0., s3: float = 0.):
-    # self.a = a
-    # self.b = 
-    # self.c = 
-    # self.d = 
+    self.a = a
+    self.b = b - 3.*a*s1
+    self.c = 3.*a*s1**2 + c - 2.*b*s2
+    self.d = d - a*s1**3 + b*s2**2 - c*s3
     self.determ = 18.*self.a*self.b*self.c*self.d - 4.*self.d*self.b**3 + self.c**2*self.b**2 - 4.*self.a*self.c - 27.*self.a**2*self.d**2
     self.roots = cubic_formula([self.a, self.b, self.c, self.d])
   
