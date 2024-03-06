@@ -81,7 +81,7 @@ class LinearEq(Equation):
         if self.m == 0.: # horizontal lines
           self.x_int = np.NaN
         else:
-          self.x_int = -m/b
+          self.x_int = -b/m
   
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     return self.m * x + self.b
@@ -200,18 +200,23 @@ class CubicEq(Equation):
   
   def inv(self, y: float | npt.NDArray) -> float | npt.NDArray | None: # numpy compatible
     '''
-    invertible iff it can be rewritten as (w*x + n)**3 + z (triple root case)
-    invertible iff b**2 == 3*c*a
+    invertible iff it can be rewritten as (w*x + n)**3 + z (triple root case) = iff b**2 == 3*c*a
     '''
     if self.b**2 == 3.*self.a*self.c:
       w = np.cbrt(self.a)
       n = self.b / (3.*w**2)
       z = self.d - n**3
       return (n + np.cbrt(y - z)) / w
+    inflect = LinearEq(6.*self.a, 2.*self.b).x_int
+    print(inflect)
+
     return None
   
   def deriv(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     return 3.*self.a*x**2 + 2.*self.b*x + self.c
+  
+  def deriv2(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
+    return 6.*self.a*x + 2.*self.b
   
   def integ(self, x1: float | npt.NDArray, x2: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     '''
