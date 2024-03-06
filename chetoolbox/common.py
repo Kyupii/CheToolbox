@@ -202,7 +202,7 @@ class CubicEq(Equation):
     return
   
   def deriv(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
-    return
+    return 3.*self.a*x**2 + 2.*self.b*x + self.c
   
   def integ(self, x1: float | npt.NDArray, x2: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     '''
