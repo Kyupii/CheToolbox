@@ -65,7 +65,7 @@ class LinearEq(Equation):
   inv : Callable
     Return the integral (area under the curve) of a function between inputs (x1 and x2). If both x1 and x2 are np.arrays then size must match.
   '''
-  def __init__(self, m: float, b: float, x_int: float | None = None) -> None:
+  def __init__(self, m: float, b: float, x_int: float | None = None):
     self.m = m
     self.b = b
     if np.isnan(self.m): # vertical lines
@@ -106,9 +106,9 @@ class QuadraticEq(Equation):
   Equation of the form y = a*(x - s1)**2 + b*(x - s2) + c
   -----------
   a : float
-    Coefficient of the x^2 term
+    Coefficient of the quadratic term
   b : float
-    Coefficient of the x term
+    Coefficient of the linear term
   c : float
     Y-intercept of the curve.
   s1 : float
@@ -124,7 +124,7 @@ class QuadraticEq(Equation):
   inv : Callable
     Return the integral (area under the curve) of a function between inputs (x1 and x2). If both x1 and x2 are np.arrays then size must match.
   '''
-  def __init__(self, a: float, b: float, c: float, s1: float = 0., s2: float = 0.) -> None:
+  def __init__(self, a: float, b: float, c: float, s1: float = 0., s2: float = 0.):
     self.a = a
     self.b = 2. * self.a * s1 + b
     self.c = a * s1**2. - b * s2 + c
@@ -132,7 +132,7 @@ class QuadraticEq(Equation):
     self.roots = quadratic_formula([self.a, self.b, self.c])
   
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
-    return self.a*(x - self.s1)**2 + self.b*(x - self.s2) + self.c
+    return self.a*x**2 + self.b*x + self.c
   
   def inv(self, y: float | npt.NDArray, mode: str = "both") -> float | npt.NDArray | None: # numpy compatible
     '''
@@ -159,6 +159,56 @@ class QuadraticEq(Equation):
     x1 and x2 must be the same size if both are arrays.
     '''
     return (1./3.) * self.m * (x2**3 -  x1**3) + .5 * self.b * (x2**2 - x1**2) + self.c * (x2 - x1)
+
+class CubicEq(Equation):
+  '''
+  Equation of the form y = a*(x - s1)**3 + b*(x - s2)**2 + c*(x - s3) + d
+  -----------
+  a : float
+    Coefficient of the cubic term
+  b : float
+    Coefficient of the quadratic term
+  c : float
+    Coefficient of the linear term
+  d : float
+    Y-intercept of the curve.
+  s1 : float
+    Curve shift in the cubic term.
+  s2 : float
+    Curve shift in the quadratic term.
+  s3 : float
+    Curve shift in the linear term.
+  eval : Callable
+    Return the output of the function (y) when evaluated at an input (x).
+  inv : Callable
+    Return the input of the function (x) that evaluates to an output (y).
+  deriv : Callable
+    Return the derivative of the function at an input (x).
+  inv : Callable
+    Return the integral (area under the curve) of a function between inputs (x1 and x2). If both x1 and x2 are np.arrays then size must match.
+  '''
+  def __init__(self, a: float, b: float, c: float, d: float, s1: float = 0., s2: float = 0., s3: float = 0.):
+    # self.a = a
+    # self.b = 
+    # self.c = 
+    # self.d = 
+    self.determ = 18.*self.a*self.b*self.c*self.d - 4.*self.d*self.b**3 + self.c**2*self.b**2 - 4.*self.a*self.c - 27.*self.a**2*self.d**2
+    self.roots = cubic_formula([self.a, self.b, self.c, self.d])
+  
+  def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
+    return self.a*x**3 + self.b*x**2 + self.c*x + self.d
+  
+  def inv(self, y: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
+    return
+  
+  def deriv(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
+    return
+  
+  def integ(self, x1: float | npt.NDArray, x2: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
+    '''
+    x1 and x2 must be the same size if both are arrays.
+    '''
+    return
 
 class EqualibEq(Equation):
   '''
@@ -426,7 +476,7 @@ def quadratic_formula(coeff: npt.NDArray) -> npt.NDArray | None:
     return None
   return (- coeff[1] + np.sqrt(descrim) * np.array([1., -1.])) / (2. * coeff[0])
 
-def cubic_formula(coeff: npt.NDArray) -> npt.NDArray | None:
+def cubic_formula(coeff: npt.NDArray) -> npt.NDArray:
   '''
   Calculates the roots of a cubic equation. Ignores imaginary roots.
   '''
