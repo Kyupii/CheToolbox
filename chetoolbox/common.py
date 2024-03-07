@@ -610,7 +610,6 @@ def lin_estimate_error(x_pair: npt.NDArray, y_pair: npt.NDArray) -> npt.NDArray:
   x_pair = np.atleast_2d(x_pair).reshape(-1, 2); y_pair = np.atleast_2d(y_pair).reshape(-1, 2)
   converged = np.all((y_pair[:, 0] == y_pair[:, 1], y_pair[:, 0] == 0), axis=0)
   skipeval = x_pair[converged, 0]; y_pair[converged, :] = np.NaN
-  print(x_pair, y_pair, skipeval.shape)
   x_new = x_pair[:, 0] - y_pair[:, 0] * ((x_pair[:, 1] - x_pair[:, 0])/(y_pair[:, 1] - y_pair[:, 0]))
   if np.any(np.all((x_pair[:, 0] == x_pair[:, 1], y_pair[:, 0] != 0), axis=0)) or (np.any(np.isnan(x_new)) and len(skipeval) == 0):
     raise ValueError(f"Cannot minimize error between a point and itself: x == {list(x_pair[np.isnan(x_new), 0])}")
