@@ -218,7 +218,7 @@ class CubicEq(Equation):
       x, _, _ = err_reduc_iterative(error, starts)
       return x
       
-    else: # not invertible, maybe implement piecewise-like method?
+    else: # not invertible, would require an estimate or way to segregate by local max/mins
       raise ArithmeticError("Cubic equation is not differentiable")
 
   def deriv(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
