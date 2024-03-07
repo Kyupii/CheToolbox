@@ -208,7 +208,7 @@ class CubicEq(Equation):
     
     yfloat = type(y) not in {list, np.ndarray}; y = np.atleast_1d(y)
     locext = quadratic_formula([3.*self.a, 2.*self.b, self.c])
-    if locext == None or len(locext) < 2:
+    if locext is None or len(locext) < 2:
       def error(x):
         return self.eval(x) - np.c_[y]
       
@@ -219,7 +219,7 @@ class CubicEq(Equation):
       return x
       
     else: # not invertible, maybe implement piecewise-like method?
-      return None
+      raise ArithmeticError("Cubic equation is not differentiable")
 
   def deriv(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     return 3.*self.a*x**2 + 2.*self.b*x + self.c

@@ -265,7 +265,7 @@ def eq_curve_estim(points: npt.NDArray, alpha: float = None) -> common.EqualibEq
     Equation for an equalibrium curve of a binary mixture.
   '''
   points = np.atleast_1d(points).reshape((-1, 2))
-  if alpha == None:
+  if alpha is None:
     alpha = np.average( points[:, 1] * (1. - points[:, 0]) / (points[:, 0] * (1. - points[:, 1])) )
   return common.EqualibEq(alpha)
 
