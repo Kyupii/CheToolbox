@@ -210,7 +210,7 @@ class CubicEq(Equation):
     locext = quadratic_formula([3.*self.a, 2.*self.b, self.c])
     if locext == None or len(locext) < 2:
       def error(x):
-        return y - self.eval(x)
+        return self.eval(x) - np.c_[y]
       
       starts = np.zeros((len(y), 2))
       starts[:, 0] = np.cbrt(y)
@@ -602,33 +602,33 @@ def raoult_YtoX(y: list, K: list) -> tuple[npt.NDArray, float]:
 # endregion
 
 # region Iterative Tools
-def lin_estimate_error(x_pair: npt.NDArray, y_pair: npt.NDArray) -> npt.NDArray:
+def lin_estimate_error(x_pair: npt.NDArray, y_pair: npt.NDArray, tol: float = 1e-10) -> npt.NDArray:
   '''
   Calculates the x-intercept (y == 0) for pairs of x and y distances. Assumes linearity.
   Expects 2D arrays, of shape N x 2.
   '''
   x_pair = np.atleast_2d(x_pair).reshape(-1, 2); y_pair = np.atleast_2d(y_pair).reshape(-1, 2)
-  converged = np.all((y_pair[:, 0] == y_pair[:, 1], y_pair[:, 0] == 0), axis=0)
+  converged = np.all((y_pair[:, 0] == y_pair[:, 1], y_pair[:, 0] < tol), axis=0)
   skipeval = x_pair[converged, 0]; y_pair[converged, :] = np.NaN
   x_new = x_pair[:, 0] - y_pair[:, 0] * ((x_pair[:, 1] - x_pair[:, 0])/(y_pair[:, 1] - y_pair[:, 0]))
-  if np.any(np.all((x_pair[:, 0] == x_pair[:, 1], y_pair[:, 0] != 0), axis=0)) or (np.any(np.isnan(x_new)) and len(skipeval) == 0):
+  if np.any(np.isnan(x_new)) and len(skipeval) == 0:
     raise ValueError(f"Cannot minimize error between a point and itself: x == {list(x_pair[np.isnan(x_new), 0])}")
   x_new[np.isnan(x_new)] = skipeval; y_pair[np.isnan(y_pair)] = 0.
   return x_new
 
-def err_reduc(err_calc: Callable[[npt.NDArray], npt.NDArray], x: npt.NDArray) -> tuple[npt.NDArray, npt.NDArray]:
+def err_reduc(err_calc: Callable[[npt.NDArray], npt.NDArray], x: npt.NDArray, tol: float = 1e-10) -> tuple[npt.NDArray, npt.NDArray]:
   '''
   Evaluates an error calculation for pairs of inputs and returns new sets of inputs with a smaller average error.
   Expects 2D arrays, of shape N x 2.
   '''
   x = np.atleast_2d(x).reshape(-1, 2)
   err = np.atleast_2d(err_calc(x)) # forcing to 2D may not be necessary, but may help combat forgetfullness
-  xnew = lin_estimate_error(x, err)
+  xnew = lin_estimate_error(x, err, tol)
   err = np.abs(err)
   x[(np.arange(x.shape[0]), err.argmax(axis=1))] = xnew
   return x, err
 
-def err_reduc_iterative(err_calc: Callable[[float], float], x: npt.NDArray, tol: float = .001) -> tuple[npt.NDArray, npt.NDArray, int]:
+def err_reduc_iterative(err_calc: Callable[[float], float], x: npt.NDArray, tol: float = 1e-10) -> tuple[npt.NDArray, npt.NDArray, int]:
   '''
   Accepts pairs of inputs and an error function. Returns inputs with tolerable error, the errors, and the number of iterations required.
   Expects 2D arrays, of shape N x 2.
@@ -637,7 +637,7 @@ def err_reduc_iterative(err_calc: Callable[[float], float], x: npt.NDArray, tol:
   error = np.full_like(x, 10000.)
   i = 0
   while np.any(np.min(error, axis=1) > tol):
-    x, error = err_reduc(err_calc, x)
+    x, error = err_reduc(err_calc, x, tol)
     i += 1
   return x[(np.arange(x.shape[0]), error.argmin(axis=1))], np.min(error, axis=1), i
 # endregion
