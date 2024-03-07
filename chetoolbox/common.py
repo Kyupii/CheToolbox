@@ -199,9 +199,7 @@ class CubicEq(Equation):
     return self.a*x**3 + self.b*x**2 + self.c*x + self.d
   
   def inv(self, y: float | npt.NDArray) -> float | npt.NDArray | None: # numpy compatible
-    '''
-    invertible iff it can be rewritten as (w*x + n)**3 + z (triple root case) = iff b**2 == 3*c*a
-    '''
+    # can be rewritten as (w*x + n)**3 + z (triple root case) iff b**2 == 3*c*a
     if self.b**2 == 3.*self.a*self.c:
       w = np.cbrt(self.a)
       n = self.b / (3.*w**2)
