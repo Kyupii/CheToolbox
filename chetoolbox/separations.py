@@ -51,7 +51,7 @@ def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> common.Soluti
   y_out = (x * K) / (1 + psi * (K - 1))
   return common.SolutionObj(psi = psi, x_out = x_out, y_out = y_out, error = error(psi), i = i)
 
-def bubble_point_stepper(x:list, K:list) -> common.SolutionObj[float, npt.NDArray, float]:
+def bubble_point_stepper(x: list, K: list) -> common.SolutionObj[float, npt.NDArray, float]:
   '''
   Intended to be used with a DePriester Chart. Calculates the vapor mole fractions & associated error, then proposes a new temperature on the DePriester chart to try.
 
@@ -77,7 +77,7 @@ def bubble_point_stepper(x:list, K:list) -> common.SolutionObj[float, npt.NDArra
   err = np.sum(y) - 1 
   return common.SolutionObj(y = y, err = err)
 
-def dew_point_stepper(y:list, K:list) -> common.SolutionObj[float, npt.NDArray, float]:
+def dew_point_stepper(y: list, K: list) -> common.SolutionObj[float, npt.NDArray, float]:
   '''
   Intended to be used with a DePriester Chart. Calculates the vapor mole fractions & associated error, then proposes a new temperature on the DePriester chart to try.
 
@@ -103,7 +103,7 @@ def dew_point_stepper(y:list, K:list) -> common.SolutionObj[float, npt.NDArray, 
   err = np.sum(x) - 1 
   return common.SolutionObj(x = x, err = err)
 
-def bubble_point_antoine(x: list, ant_coeff: npt.NDArray, P: float, tol: float = .05) -> tuple[float, npt.NDArray, npt.NDArray, npt.NDArray, float, int]:
+def bubble_point_antoine(x: list, ant_coeff: npt.NDArray, P: float, tol: float = .05) -> common.SolutionObj[float, npt.NDArray, npt.NDArray, npt.NDArray, float, int]:
   '''
   Iteratively solves for the bubble point temperature of a multi-component liquid mixture.
 
@@ -145,14 +145,15 @@ def bubble_point_antoine(x: list, ant_coeff: npt.NDArray, P: float, tol: float =
   
   def err(T):
     _, _, y = TtoY(T)
-    return np.sum(y, axis=0) - 1.
+    return np.sum(y, axis=0, keepdims=True) - 1.
   
-  bubbleT, error, i = common.iter(err, [np.max(boil_points), np.min(boil_points)], tol)
+  bubbleT, error, i = common.err_reduc_iterative(err, [np.max(boil_points), np.min(boil_points)], tol)
+  bubbleT = bubbleT[0]; error = error[0]
 
   Pvap, k, y = TtoY(bubbleT)
-  return bubbleT, Pvap, k, y, error, i
+  return common.SolutionObj(bubbleT = bubbleT, Pvap = Pvap, k = k, y = y, error = error, i = i)
 
-def dew_point_antoine(y: list, ant_coeff: npt.NDArray, P: float, tol: float = .05) -> tuple[float, npt.NDArray, npt.NDArray, npt.NDArray, float, int]:
+def dew_point_antoine(y: list, ant_coeff: npt.NDArray, P: float, tol: float = .05) -> common.SolutionObj[float, npt.NDArray, npt.NDArray, npt.NDArray, float, int]:
   '''
   Iteratively solves for the dew point temperature of a multi-component vapor mixture.
 
@@ -194,12 +195,13 @@ def dew_point_antoine(y: list, ant_coeff: npt.NDArray, P: float, tol: float = .0
   
   def err(T):
     _, _, x = TtoX(T)
-    return np.sum(x, axis=0) - 1.
+    return np.sum(x, axis=0, keepdims=True) - 1.
   
-  dewT, error, i = common.iter(err, [np.max(boil_points), np.min(boil_points)], tol)
+  dewT, error, i = common.err_reduc_iterative(err, [np.max(boil_points), np.min(boil_points)], tol)
+  dewT = dewT[0]; error = error[0]
   
   Pvap, k, y = TtoX(dewT)
-  return dewT, Pvap, k, y, error, i
+  return common.SolutionObj(dewT = dewT, Pvap = Pvap, k = k, y = y, error = error, i = i)
 
 def liq_frac_subcooled(Cpl: float, heatvap: float, Tf: float, Tb: float) -> float:
   '''
@@ -263,7 +265,7 @@ def eq_curve_estim(points: npt.NDArray, alpha: float = None) -> common.EqualibEq
     Equation for an equalibrium curve of a binary mixture.
   '''
   points = np.atleast_1d(points).reshape((-1, 2))
-  if alpha == None:
+  if alpha is None:
     alpha = np.average( points[:, 1] * (1. - points[:, 0]) / (points[:, 0] * (1. - points[:, 1])) )
   return common.EqualibEq(alpha)
 
@@ -374,7 +376,8 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
   if np.isnan(feedline.m):
     x = xf
   else:
-    x, error, i = common.iter(err, [xb, xd], tol)
+    x, _, _ = common.err_reduc_iterative(err, [xb, xd], tol)
+    x = x[0]
   
   eq_feedpoint = (x, eq_curve.eval(x))
   rectifyline, stripline, feedpoint, Rmin, R = mccabe_thiel_otherlines(feedline, eq_feedpoint, xd, xb, Rmin_mult).unpack()
@@ -384,7 +387,6 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
 
   y_operlines = common.PiecewiseEq((stripline, rectifyline), (feedpoint[0],))
 
-  global linestograph
   linestograph = []
   def x_graphcapture(x):
     y = eq_curve.eval(x)
@@ -585,8 +587,9 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
       xf, _ = common.linear_intersect(common.point_slope(Fpoint, q), liqlineH)
       return 1. - (xf + eq_curve.eval(xf))
     
-    tieslope, _, _ = common.iter(error, tieslopes, tol)
+    tieslope, _, _ = common.err_reduc_iterative(error, tieslopes, tol)
     xf, _ = common.linear_intersect(common.point_slope(Fpoint, tieslope), liqlineH)
+    xf = xf[0]
     yf = eq_curve.eval(xf)
   
   tieline, Rmin, R, Hp, Hb = ponchon_savarit_tieline(liqlineH, vaplineH, xf, yf, xd, xb, Rmin_mult).unpack()
@@ -701,4 +704,83 @@ def lost_work(inlet: npt.NDArray, outlet: npt.NDArray, Q: npt.NDArray, T_s: npt.
   def b(h,s):
     return h - T_0 * s
   return np.sum(inlet[:,0] * b(inlet[:,1], inlet[:,2]) + Q[0] * (1 - T_0/T_s[0]) + W_s) - np.sum(outlet[:,0] * b(outlet[:,1], outlet[:,2]) + Q[1] * (1 - T_0/T_s[1]) + W_s)
- 
+
+def underwood_type1(alpha: float , L_F: float, D: float, HK: npt.ArrayLike, LK: npt.ArrayLike) -> float:
+  '''
+  Solves for the minimum reflux ratio for a type I system using underwood equations  
+  Parameters
+  ----------
+  alpha : float
+    Relative volatility of the two species equalibrium constants (K) (unitless). This alpha is to be calculated at the feed stage
+  L_F : float
+    Molar liquid feed in moles/time (mol/h, mol/s, etc.) 
+  D : float
+    Distillate flow rate
+  HK : ArrayLike
+    Liquid mole fraction of high key components in the distillate and feed. 
+      ex) np.array([x_D,x_F]
+  LK : ArrayLike
+    Liquid mole fraction of low key components in the distillate and feed. 
+      ex) np.array([x_D,x_F]
+  Returns
+  ----------
+  R_min : float
+    Minimum reflux ratio for a type I system
+  '''
+  HK = np.atleast_1d(HK)
+  LK = np.atleast_1d(LK)
+
+  return (L_F) * ( (D * LK[0]) / (L_F * LK[1]) - (alpha) * (D * HK[0]) / (L_F * HK[1])) / (alpha - 1) / D
+
+def gilliland(Nmin: float, Rmin: float, Rmin_mult: float = 1.3) -> float:
+  '''
+  Solves for the number of real trays required to operate a distillation column  
+  
+  Parameters
+  ----------
+  Nmin : float
+    Minimum number of trays required to operate a column. Usually calculated from the Fenske equation 
+  Rmin : float
+    Minimum reflux ratio required to operate a column.
+  Rmin_mult : float
+    Multiplcation factor for which the actual reflux ratio is found. Default is taken to be 1.3
+  
+  Returns
+  ----------
+  N : float
+    Actual number of trays required to operate the column
+  '''
+  R = Rmin_mult * Rmin
+  X = (R - Rmin) / (R + 1)
+  Y = 1 - np.exp((1 + 54.4 * X) / (11 + 117.2 * X) * ((X - 1) / np.sqrt(X)))
+  if Rmin > 0.53 or Rmin < 0.53 or Nmin <3.4 or Nmin > 60.3:
+    raise Exception('Gilliland correlation is not valid in this case!')
+  return (Nmin + Y) / (1 - Y)
+
+def type1_distro(D, L_F, LK, HK, i):
+  '''
+  Solves for the mole fraction of non key components. All relative volitilities (α) are in relation to the high key
+
+  Parameters
+  ----------
+  D : float
+    Distillate flow rate
+  L_F : float
+    Molar liquid feed in moles/time (mol/h, mol/s, etc.) 
+  LK : ArrayLike
+    Low key component properties. must follow order [x_D_LK, x_F_LK, alpha_LK]
+  HK : ArrayLike
+    High key component properites must follow order [x_D_HK, x_F_HK]
+  i : ArrayLike
+    Non key component relative volatilities (α) []
+  
+  Returns
+  ----------
+  res : ArrayLike
+    Array of component distributions (D x_i_D) / (L_F, x_i_F)
+  '''
+  res = ((i - 1) / (LK[2] -1)) * ((D * LK[0]) / (L_F * LK[1])) + ((LK[2] - i) / (LK[2] - 1)) * ((D * HK[0]) / (L_F * HK[1]))
+  if (res < 0 or res > 1).any():
+    raise Exception('One or more non key components do not distribute. This is a type II system')
+  else:
+    return res

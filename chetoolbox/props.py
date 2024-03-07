@@ -117,7 +117,7 @@ def bioconc_est(K_ow: float, c: list = None) -> tuple[float, str]:
   cat : float
     Qualitative potential for tissue accumulation.
   '''
-  if c == None:
+  if c is None:
     bcf = 10.**(.79 * np.log10(K_ow) - .4)
   else:
     bcf = 10.**(.77 * np.log10(K_ow) + np.sum(c) - .7)
@@ -148,9 +148,9 @@ def water_sol_est(K_ow: float, c: list = None, T_m: float = None, MW: float = No
   cat : float
     Qualitative solubility in water.
   '''
-  if T_m == None:
+  if T_m is None:
     sol = 10.**(.796  - .854 * np.log10(K_ow) - .00728 * MW + np.sum(c))
-  elif MW == None:
+  elif MW is None:
     sol = 10.**(.342 - 1.0374 * np.log10(K_ow) - .0108 * (T_m - 298.15) + np.sum(c))
   else:
     sol = 10.**(.693 - .96 * np.log10(K_ow) - .0092 * (T_m - 298.15) - .00314 * MW + np.sum(c))
@@ -181,7 +181,7 @@ def henry_est(g : npt.NDArray, T: float = None) -> tuple[float, str | None]:
   '''
   g = np.atleast_1d(g).reshape(-1, 3)
   H = 10 ** -(np.sum(g[:,0] * g[:,1]) + np.sum(g[:,0] * g[:,2])) #this is unitless H
-  if T == None: return H, None
+  if T is None: return H, None
 
   R = 8.20575e-5 # atm*m^3/mol*K
   H_units = H*R*T
