@@ -778,7 +778,9 @@ def winn(K: npt.ArrayLike,HK: npt.ArrayLike, LK: npt.ArrayLike) -> float:
   line = common.point_conn((K[0]),(K[1]))
   logzeta = line.b
   phi = line.m
-  return np.log10((LK[0]/LK[1]) * (HK[1]/HK[0]))**phi / logzeta
+  N_min = np.log10((LK[0]/LK[1]) * (HK[1]/HK[0]))**phi / logzeta 
+  sol = common.SolutionObj(N_min = N_min, zeta = 10**logzeta, phi = phi)
+  return sol
 
 def underwood_type1(alpha: float , L_F: float, D: float, HK: npt.ArrayLike, LK: npt.ArrayLike) -> float:
   '''
