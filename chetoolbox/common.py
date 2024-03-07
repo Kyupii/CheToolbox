@@ -198,23 +198,24 @@ class CubicEq(Equation):
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     return self.a*x**3 + self.b*x**2 + self.c*x + self.d
   
-  def inv(self, y: float | npt.NDArray) -> float | npt.NDArray | None: # numpy compatible
+  def inv(self, y: float | npt.NDArray) -> float | npt.NDArray | None:
     # can be rewritten as (w*x + n)**3 + z (triple root case) iff b**2 == 3*c*a
     if self.b**2 == 3.*self.a*self.c:
       w = np.cbrt(self.a)
       n = self.b / (3.*w**2)
       z = self.d - n**3
       return (n + np.cbrt(y - z)) / w
+    
+    yfloat = type(y) not in {list, np.ndarray}; y = np.atleast_1d(y)
     locext = quadratic_formula([3.*self.a, 2.*self.b, self.c])
     if locext == None or len(locext) < 2:
       def error(x):
         return y - self.eval(x)
       
-      if y == self.d:
-        start = [y/2., 3.*y/2.]
-      else:
-        start = [y, self.d]
-      x, _, _ = err_reduc_iterative(error, start)
+      starts = np.zeros((len(y), 2))
+      starts[:, 0] = np.cbrt(y)
+      starts[:, 1] = 1-np.cbrt(y)
+      x, _, _ = err_reduc_iterative(error, starts)
       return x
       
     else: # not invertible, maybe implement piecewise-like method?
@@ -601,34 +602,43 @@ def raoult_YtoX(y: list, K: list) -> tuple[npt.NDArray, float]:
 # endregion
 
 # region Iterative Tools
-def lin_estimate_error(x_pair: npt.NDArray, y_pair: npt.NDArray) -> float:
+def lin_estimate_error(x_pair: npt.NDArray, y_pair: npt.NDArray) -> npt.NDArray:
   '''
-  Calculates the x-intercept (x=0) for a given pair of x and y distances. Assumes linearity.
+  Calculates the x-intercept (y == 0) for pairs of x and y distances. Assumes linearity.
+  Expects 2D arrays, of shape N x 2.
   '''
-  x_pair = np.atleast_1d(x_pair); y_pair = np.atleast_1d(y_pair)
-  x_new = x_pair[0] - y_pair[0] * ((x_pair[1]-x_pair[0])/(y_pair[1]-y_pair[0]))
+  x_pair = np.atleast_2d(x_pair).reshape(-1, 2); y_pair = np.atleast_2d(y_pair).reshape(-1, 2)
+  converged = np.all((y_pair[:, 0] == y_pair[:, 1], y_pair[:, 0] == 0), axis=0)
+  skipeval = x_pair[converged, 0]; y_pair[converged, :] = np.NaN
+  print(x_pair, y_pair, skipeval.shape)
+  x_new = x_pair[:, 0] - y_pair[:, 0] * ((x_pair[:, 1] - x_pair[:, 0])/(y_pair[:, 1] - y_pair[:, 0]))
+  if np.any(np.all((x_pair[:, 0] == x_pair[:, 1], y_pair[:, 0] != 0), axis=0)) or (np.any(np.isnan(x_new)) and len(skipeval) == 0):
+    raise ValueError(f"Cannot minimize error between a point and itself: x == {list(x_pair[np.isnan(x_new), 0])}")
+  x_new[np.isnan(x_new)] = skipeval; y_pair[np.isnan(y_pair)] = 0.
   return x_new
 
-def err_reduc(err_calc: Callable[[float], float], x: npt.NDArray) -> tuple[npt.NDArray, npt.NDArray]:
+def err_reduc(err_calc: Callable[[npt.NDArray], npt.NDArray], x: npt.NDArray) -> tuple[npt.NDArray, npt.NDArray]:
   '''
-  Evaluates an error calculation for a pair of inputs and returns a new set of inputs with a smaller average error.
+  Evaluates an error calculation for pairs of inputs and returns new sets of inputs with a smaller average error.
+  Expects 2D arrays, of shape N x 2.
   '''
-  x = np.atleast_1d(x)
+  x = np.atleast_2d(x).reshape(-1, 2)
   err = err_calc(x)
   xnew = lin_estimate_error(x, err)
   err = np.abs(err)
-  x[np.argmax(err)] = xnew
+  x[(np.arange(x.shape[0]), err.argmax(axis=1))] = xnew
   return x, err
 
-def err_reduc_iterative(err_calc: Callable[[float], float], x: npt.NDArray, tol: float = .001) -> tuple[float, float, int]:
+def err_reduc_iterative(err_calc: Callable[[float], float], x: npt.NDArray, tol: float = .001) -> tuple[npt.NDArray, npt.NDArray, int]:
   '''
-  Accepts a pair of inputs and an error function. Returns an input with tolerable error, the error, and the iterations required.
+  Accepts pairs of inputs and an error function. Returns inputs with tolerable error, the errors, and the number of iterations required.
+  Expects 2D arrays, of shape N x 2.
   '''
-  x = np.atleast_1d(x)
-  error = 10000.
+  x = np.atleast_2d(x).reshape(-1, 2)
+  error = np.full_like(x, 10000.)
   i = 0
-  while np.min(error) > tol:
+  while np.any(np.min(error, axis=1) > tol):
     x, error = err_reduc(err_calc, x)
     i += 1
-  return x[np.argmin(error)], np.min(error), i
+  return x[(np.arange(x.shape[0]), error.argmin(axis=1))], np.min(error, axis=1), i
 # endregion
