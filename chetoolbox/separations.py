@@ -589,6 +589,7 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
     
     tieslope, _, _ = common.err_reduc_iterative(error, tieslopes, tol)
     xf, _ = common.linear_intersect(common.point_slope(Fpoint, tieslope), liqlineH)
+    xf = xf[0]
     yf = eq_curve.eval(xf)
   
   tieline, Rmin, R, Hp, Hb = ponchon_savarit_tieline(liqlineH, vaplineH, xf, yf, xd, xb, Rmin_mult).unpack()
