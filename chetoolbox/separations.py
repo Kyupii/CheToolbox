@@ -147,7 +147,7 @@ def bubble_point_antoine(x: list, ant_coeff: npt.NDArray, P: float, tol: float =
     _, _, y = TtoY(T)
     return np.sum(y, axis=0) - 1.
   
-  bubbleT, error, i = common.iter(err, [np.max(boil_points), np.min(boil_points)], tol)
+  bubbleT, error, i = common.err_reduc_iterative(err, [np.max(boil_points), np.min(boil_points)], tol)
 
   Pvap, k, y = TtoY(bubbleT)
   return bubbleT, Pvap, k, y, error, i
@@ -196,7 +196,7 @@ def dew_point_antoine(y: list, ant_coeff: npt.NDArray, P: float, tol: float = .0
     _, _, x = TtoX(T)
     return np.sum(x, axis=0) - 1.
   
-  dewT, error, i = common.iter(err, [np.max(boil_points), np.min(boil_points)], tol)
+  dewT, error, i = common.err_reduc_iterative(err, [np.max(boil_points), np.min(boil_points)], tol)
   
   Pvap, k, y = TtoX(dewT)
   return dewT, Pvap, k, y, error, i
@@ -374,7 +374,7 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
   if np.isnan(feedline.m):
     x = xf
   else:
-    x, error, i = common.iter(err, [xb, xd], tol)
+    x, error, i = common.err_reduc_iterative(err, [xb, xd], tol)
   
   eq_feedpoint = (x, eq_curve.eval(x))
   rectifyline, stripline, feedpoint, Rmin, R = mccabe_thiel_otherlines(feedline, eq_feedpoint, xd, xb, Rmin_mult).unpack()
@@ -584,7 +584,7 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
       xf, _ = common.linear_intersect(common.point_slope(Fpoint, q), liqlineH)
       return 1. - (xf + eq_curve.eval(xf))
     
-    tieslope, _, _ = common.iter(error, tieslopes, tol)
+    tieslope, _, _ = common.err_reduc_iterative(error, tieslopes, tol)
     xf, _ = common.linear_intersect(common.point_slope(Fpoint, tieslope), liqlineH)
     yf = eq_curve.eval(xf)
   

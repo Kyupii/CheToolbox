@@ -207,11 +207,21 @@ class CubicEq(Equation):
       n = self.b / (3.*w**2)
       z = self.d - n**3
       return (n + np.cbrt(y - z)) / w
-    inflect = LinearEq(6.*self.a, 2.*self.b).x_int
-    print(inflect)
+    locext = quadratic_formula([3.*self.a, 2.*self.b, self.c])
+    if locext == None or len(locext) < 2:
+      def error(x):
+        return y - self.eval(x)
+      
+      if y == self.d:
+        start = [y/2., 3.*y/2.]
+      else:
+        start = [y, self.d]
+      x, _, _ = err_reduc_iterative(error, start)
+      return x
+      
+    else: # not invertible, maybe implement piecewise-like method?
+      return None
 
-    return None
-  
   def deriv(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     return 3.*self.a*x**2 + 2.*self.b*x + self.c
   
@@ -612,7 +622,7 @@ def err_reduc(err_calc: Callable[[float], float], x: npt.NDArray) -> tuple[npt.N
   x[np.argmax(err)] = xnew
   return x, err
 
-def iter(err_calc: Callable[[float], float], x: npt.NDArray, tol: float = .001) -> tuple[float, float, int]:
+def err_reduc_iterative(err_calc: Callable[[float], float], x: npt.NDArray, tol: float = .001) -> tuple[float, float, int]:
   '''
   Accepts a pair of inputs and an error function. Returns an input with tolerable error, the error, and the iterations required.
   '''
