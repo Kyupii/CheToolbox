@@ -834,7 +834,7 @@ def gilliland(Nmin: float, Rmin: float, Rmin_mult: float = 1.3) -> float:
     raise Exception('Gilliland correlation is not valid in this case!')
   return (Nmin + Y) / (1 - Y)
 
-def type1_distro(D, L_F, LK, HK, i):
+def type1_distro(D: float, L_F: float, LK: npt.ArrayLike, HK: npt.ArrayLike, i: npt.ArrayLike)->common.SolutionObj[npt.ArrayLike, npt.ArrayLike]:
   '''
   Solves for the mole fraction of non key components. All relative volitilities (α) are in relation to the high key
 
@@ -853,11 +853,18 @@ def type1_distro(D, L_F, LK, HK, i):
   
   Returns
   ----------
-  res : ArrayLike
+  distro : ArrayLike
     Array of component distributions (D x_i_D) / (L_F, x_i_F)
+  distro_truthmap : ArrayLike
+    Truthmap of whether or not components distribute (To be used with underwood_type2)
   '''
-  res = ((i - 1) / (LK[2] -1)) * ((D * LK[0]) / (L_F * LK[1])) + ((LK[2] - i) / (LK[2] - 1)) * ((D * HK[0]) / (L_F * HK[1]))
-  if (res < 0 or res > 1).any():
-    raise Exception('One or more non key components do not distribute. This is a type II system')
-  else:
-    return res
+  distro = ((i - 1) / (LK[2] -1)) * ((D * LK[0]) / (L_F * LK[1])) + ((LK[2] - i) / (LK[2] - 1)) * ((D * HK[0]) / (L_F * HK[1]))
+  distro_truthmap = [True if i > 0 and i < 1 else False for i in distro]
+  sol = common.SolutionObj(distro = distro, distro_truthmap = distro_truthmap)
+  return sol
+  
+def underwood_type2(alpha, x, psi):
+
+  def underwood_sum(theta):
+    return np.sum(alpha * x / (alpha - theta))
+  pass
