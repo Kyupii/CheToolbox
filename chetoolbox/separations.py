@@ -728,7 +728,7 @@ def fenske(alpha: npt.ArrayLike, HK, LK) -> float:
   else:
     return np.log10((LK[0],LK[1]) * (HK[1]/HK[0])) / np.log10(alpha_m)
   
-def fenske_distro(N_min,i_prop,d_HK, b_HK):
+def fenske_distro(N_min: float,i_prop: npt.ArrayLike, d_HK: npt.ArrayLike, b_HK:npt.ArrayLike) -> common.SolutionObj[npt.ArrayLike, npt.ArrayLike, npt.ArrayLike]:
   '''
   Calculates distribution of non-key components using Fenske equation
   ----------
@@ -745,6 +745,8 @@ def fenske_distro(N_min,i_prop,d_HK, b_HK):
     Distribution of non-key components in distillate flow
   b_i : ArrayLike
     Dsitribution of non-key components in bottom flow 
+  f_i : ArrayLike
+    Amount of i'th component in the feed
   '''
   i_prop = np.atleast_1d(i_prop).reshape(-1,2)
   b_i = i_prop[:,0] / (1 + (d_HK/b_HK) * (i_prop[:,1])**N_min)
