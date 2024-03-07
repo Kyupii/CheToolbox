@@ -727,6 +727,32 @@ def fenske(alpha: npt.ArrayLike, HK, LK) -> float:
     raise Exception('Fenske is not valid. Use Winn equation') 
   else:
     return np.log10((LK[0],LK[1]) * (HK[1]/HK[0])) / np.log10(alpha_m)
+  
+def fenske_distro(N_min,i_prop,d_HK, b_HK):
+  '''
+  Calculates distribution of non-key components using Fenske equation
+  ----------
+  i_prop : ArrayLike
+    Array of molar flow rates & relative volatilities (relative to the high key) of non-key components in the feed
+      ex) [[f_1, alpha_1], [f_2, alpha_2], [f_3, alpha_3]]
+  d_HK : float
+    Molar flow rate of high key component in distillate flow
+  b_HK : float
+    Molar flow rate of high key component in bottom flow 
+  Returns
+  ----------
+  d_i : ArrayLike
+    Distribution of non-key components in distillate flow
+  b_i : ArrayLike
+    Dsitribution of non-key components in bottom flow 
+  '''
+  i_prop = np.atleast_1d(i_prop).reshape(-1,2)
+  b_i = i_prop[:,0] / (1 + (d_HK/b_HK) * (i_prop[:,1])**N_min)
+  d_i = i_prop[:,0] * (d_HK/b_HK) * (i_prop)**N_min / (1 + (d_HK/b_HK) * (i_prop[:,1])**N_min)
+  f_i = d_i + b_i
+  sol = common.SolutionObj(b_i = b_i, d_i = d_i, f_i = f_i)
+  return sol
+
 
 def winn(K: npt.ArrayLike,HK: npt.ArrayLike, LK: npt.ArrayLike) -> float:
   '''
