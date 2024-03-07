@@ -705,7 +705,7 @@ def lost_work(inlet: npt.NDArray, outlet: npt.NDArray, Q: npt.NDArray, T_s: npt.
     return h - T_0 * s
   return np.sum(inlet[:,0] * b(inlet[:,1], inlet[:,2]) + Q[0] * (1 - T_0/T_s[0]) + W_s) - np.sum(outlet[:,0] * b(outlet[:,1], outlet[:,2]) + Q[1] * (1 - T_0/T_s[1]) + W_s)
 
-def fenske(alpha: npt.ArrayLike, HK, LK):
+def fenske(alpha: npt.ArrayLike, HK, LK) -> float:
   '''
   Calculates minimum number of stages using Fenske equation
   ----------
@@ -728,6 +728,29 @@ def fenske(alpha: npt.ArrayLike, HK, LK):
   else:
     return np.log10((LK[0],LK[1]) * (HK[1]/HK[0])) / np.log10(alpha_m)
 
+def winn(K: npt.ArrayLike,HK: npt.ArrayLike, LK: npt.ArrayLike) -> float:
+  '''
+  Calculates minimum number of stages using Winn equation & a graphical method
+  ----------
+  K : ArrayLike
+    Array of equilibrium constants K of HK and LK components at two points in the distillation column.
+      ex) [K_HKD, K_LKD, K_HKB, K_HKB] 
+  HK : ArrayLike
+    Liquid mole fraction of high key components in the distillate and bottom. 
+      ex) np.array([x_D,x_B]
+  LK : ArrayLike
+    Liquid mole fraction of low key components in the distillate and bottom. 
+      ex) np.array([x_D,x_B]
+  Returns
+  ----------
+  N_min : float
+    Minimum number of stages of a multi-component distillation tower
+  '''
+  K = np.atleast_1d.reshape(-1,2)
+  line = common.point_conn((K[0]),(K[1]))
+  logzeta = line.b
+  phi = line.m
+  return np.log10((LK[0]/LK[1]) * (HK[1]/HK[0]))**phi / logzeta
 
 def underwood_type1(alpha: float , L_F: float, D: float, HK: npt.ArrayLike, LK: npt.ArrayLike) -> float:
   '''
