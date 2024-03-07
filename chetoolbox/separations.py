@@ -103,7 +103,7 @@ def dew_point_stepper(y: list, K: list) -> common.SolutionObj[float, npt.NDArray
   err = np.sum(x) - 1 
   return common.SolutionObj(x = x, err = err)
 
-def bubble_point_antoine(x: list, ant_coeff: npt.NDArray, P: float, tol: float = .05) -> tuple[float, npt.NDArray, npt.NDArray, npt.NDArray, float, int]:
+def bubble_point_antoine(x: list, ant_coeff: npt.NDArray, P: float, tol: float = .05) -> common.SolutionObj[float, npt.NDArray, npt.NDArray, npt.NDArray, float, int]:
   '''
   Iteratively solves for the bubble point temperature of a multi-component liquid mixture.
 
@@ -145,14 +145,15 @@ def bubble_point_antoine(x: list, ant_coeff: npt.NDArray, P: float, tol: float =
   
   def err(T):
     _, _, y = TtoY(T)
-    return np.sum(y, axis=0) - 1.
+    return np.sum(y, axis=0, keepdims=True) - 1.
   
   bubbleT, error, i = common.err_reduc_iterative(err, [np.max(boil_points), np.min(boil_points)], tol)
+  bubbleT = bubbleT[0]; error = error[0]
 
   Pvap, k, y = TtoY(bubbleT)
-  return bubbleT, Pvap, k, y, error, i
+  return common.SolutionObj(bubbleT = bubbleT, Pvap = Pvap, k = k, y = y, error = error, i = i)
 
-def dew_point_antoine(y: list, ant_coeff: npt.NDArray, P: float, tol: float = .05) -> tuple[float, npt.NDArray, npt.NDArray, npt.NDArray, float, int]:
+def dew_point_antoine(y: list, ant_coeff: npt.NDArray, P: float, tol: float = .05) -> common.SolutionObj[float, npt.NDArray, npt.NDArray, npt.NDArray, float, int]:
   '''
   Iteratively solves for the dew point temperature of a multi-component vapor mixture.
 
@@ -194,12 +195,13 @@ def dew_point_antoine(y: list, ant_coeff: npt.NDArray, P: float, tol: float = .0
   
   def err(T):
     _, _, x = TtoX(T)
-    return np.sum(x, axis=0) - 1.
+    return np.sum(x, axis=0, keepdims=True) - 1.
   
   dewT, error, i = common.err_reduc_iterative(err, [np.max(boil_points), np.min(boil_points)], tol)
+  dewT = dewT[0]; error = error[0]
   
   Pvap, k, y = TtoX(dewT)
-  return dewT, Pvap, k, y, error, i
+  return common.SolutionObj(dewT = dewT, Pvap = Pvap, k = k, y = y, error = error, i = i)
 
 def liq_frac_subcooled(Cpl: float, heatvap: float, Tf: float, Tb: float) -> float:
   '''
@@ -374,7 +376,8 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
   if np.isnan(feedline.m):
     x = xf
   else:
-    x, error, i = common.err_reduc_iterative(err, [xb, xd], tol)
+    x, _, _ = common.err_reduc_iterative(err, [xb, xd], tol)
+    x = x[0]
   
   eq_feedpoint = (x, eq_curve.eval(x))
   rectifyline, stripline, feedpoint, Rmin, R = mccabe_thiel_otherlines(feedline, eq_feedpoint, xd, xb, Rmin_mult).unpack()

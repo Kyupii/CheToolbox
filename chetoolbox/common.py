@@ -622,7 +622,7 @@ def err_reduc(err_calc: Callable[[npt.NDArray], npt.NDArray], x: npt.NDArray) ->
   Expects 2D arrays, of shape N x 2.
   '''
   x = np.atleast_2d(x).reshape(-1, 2)
-  err = err_calc(x)
+  err = np.atleast_2d(err_calc(x)) # forcing to 2D may not be necessary, but may help combat forgetfullness
   xnew = lin_estimate_error(x, err)
   err = np.abs(err)
   x[(np.arange(x.shape[0]), err.argmax(axis=1))] = xnew
