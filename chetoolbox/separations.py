@@ -705,6 +705,30 @@ def lost_work(inlet: npt.NDArray, outlet: npt.NDArray, Q: npt.NDArray, T_s: npt.
     return h - T_0 * s
   return np.sum(inlet[:,0] * b(inlet[:,1], inlet[:,2]) + Q[0] * (1 - T_0/T_s[0]) + W_s) - np.sum(outlet[:,0] * b(outlet[:,1], outlet[:,2]) + Q[1] * (1 - T_0/T_s[1]) + W_s)
 
+def fenske(alpha: npt.ArrayLike, HK, LK):
+  '''
+  Calculates minimum number of stages using Fenske equation
+  ----------
+  alpha : ArrayLike
+    Array of relative volatility of the LK to HK. Array is to be ordered [alpha_top, alpha_bottom]
+  HK : ArrayLike
+    Liquid mole fraction of high key components in the distillate and bottom. 
+      ex) np.array([x_D,x_B]
+  LK : ArrayLike
+    Liquid mole fraction of low key components in the distillate and bottom. 
+      ex) np.array([x_D,x_B]
+  Returns
+  ----------
+  N_min : float
+    Minimum number of stages of a multi-component distillation tower
+  '''
+  alpha_m = np.sqrt(alpha[0],alpha[1])
+  if np.abs(alpha[0] - alpha[1] > 0.20):
+    raise Exception('Fenske is not valid. Use Winn equation') 
+  else:
+    return np.log10((LK[0],LK[1]) * (HK[1]/HK[0])) / np.log10(alpha_m)
+
+
 def underwood_type1(alpha: float , L_F: float, D: float, HK: npt.ArrayLike, LK: npt.ArrayLike) -> float:
   '''
   Solves for the minimum reflux ratio for a type I system using underwood equations  
