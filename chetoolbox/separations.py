@@ -863,8 +863,12 @@ def type1_distro(D: float, L_F: float, LK: npt.ArrayLike, HK: npt.ArrayLike, i: 
   sol = common.SolutionObj(distro = distro, distro_truthmap = distro_truthmap)
   return sol
   
-def underwood_type2(alpha, x, psi):
-
+def underwood_type2(alpha, x, distro_truthmap, psi):
+  alpha = np.atleast_1d(alpha)
+  distro_truthmap = np.atleast_1d(distro_truthmap)
+  N_acceptable = sum(bool(i) for i in distro_truthmap)
+  alpha_range = (np.min(alpha[distro_truthmap]), np.max(alpha[distro_truthmap]))
   def underwood_sum(theta):
-    return np.sum(alpha * x / (alpha - theta))
-  pass
+    return np.sum(alpha * x / (alpha - theta)) - psi
+  pass 
+  
