@@ -495,15 +495,16 @@ def linear_intersect(line1: LinearEq, line2: LinearEq) -> tuple[float, float] | 
     x = (line1.b - line2.b)/(line2.m - line1.m)
   return x, line1.eval(x)
 
-def quadratic_formula(coeff: npt.NDArray) -> npt.NDArray | None:
+def quadratic_formula(coeff: npt.NDArray) -> npt.NDArray: #numpy compatible
   '''
   Calculates the roots of a quadratic equation. Ignores imaginary roots.
   '''
-  coeff = np.atleast_1d(coeff)
-  descrim = coeff[1]**2 - 4.*coeff[0]*coeff[2]
-  if descrim < 0.:
-    return None
-  return (- coeff[1] + np.sqrt(descrim) * np.array([1., -1.])) / (2. * coeff[0])
+  coeff = np.atleast_2d(coeff)
+  descrim = coeff[:, 1]**2 - 4.*coeff[:, 0]*coeff[:, 2]
+  roots = np.zeros_like(coeff[:, :1])
+  roots[descrim < 0.] = np.NaN
+  roots[descrim >= 0.] = (-coeff[:, 1] + np.sqrt(roots[descrim >= 0.]) * np.array([1., -1.])) / (2. * coeff[:, 0])
+  return roots[0] if len(roots) == 1 else roots
 
 def cubic_formula(coeff: npt.NDArray) -> npt.NDArray:
   '''
