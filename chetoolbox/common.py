@@ -450,7 +450,7 @@ def vertical_line(x) -> LinearEq:
 def horizontal_line(y) -> LinearEq:
   return LinearEq(0., y)
 
-def point_conn(point1: npt.NDArray, point2: npt.NDArray) -> LinearEq | npt.NDArray: #numpy compatible
+def point_conn(point1: npt.NDArray, point2: npt.NDArray, avgmode = False) -> LinearEq | npt.NDArray: #numpy compatible
   '''
   Calculates equation of a line from two points.
   '''
@@ -464,6 +464,9 @@ def point_conn(point1: npt.NDArray, point2: npt.NDArray) -> LinearEq | npt.NDArr
     m = (point1[:, 1][runcalcs] - point2[:, 1][runcalcs]) / (point1[:, 0][runcalcs] - point2[:, 0][runcalcs])
     b = point1[:, 1][runcalcs] - m * point1[:, 0][runcalcs]
     lines[runcalcs] = [LinearEq(m[i], b[i]) for i in np.arange(len([runcalcs]))]
+  if avgmode:
+    # any vertical lines (m = np.NaN) will poison this
+    return LinearEq(np.average([li.m for li in lines]), np.average([li.b for li in lines]))
   return lines[0] if len(lines) == 1 else lines
 
 def point_slope(point: npt.NDArray, slope: npt.NDArray ) -> LinearEq | npt.NDArray: #numpy compatible

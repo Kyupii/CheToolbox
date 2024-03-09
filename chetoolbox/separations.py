@@ -735,14 +735,14 @@ def fenske_plates(a_lk_hk: npt.NDArray, x_lk: npt.NDArray, x_hk: npt.NDArray) ->
 
 def fenske_feed_split(F_i: npt.NDArray, a_i_hk: npt.NDArray, N_min: float, D_hk: float, B_hk: float) -> common.SolutionObj[npt.NDArray, npt.NDArray]:
   '''
-  Calculates the molar flow rates of components in the distillate and bottoms streams of a multi-component distillation using the Fenske equations. Deviation of the relative volatilities of the light key compound and heavy key compound across the column must be less than 20%.
+  Calculates the molar flow rates of non-key components in the distillate and bottoms streams of a multi-component distillation using the Fenske equations. Deviation of the relative volatilities of the light key compound and heavy key compound across the column must be less than 20%.
   
   Parameters:
   -----------
   F_i : NDArray
-    Molar flow rates of all components in the feed stream.
+    Molar flow rates of all non-key components in the feed stream.
   a_component_hk : NDArray
-    Relative volatilities of all components (relative to the heavy key).
+    Relative volatilities of all non-key components (relative to the heavy key).
   N_min : float
     Minimum number of stages for a multi-component distillation tower.
   D_hk : float
@@ -752,9 +752,9 @@ def fenske_feed_split(F_i: npt.NDArray, a_i_hk: npt.NDArray, N_min: float, D_hk:
   Returns
   ----------
   D_i : NDArray
-    Molar flow rates of all components in the distillate stream.
+    Molar flow rates of all non-key components in the distillate stream.
   B_i : NDArray
-    Molar flow rates of all components in the bottoms stream.
+    Molar flow rates of all non-key components in the bottoms stream.
   '''
   F_i = np.atleast_1d(F_i); a_i_hk = np.atleast_1d(a_i_hk)
   denom = (D_hk / B_hk) * a_i_hk**N_min
@@ -765,15 +765,47 @@ def fenske_feed_split(F_i: npt.NDArray, a_i_hk: npt.NDArray, N_min: float, D_hk:
   B_i[~tops] = F_i[~tops] - D_i[~tops]
   return common.SolutionObj(B_i = B_i, D_i = D_i)
 
-def winn_plates(K: npt.NDArray, x_lk: npt.NDArray, x_hk: npt.NDArray) -> float:
+def winn_coeff_est(K_i: npt.NDArray, K_hk: npt.NDArray) -> tuple[npt.NDArray, npt.NDArray]:
+  '''
+  Estimates the zeta coefficient and iota power of binary equalibrium pairs for use in the Winn equation.
+  
+  Parameters:
+  -----------
+  K_i : NDArray
+    Equilibrium constants of non-key components at two or more points in the distillation column. Shape must be N x M, M >= 2.
+      ex) np.array([[K_1_F, K_1_D, K_1_B], [K_2_F, K_2_D, K_2_B], [K_3_F, K_3_D, K_3_B]])
+  K_hk : NDArray
+    Equilibrium constants of the heavy key component at two or more points in the distillation column. Length must be M >= 2.
+      ex) np.array([K_hk_F, K_hk_D, K_hk_B])
+
+  Returns
+  ----------
+  phi : npt.NDArray
+    Exponent of the Winn K-transform function.
+  logzeta : npt.NDArray
+    Log10 of the coefficient of the Winn K-transform function.
+  '''
+  K_i = np.log10(np.atleast_2d(K_i).reshape(-1, 2))
+  K_hk = np.log10(np.atleast_1d(K_hk))
+  points = np.vstack((K_i.flatten("A"), np.repeat(np.c_[K_hk], len(K_i[:, 0]), axis=1).flatten("F"))).T.reshape(-1, len(K_hk), 2)
+  # ^^^ acrane array wizardry
+  lines = [common.point_conn(v[:-1, :], v[1:, :], avgmode=True) for v in points]
+  phi = np.array([line.m for line in lines]).astype(float)
+  logzeta = np.array([line.b for line in lines]).astype(float)
+  return phi, logzeta
+
+def winn_plates(K_lk: npt.NDArray, K_hk: npt.NDArray, x_lk: npt.NDArray, x_hk: npt.NDArray) -> float:
   '''
   Calculates the minimum number of stages for a multi-component distillation tower using the Winn equation, alongside a graphical transformation.
   
   Parameters:
   -----------
-  K : NDArray
-    Equilibrium constants the light key component and heavy key component at two or more points in the distillation column. Shape must be N x 2.
-      ex) np.array([[K_lk_F, K_hk_F], [K_lk_D, K_hk_D], [K_lk_B, K_hk_B]])
+  K_lk : NDArray
+    Equilibrium constants of the light key component at two or more points in the distillation column. Length must be M >= 2.
+      ex) np.array([K_lk_F, K_lk_D, K_lk_B])
+  K_hk : NDArray
+    Equilibrium constants of the heavy key component at two or more points in the distillation column. Length must be M >= 2.
+      ex) np.array([K_hk_F, K_hk_D, K_hk_B])
   x_lk : NDArray
     Liquid mole fractions of the light key component in the distillate and bottom streams. 
       Ex) np.array([x_lk_D, x_lk_B])
@@ -786,30 +818,32 @@ def winn_plates(K: npt.NDArray, x_lk: npt.NDArray, x_hk: npt.NDArray) -> float:
   N_min : float
     Minimum number of stages of a multi-component distillation tower
   '''
-  K = np.log10(np.atleast_1d(K).reshape(-1, 2))
-  line = common.point_conn(K[:-1, :], K[1:, :])
-  if type(line) == np.ndarray:
-    line = common.LinearEq(np.average([li.m for li in line]), np.average([li.b for li in line]))
-  phi = line.m
-  logzeta = line.b
+  K_lk = np.atleast_1d(K_lk)
+  K_hk = np.atleast_1d(K_hk)
+  phi, logzeta = winn_coeff_est(K_lk, K_hk)
   N_min = np.log10((x_lk[0] / x_lk[1]) * (x_hk[1] / x_hk[0]))**phi / logzeta 
-  return common.SolutionObj(N_min = N_min, zeta = 10**logzeta, phi = phi)
+  return N_min
 
-def winn_feed_split(F_i: npt.NDArray, a_i_hk: npt.NDArray, N_min: float, D: float, B: float, D_hk: float, B_hk: float) -> common.SolutionObj[npt.NDArray, npt.NDArray]:
+def winn_feed_split(F_i: npt.NDArray, K_i: npt.NDArray, K_hk: npt.NDArray, N_min: float, D: float, B: float, D_hk: float, B_hk: float) -> common.SolutionObj[npt.NDArray, npt.NDArray]:
   '''
-  Calculates the molar flow rates of components in the distillate and bottoms streams of a multi-component distillation using the Winn equations. 
+  Calculates the molar flow rates of non-key components in the distillate and bottoms streams of a multi-component distillation using the Winn equations. 
   
   Parameters:
   -----------
   F_i : NDArray
-    Molar flow rates of all components in the feed stream.
-  a_component_hk : NDArray
-    Relative volatilities of all components (relative to the heavy key).
+    Molar flow rates of all non-key components in the feed stream.
+      Ex) np.array([F_1, F_2, F_3])
+  K_i : NDArray
+    Equilibrium constants of non-key components at two or more points in the distillation column. Shape must be N x M, M >= 2.
+      Ex) np.array([[K_1_F, K_1_D, K_1_B], [K_2_F, K_2_D, K_2_B], [K_3_F, K_3_D, K_3_B]])
+  K_hk : NDArray
+    Equilibrium constants of the heavy key component at two or more points in the distillation column. Length must be M >= 2.
+      Ex) np.array([K_hk_F, K_hk_D, K_hk_B])
   N_min : float
     Minimum number of stages for a multi-component distillation tower.
   D : float
     Molar flow rate of the distillate stream.
-  B_hk : float
+  B : float
     Molar flow rate of the bottoms stream.
   D_hk : float
     Molar flow rate of heavy key component in distillate stream.
@@ -818,14 +852,18 @@ def winn_feed_split(F_i: npt.NDArray, a_i_hk: npt.NDArray, N_min: float, D: floa
   Returns
   ----------
   D_i : NDArray
-    Molar flow rates of all components in the distillate stream.
+    Molar flow rates of all non-key components in the distillate stream.
   B_i : NDArray
-    Molar flow rates of all components in the bottoms stream.
+    Molar flow rates of all non-key components in the bottoms stream.
   '''
-  F_i = np.atleast_1d(F_i); a_i_hk = np.atleast_1d(a_i_hk)
-  denom = (D_hk / B_hk) * a_i_hk**N_min
+  F_i = np.atleast_1d(F_i)
+  K_i = np.atleast_2d(K_i).reshape(-1, 2)
+  K_hk = np.atleast_1d(K_hk)
+  phi, logzeta = winn_coeff_est(K_i, K_hk)
+  denom = (10.**logzeta)**N_min / (B_hk / D_hk)**phi * (B / D)**(1. - phi)
+  print(denom)
   B_i = F_i / (1. + denom)
-  D_i = F_i * denom / (1. + denom)
+  D_i = F_i / (1. + 1. / denom)
   tops = D_i > B_i
   D_i[tops] = F_i[tops] - B_i[tops]
   B_i[~tops] = F_i[~tops] - D_i[~tops]
