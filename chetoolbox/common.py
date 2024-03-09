@@ -473,10 +473,10 @@ def point_slope(point: npt.NDArray, slope: npt.NDArray ) -> LinearEq | npt.NDArr
   point = np.atleast_2d(point).reshape(-1, 2)
   slope = np.atleast_1d(slope)
   lines = np.zeros_like(slope).astype(np.object_)
-  lines[np.isnan(slope)] = [vertical_line(x) for x in point[np.isnan(slope)][:, 0]]
-  lines[slope == 0.] = [horizontal_line(y) for y in point[slope == 0.][:, 1]]
-  runcalcs = ~(np.isnan(slope) | slope == 0.)
-  b = -slope[runcalcs] * point[runcalcs][:, 0] + point[runcalcs][:, 1]
+  lines[np.isnan(slope)] = [vertical_line(x) for x in point[:, 0][np.isnan(slope)]]
+  lines[slope == 0.] = [horizontal_line(y) for y in point[:, 1][slope == 0.]]
+  runcalcs = ~np.logical_or(np.isnan(slope), slope == 0.)
+  b = -slope[runcalcs] * point[:, 0][runcalcs] + point[:, 1][runcalcs]
   lines[runcalcs] = [LinearEq(slope[runcalcs][i], b[i]) for i in np.arange(len([runcalcs]))]
   return lines[0] if len(lines) == 1 else lines
 
