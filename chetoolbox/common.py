@@ -466,17 +466,19 @@ def point_conn(point1: npt.NDArray, point2: npt.NDArray) -> LinearEq | npt.NDArr
     lines[runcalcs] = [LinearEq(m[i], b[i]) for i in np.arange(len([runcalcs]))]
   return lines[0] if len(lines) == 1 else lines
 
-def point_slope(point: tuple[float, float], slope: float ) -> LinearEq:
+def point_slope(point: npt.NDArray, slope: npt.NDArray ) -> LinearEq | npt.NDArray: #numpy compatible
   '''
   Calculates equation of a line from a point and its slope.
   '''
-  point = np.atleast_1d(point)
-  if np.isnan(slope):
-    return vertical_line(point[0])
-  elif slope == 0.:
-    return horizontal_line(point[1])
-  else:
-    return LinearEq(slope, -slope * point[0] + point[1])
+  point = np.atleast_2d(point).reshape(-1, 2)
+  slope = np.atleast_1d(slope)
+  lines = np.zeros_like(slope).astype(np.object_)
+  lines[np.isnan(slope)] = [vertical_line(x) for x in point[np.isnan(slope)][:, 0]]
+  lines[slope == 0.] = [horizontal_line(y) for y in point[slope == 0.][:, 1]]
+  runcalcs = ~(np.isnan(slope) | slope == 0.)
+  b = -slope[runcalcs] * point[runcalcs][:, 0] + point[runcalcs][:, 1]
+  lines[runcalcs] = [LinearEq(slope[runcalcs][i], b[i]) for i in np.arange(len([runcalcs]))]
+  return lines[0] if len(lines) == 1 else lines
 
 def linear_intersect(line1: LinearEq, line2: LinearEq) -> tuple[float, float] | None:
   '''
