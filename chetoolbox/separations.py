@@ -949,9 +949,11 @@ def underwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeII: npt.NDArr
     return psi - np.sum(a_i_hk_F * x_i_F / (a_i_hk_F - theta), keepdims=True)
   
   theta, _, _ = common.err_reduc_iterative(err, thetasets)
-  theta = theta[theta > np.min(tIa)]; theta = theta[theta < np.max(tIa)]
-  [theta[theta > tIa[i]][theta < tIa[i + 1]] for i in np.arange(len(tIa))]
-  # filter out only len(a_i_hk_F[~typeII]) - 1 thetas that fall within a_i_hk ranges somehow
+  
+  theta.sort(); theta = theta[theta > np.min(tIa)]; theta = theta[theta < np.max(tIa)]
+  ltnind = (np.c_[theta] > tIa).sum(axis=1)
+  split_ind = np.where(ltnind[:-1] != ltnind[1:])[0] + 1
+  thetasgrouped = np.split(theta, split_ind) # theoretically will be len(tIa) - 1 groups of thetas that all converged to approx. the same number
   
   # no idea how to use theta to solve for component distilate flowrates when there can be arbitrarily many unknowns!!
   
