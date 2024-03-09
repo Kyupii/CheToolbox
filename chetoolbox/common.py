@@ -639,7 +639,7 @@ def err_reduc(err_calc: Callable[[npt.NDArray], npt.NDArray], x: npt.NDArray, to
   x[(np.arange(x.shape[0]), err.argmax(axis=1))] = xnew
   return x, err
 
-def err_reduc_iterative(err_calc: Callable[[float], float], x: npt.NDArray, tol: float = 1e-10) -> tuple[npt.NDArray, npt.NDArray, int]:
+def err_reduc_iterative(err_calc: Callable[[float | npt.NDArray], float | npt.NDArray], x: npt.NDArray, tol: float = 1e-10) -> tuple[npt.NDArray, npt.NDArray, int]:
   '''
   Accepts pairs of inputs and an error function. Returns inputs with tolerable error, the errors, and the number of iterations required.
   Expects 2D arrays, of shape N x 2.

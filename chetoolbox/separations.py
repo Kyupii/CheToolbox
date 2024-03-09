@@ -905,9 +905,10 @@ def underwood_type1(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, x_lk_FD: npt.NDAr
     Molar flowrate of all non-key components in the bottoms stream at minimum reflux.
   R_min : float
     Minimum reflux ratio of the a distilation column as a Type I System.
-  typeII : bool
-    If any component failed to dsitribute, meaning the distilation column is Type II.
+  typeII : NDArray
+    If a component failed to distribute, meaning the distilation column is Type II.
   '''
+  x_i_F = np.atleast_1d(x_i_F)
   a_i_hk_F = np.atleast_1d(a_i_hk_F)
   x_lk_FD = np.atleast_1d(x_lk_FD); x_hk_FD = np.atleast_1d(x_hk_FD)
   heavy = D * x_lk_FD[1] / (F_liq * x_lk_FD[0]) - a_lk_hk_F * (D * x_hk_FD[1] / (F_liq * x_hk_FD[0]))
@@ -920,18 +921,23 @@ def underwood_type1(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, x_lk_FD: npt.NDAr
   D_i_Rmin = (lkgalf + hkhlaf) * F_liq * x_i_F # TODO check if this is actually what you are supposed to do here
   B_i_Rmin = F * x_i_F - D_i_Rmin 
   
-  cond = (lkgalf + hkhlaf) * F_liq / F # TODO check if this is actually what you are supposed to do here, seems odd as we calculate this proportion using the results from fenske/winn feed_split
+  cond = (lkgalf + hkhlaf) * F_liq / F # TODO check if this is actually what you are supposed to do here
   typeII = np.any((cond < 0, cond > 1) , axis=1)
-  return common.SolutionObj(D_i_Rmin = D_i_Rmin, B_i_Rmin = B_i_Rmin, R_min = R_min,  typeII = typeII)
+  return common.SolutionObj(D_i_Rmin = D_i_Rmin, B_i_Rmin = B_i_Rmin, R_min = R_min, typeII = typeII)
 
-def underwood_type2(alpha, x, distro_truthmap, psi):
-  alpha = np.atleast_1d(alpha)
-  distro_truthmap = np.atleast_1d(distro_truthmap)
-  N_acceptable = sum(bool(i) for i in distro_truthmap)
-  alpha_range = (np.min(alpha[distro_truthmap]), np.max(alpha[distro_truthmap]))
-  def underwood_sum(theta):
-    return np.sum(alpha * x / (alpha - theta)) - psi
-  pass 
+def underwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeII: npt.NDArray, psi: float):
+  x_i_F = np.atleast_1d(x_i_F)
+  a_i_hk_F = np.atleast_1d(a_i_hk_F)
+  typeII = np.atleast_1d(typeII)
+  thetaranges = np.linspace(a_i_hk_F[~typeII][:-1], a_i_hk_F[~typeII][1:], 10).flatten("F")
+  theta = np.vstack(np.lib.stride_tricks.sliding_window_view(thetaranges, 2))
+  
+  def err(theta):
+    return psi - np.sum(a_i_hk_F * x_i_F / (a_i_hk_F - theta), keepdims=True)
+  
+  thetas, _, _ = common.err_reduc_iterative(err, theta)
+  
+  return
 
 def gilliland(Nmin: float, Rmin: float, Rmin_mult: float = 1.3) -> float:
   '''
