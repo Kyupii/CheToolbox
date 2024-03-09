@@ -501,9 +501,10 @@ def quadratic_formula(coeff: npt.NDArray) -> npt.NDArray: #numpy compatible
   '''
   coeff = np.atleast_2d(coeff)
   descrim = coeff[:, 1]**2 - 4.*coeff[:, 0]*coeff[:, 2]
-  roots = np.zeros_like(coeff[:, :1])
+  roots = np.zeros_like(coeff[:, :-1])
   roots[descrim < 0.] = np.NaN
-  roots[descrim >= 0.] = (-coeff[:, 1] + np.sqrt(roots[descrim >= 0.]) * np.array([1., -1.])) / (2. * coeff[:, 0])
+  rad = np.c_[np.sqrt(descrim[descrim >= 0.])] * np.array([1., -1.])
+  roots[descrim >= 0., :] = (np.c_[-coeff[:, 1][descrim >= 0.]] + rad) / (2. * np.c_[coeff[:, 0][descrim >= 0.]])
   return roots[0] if len(roots) == 1 else roots
 
 def cubic_formula(coeff: npt.NDArray) -> npt.NDArray:
