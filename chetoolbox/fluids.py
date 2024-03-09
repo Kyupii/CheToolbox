@@ -8,7 +8,7 @@ def PressureDrop(Q: float, mu: float, D: float, rho: float, epsilon: float = 0.1
     Parameters
     ----------
     Q : float
-        Volumetric flow rate in m^3/s (meters cubed per second).
+        Volumetric flowrate in m^3/s (meters cubed per second).
     mu : float
         Viscosity of the fluid in Pa*s (pascal seconds).
     D : float
