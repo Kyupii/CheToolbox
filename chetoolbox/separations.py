@@ -705,13 +705,13 @@ def lost_work(inlet: npt.NDArray, outlet: npt.NDArray, Q: npt.NDArray, T_s: npt.
     return h - T_0 * s
   return np.sum(inlet[:,0] * b(inlet[:,1], inlet[:,2]) + Q[0] * (1 - T_0/T_s[0]) + W_s) - np.sum(outlet[:,0] * b(outlet[:,1], outlet[:,2]) + Q[1] * (1 - T_0/T_s[1]) + W_s)
 
-def fenske_plates(alpha: npt.ArrayLike, x_lk: npt.ArrayLike, x_hk: npt.ArrayLike) -> float:
+def fenske_plates(a_lk_hk: npt.ArrayLike, x_lk: npt.ArrayLike, x_hk: npt.ArrayLike) -> float:
   '''
-  Calculates minimum number of stages using Fenske equation. Deviation of relative volatilities must be less than 20%.
+  Calculates minimum number of stages for a multi-component distillation towerusing Fenske equation. Deviation of relative volatilities must be less than 20%.
   
   Parameters:
   -----------
-  alpha : ArrayLike
+  a_lk_hk : ArrayLike
     Relative volatility of the light key compound to the heavy key compound at the final distilate plate and final reboiler plate.
       Ex) np.array([a_lk_hk_D, a_lk_hk_B])
   x_lk : ArrayLike
@@ -724,27 +724,28 @@ def fenske_plates(alpha: npt.ArrayLike, x_lk: npt.ArrayLike, x_hk: npt.ArrayLike
   Returns
   ----------
   N_min : float
-    Minimum number of stages of a multi-component distillation tower
+    Minimum number of stages for a multi-component distillation tower.
   '''
-  alpha = np.atleast_1d(alpha); x_lk = np.atleast_1d(x_lk); x_hk = np.atleast_1d(x_hk)
-  alpha_m = np.sqrt(alpha[0] * alpha[1])
-  if np.abs(alpha[:, 0] - alpha[:, 1]) > 0.20:
+  a_lk_hk = np.atleast_1d(a_lk_hk); x_lk = np.atleast_1d(x_lk); x_hk = np.atleast_1d(x_hk)
+  alpha_m = np.sqrt(a_lk_hk[0] * a_lk_hk[1])
+  if np.abs(a_lk_hk[0] - a_lk_hk[1]) > 0.20:
     raise Exception('Fenske is not valid. Use Winn equation') 
   else:
     return np.log10((x_lk[0] / x_lk[1]) * (x_hk[1] / x_hk[0])) / np.log10(alpha_m)
 
-def fenske_feed_split(N_min: float, i_prop: npt.ArrayLike, d_HK: npt.ArrayLike, b_HK:npt.ArrayLike) -> common.SolutionObj[npt.ArrayLike, npt.ArrayLike, npt.ArrayLike]:
+def fenske_feed_split(N_min: float, i_prop: npt.ArrayLike, d_hk: npt.ArrayLike, b_hk: npt.ArrayLike) -> common.SolutionObj[npt.ArrayLike, npt.ArrayLike, npt.ArrayLike]:
   '''
   Calculates distribution of non-key components using Fenske equation. 
   
   Parameters:
   -----------
+
   i_prop : ArrayLike
     Array of molar flow rates & relative volatilities (relative to the high key) of non-key components in the feed
       ex) [[f_1, alpha_1], [f_2, alpha_2], [f_3, alpha_3]]
-  d_HK : float
+  d_hk : float
     Molar flow rate of high key component in distillate flow
-  b_HK : float
+  b_hk : float
     Molar flow rate of high key component in bottom flow 
   Returns
   ----------
@@ -756,8 +757,8 @@ def fenske_feed_split(N_min: float, i_prop: npt.ArrayLike, d_HK: npt.ArrayLike, 
     Amount of i'th component in the feed
   '''
   i_prop = np.atleast_1d(i_prop).reshape(-1,2)
-  b_i = i_prop[:, 0] / (1 + (d_HK/b_HK) * (i_prop[:,1])**N_min)
-  d_i = i_prop[:, 0] * (d_HK/b_HK) * (i_prop)**N_min / (1 + (d_HK / b_HK) * (i_prop[:, 1])**N_min)
+  b_i = i_prop[:, 0] / (1 + (d_hk/b_hk) * (i_prop[:,1])**N_min)
+  d_i = i_prop[:, 0] * (d_hk/b_hk) * (i_prop)**N_min / (1 + (d_hk / b_hk) * (i_prop[:, 1])**N_min)
   f_i = d_i + b_i
   sol = common.SolutionObj(b_i = b_i, d_i = d_i, f_i = f_i)
   return sol
