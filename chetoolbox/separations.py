@@ -707,7 +707,7 @@ def lost_work(inlet: npt.NDArray, outlet: npt.NDArray, Q: npt.NDArray, T_s: npt.
 
 def fenske_plates(a_lk_hk: npt.NDArray, x_lk: npt.NDArray, x_hk: npt.NDArray) -> float:
   '''
-  Calculates the minimum number of stages for a multi-component distillation tower using the Fenske equation. Deviation of the relative volatilities of the light key compound and heavy key compound across the column must be less than 20%.
+  Calculates the minimum number of stages for a multi-component distillation tower using the Fenske equation. Deviation of the relative volatilities of the light key compound and heavy key compound across the column from the geometric mean must be less than 20%.
   
   Parameters:
   -----------
@@ -728,7 +728,7 @@ def fenske_plates(a_lk_hk: npt.NDArray, x_lk: npt.NDArray, x_hk: npt.NDArray) ->
   '''
   a_lk_hk = np.atleast_1d(a_lk_hk); x_lk = np.atleast_1d(x_lk); x_hk = np.atleast_1d(x_hk)
   alpha_m = np.sqrt(a_lk_hk[0] * a_lk_hk[1])
-  if np.abs(a_lk_hk[0] - a_lk_hk[1]) > 0.20:
+  if np.abs((a_lk_hk[0] - a_lk_hk[1]) / alpha_m) > 0.20:
     raise Exception('Fenske is not valid. Use Winn equation') 
   else:
     return np.log10((x_lk[0] / x_lk[1]) * (x_hk[1] / x_hk[0])) / np.log10(alpha_m)
@@ -763,7 +763,7 @@ def fenske_feed_split(F_i: npt.NDArray, a_i_hk: npt.NDArray, N_min: float, D_hk:
   tops = D_i > B_i
   D_i[tops] = F_i[tops] - B_i[tops]
   B_i[~tops] = F_i[~tops] - D_i[~tops]
-  return common.SolutionObj(B_i = B_i, D_i = D_i)
+  return common.SolutionObj(D_i = D_i, B_i = B_i)
 
 def winn_coeff_est(K_i: npt.NDArray, K_hk: npt.NDArray) -> tuple[npt.NDArray, npt.NDArray]:
   '''
@@ -867,28 +867,27 @@ def winn_feed_split(F_i: npt.NDArray, K_i: npt.NDArray, K_hk: npt.NDArray, N_min
   tops = D_i > B_i
   D_i[tops] = F_i[tops] - B_i[tops]
   B_i[~tops] = F_i[~tops] - D_i[~tops]
-  return common.SolutionObj(B_i = B_i, D_i = D_i)
+  common.SolutionObj(D_i = D_i, B_i = B_i)
 
-
-def underwood_type1(alpha: float, L_F: float, D: float, HK: npt.NDArray, LK: npt.NDArray) -> float:
+def underwood_type1(x_lk: npt.NDArray, x_hk: npt.NDArray, a_lk_hk_F: float, F_liq: float, D: float) -> float:
   '''
   Solves for the minimum reflux ratio for a type I system using underwood equations  
   
   Parameters:
   -----------
-  alpha : float
-    Relative volatility of the two species equalibrium constants (K) (unitless). This alpha is to be calculated at the feed stage
-  L_F : float
-    Molar liquid feed in moles/time (mol/h, mol/s, etc.) 
+  x_lk : NDArray
+    Liquid mole fractions of the light key component in the feed and distillate streams. 
+      Ex) np.array([x_lk_F, x_lk_D])
+  x_hk : NDArray
+    Liquid mole fractions of the heavy key component in the feed and distillate streams. 
+      Ex) np.array([x_hk_F, x_hk_D])
+  a_lk_hk_F : float
+    Relative volatility of the light key compound to the heavy key compound at the feed plate.
+  F_liq : float
+    Molar flow rate of the liquid portion of feed.S
   D : float
     Distillate flow rate
-  HK : NDArray
-    Liquid mole fraction of high key components in the distillate and feed. 
-      ex) np.array([x_D, x_F]
-  LK : NDArray
-    Liquid mole fraction of low key components in the distillate and feed. 
-      ex) np.array([x_D, x_F]
-
+  
   Returns
   ----------
   R_min : float
@@ -896,8 +895,9 @@ def underwood_type1(alpha: float, L_F: float, D: float, HK: npt.NDArray, LK: npt
   '''
   HK = np.atleast_1d(HK)
   LK = np.atleast_1d(LK)
-
-  return (L_F) * ( (D * LK[0]) / (L_F * LK[1]) - (alpha) * (D * HK[0]) / (L_F * HK[1])) / (alpha - 1) / D
+  heavy = D * x_lk[1] / (F_liq * x_lk[0]) - a_lk_hk_F * (D * x_hk[1] / (F_liq * x_hk[0]))
+  L_inf = heavy * F_liq / (a_lk_hk_F - 1.)
+  return L_inf / D
 
 def gilliland(Nmin: float, Rmin: float, Rmin_mult: float = 1.3) -> float:
   '''
