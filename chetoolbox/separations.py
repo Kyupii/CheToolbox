@@ -712,7 +712,7 @@ def fenske_plates(a_lk_hk: npt.NDArray, x_lk: npt.NDArray, x_hk: npt.NDArray) ->
   Parameters:
   -----------
   a_lk_hk : NDArray
-    Relative volatility of the light key compound to the heavy key compound at the final distilate plate and final reboiler plate.
+    Relative volatility of the light key compound to the heavy key compound at the final distilate plate and final reboiler plate. a_lk_hk = K_lk / K_hk.
       Ex) np.array([a_lk_hk_D, a_lk_hk_B])
   x_lk : NDArray
     Liquid mole fractions of the light key component in the distillate and bottom outflow. 
@@ -735,7 +735,7 @@ def fenske_plates(a_lk_hk: npt.NDArray, x_lk: npt.NDArray, x_hk: npt.NDArray) ->
 
 def fenske_feed_split(F_i: npt.NDArray, a_i_hk: npt.NDArray, N_min: float, D_hk: float, B_hk: float) -> common.SolutionObj[npt.NDArray, npt.NDArray]:
   '''
-  Calculates distribution of non-key components using Fenske equation. 
+  Calculates the molar flow rates of components in the distillate and bottoms streams of a multi-component distillation using the Fenske equations. 
   
   Parameters:
   -----------
@@ -765,33 +765,32 @@ def fenske_feed_split(F_i: npt.NDArray, a_i_hk: npt.NDArray, N_min: float, D_hk:
   B_i[~tops] = F_i[~tops] - D_i[~tops]
   return common.SolutionObj(B_i = B_i, D_i = D_i)
 
-
-def winn(K: npt.NDArray, HK: npt.NDArray, LK: npt.NDArray) -> float:
+def winn_plates(K: npt.NDArray, x_lk: npt.NDArray, x_hk: npt.NDArray) -> float:
   '''
   Calculates minimum number of stages using Winn equation & a graphical method
   
   Parameters:
   -----------
   K : NDArray
-    Array of equilibrium constants K of HK and LK components at two points in the distillation column.
-      ex) [K_HKD, K_LKD, K_HKB, K_HKB] 
-  HK : NDArray
-    Liquid mole fraction of high key components in the distillate and bottom. 
-      ex) np.array([x_D, x_B]
-  LK : NDArray
-    Liquid mole fraction of low key components in the distillate and bottom. 
-      ex) np.array([x_D, x_B]
+    Equilibrium constants the light key component and heavy key component at one or more points in the distillation column. Shape must be N x 2.
+      ex) np.array([[K_lk_F, K_hk_F], [K_lk_D, K_hk_D], [K_lk_B, K_hk_B]])
+  x_lk : NDArray
+    Liquid mole fractions of the light key component in the distillate and bottom outflow. 
+      Ex) np.array([x_lk_D, x_lk_B])
+  x_hk : NDArray
+    Liquid mole fractions of the heavy key component in the distillate and bottom outflow. 
+      Ex) np.array([x_hk_D, x_hk_B])
 
   Returns
   ----------
   N_min : float
     Minimum number of stages of a multi-component distillation tower
   '''
-  K = np.atleast_1d.reshape(-1,2)
-  line = common.point_conn((K[0]),(K[1]))
+  K = np.atleast_1d(K).reshape(-1, 2)
+  line = common.point_conn((K[0]), (K[1]))
   logzeta = line.b
   phi = line.m
-  N_min = np.log10((LK[0]/LK[1]) * (HK[1]/HK[0]))**phi / logzeta 
+  N_min = np.log10((x_lk[0] / x_lk[1]) * (x_hk[1] / x_hk[0]))**phi / logzeta 
   sol = common.SolutionObj(N_min = N_min, zeta = 10**logzeta, phi = phi)
   return sol
 

@@ -450,18 +450,21 @@ def vertical_line(x) -> LinearEq:
 def horizontal_line(y) -> LinearEq:
   return LinearEq(0., y)
 
-def point_conn(point1: tuple[float, float], point2: tuple[float, float]) -> LinearEq:
+def point_conn(point1: npt.NDArray, point2: npt.NDArray) -> LinearEq | npt.NDArray: #numpy compatible
   '''
   Calculates equation of a line from two points.
   '''
-  point1 = np.atleast_1d(point1); point2 = np.atleast_1d(point2)
-  if point1[0] == point2[0]:
-    return vertical_line(point1[0])
-  elif point1[1] == point2[1]:
-    return horizontal_line(point1[1])
-  m = (point1[1] - point2[1]) / (point1[0] - point2[0])
-  b = point1[1] - m * point1[0]
-  return LinearEq(m, b)
+  point1 = np.atleast_2d(point1).reshape(-1, 2)
+  point2 = np.atleast_2d(point2).reshape(-1, 2)
+  lines = np.zeros_like(point1[:, 0]).astype(np.object_)
+  lines[point1[:, 0] == point2[:, 0]] = [vertical_line(x) for x in point1[:, 0][point1[:, 0] == point2[:, 0]]]
+  lines[point1[:, 1] == point2[:, 1]] = [horizontal_line(y) for y in point1[:, 1][point1[:, 1] == point2[:, 1]]]
+  runcalcs = ~np.any(point1 == point2, axis=1)
+  if np.any(runcalcs):
+    m = (point1[:, 1][runcalcs] - point2[:, 1][runcalcs]) / (point1[:, 0][runcalcs] - point2[:, 0][runcalcs])
+    b = point1[:, 1][runcalcs] - m * point1[:, 0][runcalcs]
+    lines[runcalcs] = [LinearEq(m[i], b[i]) for i in np.arange(len([runcalcs]))]
+  return lines[0] if len(lines) == 1 else lines
 
 def point_slope(point: tuple[float, float], slope: float ) -> LinearEq:
   '''
