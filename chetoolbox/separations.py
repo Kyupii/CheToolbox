@@ -926,16 +926,34 @@ def underwood_type1(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, x_lk_FD: npt.NDAr
   return common.SolutionObj(D_i_Rmin = D_i_Rmin, B_i_Rmin = B_i_Rmin, R_min = R_min, typeII = typeII)
 
 def underwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeII: npt.NDArray, psi: float):
+  '''
+  Calculates Type II.
+  
+  Parameters:
+  -----------
+  x_i_F : NDArray
+    Liquid mole fractions of all components in the feed stream.
+  a_i_hk_F : NDArray
+    Relative volatilities of all components relative to the heavy key at the feed plate.
+  typeII : NDArray
+    If a component failed to distribute, meaning the distilation column is Type II.
+  '''
   x_i_F = np.atleast_1d(x_i_F)
   a_i_hk_F = np.atleast_1d(a_i_hk_F)
   typeII = np.atleast_1d(typeII)
-  thetaranges = np.linspace(a_i_hk_F[~typeII][:-1], a_i_hk_F[~typeII][1:], 10).flatten("F")
-  theta = np.vstack(np.lib.stride_tricks.sliding_window_view(thetaranges, 2))
+  tIa = a_i_hk_F[~typeII]
+  thetaranges = np.linspace(tIa[:-1], tIa[1:], 10).flatten("F")
+  thetasets = np.vstack(np.lib.stride_tricks.sliding_window_view(thetaranges, 2))
   
   def err(theta):
     return psi - np.sum(a_i_hk_F * x_i_F / (a_i_hk_F - theta), keepdims=True)
   
-  thetas, _, _ = common.err_reduc_iterative(err, theta)
+  theta, _, _ = common.err_reduc_iterative(err, thetasets)
+  theta = theta[theta > np.min(tIa)]; theta = theta[theta < np.max(tIa)]
+  [theta[theta > tIa[i]][theta < tIa[i + 1]] for i in np.arange(len(tIa))]
+  # filter out only len(a_i_hk_F[~typeII]) - 1 thetas that fall within a_i_hk ranges somehow
+  
+  # no idea how to use theta to solve for component distilate flowrates when there can be arbitrarily many unknowns!!
   
   return
 
