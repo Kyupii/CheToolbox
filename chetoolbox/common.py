@@ -566,7 +566,7 @@ def raoult_XtoY(x: list, K: list) -> tuple[npt.NDArray, float]:
   
   Returns
   ---------
-  y : ArrayLike
+  y : NDArray
     Component mole fractions of the feed's vapor phase (unitless).
   error : float
     Error of calculated vapor phase component mole fractions.
@@ -590,7 +590,7 @@ def raoult_YtoX(y: list, K: list) -> tuple[npt.NDArray, float]:
     
   Returns
   ---------
-  x : ArrayLike
+  x : NDArray
     Component mole fractions of the feed's liquid phase (unitless).
   error : float
     Error of calculated liquid phase component mole fractions.
