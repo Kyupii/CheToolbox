@@ -708,15 +708,18 @@ def lost_work(inlet: npt.NDArray, outlet: npt.NDArray, Q: npt.NDArray, T_s: npt.
 def fenske(alpha: npt.ArrayLike, HK, LK) -> float:
   '''
   Calculates minimum number of stages using Fenske equation
-  ----------
+  
+  Parameters:
+  -----------
   alpha : ArrayLike
     Array of relative volatility of the LK to HK. Array is to be ordered [alpha_top, alpha_bottom]
   HK : ArrayLike
     Liquid mole fraction of high key components in the distillate and bottom. 
-      ex) np.array([x_D,x_B]
+      ex) np.array([x_D, x_B]
   LK : ArrayLike
     Liquid mole fraction of low key components in the distillate and bottom. 
-      ex) np.array([x_D,x_B]
+      ex) np.array([x_D, x_B]
+
   Returns
   ----------
   N_min : float
@@ -727,11 +730,13 @@ def fenske(alpha: npt.ArrayLike, HK, LK) -> float:
     raise Exception('Fenske is not valid. Use Winn equation') 
   else:
     return np.log10((LK[0],LK[1]) * (HK[1]/HK[0])) / np.log10(alpha_m)
-  
+
 def fenske_distro(N_min: float,i_prop: npt.ArrayLike, d_HK: npt.ArrayLike, b_HK:npt.ArrayLike) -> common.SolutionObj[npt.ArrayLike, npt.ArrayLike, npt.ArrayLike]:
   '''
   Calculates distribution of non-key components using Fenske equation
-  ----------
+  
+  Parameters:
+  -----------
   i_prop : ArrayLike
     Array of molar flow rates & relative volatilities (relative to the high key) of non-key components in the feed
       ex) [[f_1, alpha_1], [f_2, alpha_2], [f_3, alpha_3]]
@@ -759,16 +764,19 @@ def fenske_distro(N_min: float,i_prop: npt.ArrayLike, d_HK: npt.ArrayLike, b_HK:
 def winn(K: npt.ArrayLike,HK: npt.ArrayLike, LK: npt.ArrayLike) -> float:
   '''
   Calculates minimum number of stages using Winn equation & a graphical method
-  ----------
+  
+  Parameters:
+  -----------
   K : ArrayLike
     Array of equilibrium constants K of HK and LK components at two points in the distillation column.
       ex) [K_HKD, K_LKD, K_HKB, K_HKB] 
   HK : ArrayLike
     Liquid mole fraction of high key components in the distillate and bottom. 
-      ex) np.array([x_D,x_B]
+      ex) np.array([x_D, x_B]
   LK : ArrayLike
     Liquid mole fraction of low key components in the distillate and bottom. 
-      ex) np.array([x_D,x_B]
+      ex) np.array([x_D, x_B]
+  
   Returns
   ----------
   N_min : float
@@ -785,8 +793,9 @@ def winn(K: npt.ArrayLike,HK: npt.ArrayLike, LK: npt.ArrayLike) -> float:
 def underwood_type1(alpha: float , L_F: float, D: float, HK: npt.ArrayLike, LK: npt.ArrayLike) -> float:
   '''
   Solves for the minimum reflux ratio for a type I system using underwood equations  
-  Parameters
-  ----------
+  
+  Parameters:
+  -----------
   alpha : float
     Relative volatility of the two species equalibrium constants (K) (unitless). This alpha is to be calculated at the feed stage
   L_F : float
@@ -795,10 +804,11 @@ def underwood_type1(alpha: float , L_F: float, D: float, HK: npt.ArrayLike, LK: 
     Distillate flow rate
   HK : ArrayLike
     Liquid mole fraction of high key components in the distillate and feed. 
-      ex) np.array([x_D,x_F]
+      ex) np.array([x_D, x_F]
   LK : ArrayLike
     Liquid mole fraction of low key components in the distillate and feed. 
-      ex) np.array([x_D,x_F]
+      ex) np.array([x_D, x_F]
+
   Returns
   ----------
   R_min : float
@@ -862,7 +872,7 @@ def type1_distro(D: float, L_F: float, LK: npt.ArrayLike, HK: npt.ArrayLike, i: 
   distro_truthmap = [True if i > 0 and i < 1 else False for i in distro]
   sol = common.SolutionObj(distro = distro, distro_truthmap = distro_truthmap)
   return sol
-  
+
 def underwood_type2(alpha, x, distro_truthmap, psi):
   alpha = np.atleast_1d(alpha)
   distro_truthmap = np.atleast_1d(distro_truthmap)
