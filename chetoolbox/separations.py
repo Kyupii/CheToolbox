@@ -731,7 +731,7 @@ def fenske(alpha: npt.ArrayLike, HK, LK) -> float:
   else:
     return np.log10((LK[0],LK[1]) * (HK[1]/HK[0])) / np.log10(alpha_m)
 
-def fenske_distro(N_min: float,i_prop: npt.ArrayLike, d_HK: npt.ArrayLike, b_HK:npt.ArrayLike) -> common.SolutionObj[npt.ArrayLike, npt.ArrayLike, npt.ArrayLike]:
+def fenske_distro(N_min: float, i_prop: npt.ArrayLike, d_HK: npt.ArrayLike, b_HK:npt.ArrayLike) -> common.SolutionObj[npt.ArrayLike, npt.ArrayLike, npt.ArrayLike]:
   '''
   Calculates distribution of non-key components using Fenske equation
   
@@ -761,7 +761,7 @@ def fenske_distro(N_min: float,i_prop: npt.ArrayLike, d_HK: npt.ArrayLike, b_HK:
   return sol
 
 
-def winn(K: npt.ArrayLike,HK: npt.ArrayLike, LK: npt.ArrayLike) -> float:
+def winn(K: npt.ArrayLike, HK: npt.ArrayLike, LK: npt.ArrayLike) -> float:
   '''
   Calculates minimum number of stages using Winn equation & a graphical method
   
@@ -776,7 +776,7 @@ def winn(K: npt.ArrayLike,HK: npt.ArrayLike, LK: npt.ArrayLike) -> float:
   LK : ArrayLike
     Liquid mole fraction of low key components in the distillate and bottom. 
       ex) np.array([x_D, x_B]
-  
+
   Returns
   ----------
   N_min : float
@@ -790,7 +790,7 @@ def winn(K: npt.ArrayLike,HK: npt.ArrayLike, LK: npt.ArrayLike) -> float:
   sol = common.SolutionObj(N_min = N_min, zeta = 10**logzeta, phi = phi)
   return sol
 
-def underwood_type1(alpha: float , L_F: float, D: float, HK: npt.ArrayLike, LK: npt.ArrayLike) -> float:
+def underwood_type1(alpha: float, L_F: float, D: float, HK: npt.ArrayLike, LK: npt.ArrayLike) -> float:
   '''
   Solves for the minimum reflux ratio for a type I system using underwood equations  
   
