@@ -23,9 +23,9 @@ def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> common.Soluti
   ----------
   psi : float
     Converged vapor/liquid output feed ratio psi (Ψ) (unitless).
-  x_out : ArrayLike
+  x_out : NDArray
     Component mole fractions of the output liquid stream (unitless). 
-  y_out : ArrayLike
+  y_out : NDArray
     Component mole fractions of the output vapor stream (unitless).
   error : float
     Error at the final iteration.
@@ -111,7 +111,7 @@ def bubble_point_antoine(x: list, ant_coeff: npt.NDArray, P: float, tol: float =
   ----------
   x : list
     Component mole fractions of the liquid mixture (unitless). Must sum to 1.
-  ant_coeff : ArrayLike
+  ant_coeff : NDArray
     Components' coefficients for the Antoine Equation of State (unitless). Shape must be N x 3.
   P : float
     Ambient pressure of the liquid mixture in mmHg (millimeters of mercury).
@@ -122,11 +122,11 @@ def bubble_point_antoine(x: list, ant_coeff: npt.NDArray, P: float, tol: float =
   ----------
   bubbleT : float
     Temperature of the liquid mixture's bubble point in C (Celcius).
-  Pvap : ArrayLike
+  Pvap : NDArray
     Vapor pressure for each component at the bubble point temperature in mmHg (millimeters of mercury). 
-  K : ArrayLike
+  K : NDArray
     Equalibrium constant for each component at the stated pressure and bubble point temperature (units vary). 
-  y : ArrayLike
+  y : NDArray
     Component mole fractions of the first bubble of vapor (unitless).
   error : float
     Error at the final iteration.
@@ -161,7 +161,7 @@ def dew_point_antoine(y: list, ant_coeff: npt.NDArray, P: float, tol: float = .0
   ----------
   y : list
     Component mole fractions of the vapor mixture (unitless). Must sum to 1.
-  ant_coeff : ArrayLike
+  ant_coeff : NDArray
     Components' coefficients for the Antoine Equation of State (unitless). Shape must be N x 3.
   P : float
     Ambient pressure of the vapor mixture in mmHg (millimeters of mercury).
@@ -172,11 +172,11 @@ def dew_point_antoine(y: list, ant_coeff: npt.NDArray, P: float, tol: float = .0
   ----------
   dewT : float
     Temperature of the vapor mixture's dew point in C (Celcius).
-  Pvap : ArrayLike
+  Pvap : NDArray
     Vapor pressure for each component at the dew point temperature in mmHg (millimeters of mercury). 
-  K : ArrayLike
+  K : NDArray
     Equalibrium constant for each component at the stated pressure and dew point temperature (units vary). 
-  x : ArrayLike
+  x : NDArray
     Component mole fractions of the first dew of liquid (unitless).
   error : float
     Error at the final iteration.
@@ -253,7 +253,7 @@ def eq_curve_estim(points: npt.NDArray, alpha: float = None) -> common.EqualibEq
 
   Parameters:
   -----------
-  points : ArrayLike
+  points : NDArray
     Points on an equalibrium curve. Bounded (0, 1). Shape must be N x 2.
       Ex) np.array([ [.2, .1], [.3, .23], [.4, .5] ])
   alpha : float (Optional)
@@ -417,7 +417,7 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
 
 def binary_feed_split(F: float, xf: float, xd: float, xb: float, R: float = None, q: float = None) -> tuple[float, float, float | None, float | None, float | None, float | None]:
   '''
-  Calculates the distilate and bottom flow rates out of a binary mixture distilation column. Optionally calculates the internal flows between the feed tray, rectifying, and stripping sections of the distilation column.
+  Calculates the distilate and bottom flowrates out of a binary mixture distilation column. Optionally calculates the internal flows between the feed tray, rectifying, and stripping sections of the distilation column.
 
   Parameters:
   -----------
@@ -468,7 +468,7 @@ def ponchon_savarit_enthalpylines(props: npt.NDArray) -> tuple[common.LinearEq, 
 
   Parameters:
   -----------
-  props : ArrayLike
+  props : NDArray
     Chemical properties of the compounds being analyzed. Shape must be 2 x 3.
       Ex) np.array([Boiling Point Temperature (K), Average Molar Heat Capactity (kJ/mol*C), Molar Heat of Vaporization (kJ/mol) ])
   
@@ -635,56 +635,22 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
     
   return common.SolutionObj(tieline = tieline, Rmin = Rmin, R = R, min_stages = min_stages, ideal_stages = ideal_stages)
 
-def multicomp_feed_split_est(feed: npt.NDArray, keys: tuple[int, int], spec: tuple[float, float]) -> tuple[npt.NDArray, npt.NDArray]:
-  '''
-  Estimates the distilate and bottoms outflow rates of a multi-component distilation column.
-
-  Parameters:
-  -----------
-  feed : ArrayLike
-    Molar flowrate in mol/s (moles per second) and molecular weight ii g/mol (grams per mole) of each input feed species. Shape must be N x 2.
-      Ex) np.array([[448., 58.12], [36., 72.15], [23., 86.17], [39.1, 100.21], [272.2, 114.23], [31., 128.2]])
-  keys : tuple[int, int]
-    Indexes of the High Key Species and Low Key Species in the feed array.
-  spec : tuple[float, float]
-    Required molar flowrate of the High Key Species in the distilate and the Low Key Species in the bottoms in mol/s (moles per second).
-
-  Returns:
-  -----------
-  distil : ArrayLike
-    Molar flowrates of all species in the ditilate in mol/s (moles per second).
-  bottoms : ArrayLike
-    Molar flowrates of all species in the bottoms in mol/s (moles per second).
-  '''
-  feed = np.atleast_1d(feed).reshape((-1, 2))
-  topsplit = spec[0] / feed[keys[0], 0]
-  botsplit = 1. - (spec[1]) / feed[keys[1], 0]
-  splitline = common.point_conn((feed[keys[1], 1], botsplit), (feed[keys[0], 1], topsplit))
-
-  def splitest(MW: float):
-    cutoff = np.max(np.c_[splitline.eval(MW)], 1, initial=0.)
-    return np.min(np.c_[cutoff], 1, initial=1.)
-
-  distil = feed[:, 0] * splitest(feed[:, 1])
-
-  return distil, feed[:, 0] - distil
-
 def lost_work(inlet: npt.NDArray, outlet: npt.NDArray, Q: npt.NDArray, T_s: npt.NDArray, T_0: float,  W_s: float = 0) -> float:
   '''
   Solves for the lost work of a separation process via thermodynamic analysis.  
   
   Parameters
   ----------
-  inlet : ArrayLike
-    The thermodynamic properties of the inlet stream in J/mol (Joules per mole), must be ordered as [n: molar flow rate of component, h: enthalpy of component, s: entropy of component] Shape must be N x 3.
+  inlet : NDArray
+    The thermodynamic properties of the inlet stream in J/mol (Joules per mole), must be ordered as [n: molar flowrate of component, h: enthalpy of component, s: entropy of component] Shape must be N x 3.
       Ex) np.array([n1, h1, s1], [n2, h2, s2], [n3, h3, s3])
-  outlet : ArrayLike
-    The thermodynamic properties of the outlet stream in J/mol (Joules per mole), must be ordered as [n: molar flow rate of component, h: enthalpy of component, s: entropy of component] Shape must be N x 3.
+  outlet : NDArray
+    The thermodynamic properties of the outlet stream in J/mol (Joules per mole), must be ordered as [n: molar flowrate of component, h: enthalpy of component, s: entropy of component] Shape must be N x 3.
       Ex) np.array([n1, h1, s1], [n2, h2, s2], [n3, h3, s3])
-  Q : ArrayLike
+  Q : NDArray
     The reboiler and condenser heat duties in J (Joules). Shape must be 1 x 2.
       Ex) np.array([Q_reboiler, Q_condenser])
-  T_s : ArrayLike
+  T_s : NDArray
     Temperature of steam and cooling water in K (Kelvin).
       Ex) np.array([T_steam, T_CW])
   T_0 : float
@@ -705,109 +671,295 @@ def lost_work(inlet: npt.NDArray, outlet: npt.NDArray, Q: npt.NDArray, T_s: npt.
     return h - T_0 * s
   return np.sum(inlet[:,0] * b(inlet[:,1], inlet[:,2]) + Q[0] * (1 - T_0/T_s[0]) + W_s) - np.sum(outlet[:,0] * b(outlet[:,1], outlet[:,2]) + Q[1] * (1 - T_0/T_s[1]) + W_s)
 
-def fenske(alpha: npt.ArrayLike, HK, LK) -> float:
+def multicomp_feed_split_est(F_i: npt.NDArray, MW: npt.NDArray, keys: tuple[int, int], spec: tuple[float, float]) -> tuple[npt.NDArray, npt.NDArray]:
   '''
-  Calculates minimum number of stages using Fenske equation
-  ----------
-  alpha : ArrayLike
-    Array of relative volatility of the LK to HK. Array is to be ordered [alpha_top, alpha_bottom]
-  HK : ArrayLike
-    Liquid mole fraction of high key components in the distillate and bottom. 
-      ex) np.array([x_D,x_B]
-  LK : ArrayLike
-    Liquid mole fraction of low key components in the distillate and bottom. 
-      ex) np.array([x_D,x_B]
+  Estimates the distilate and bottoms outflowrates of a multi-component distilation column.
+  
+  Parameters:
+  -----------
+  F_i : NDArray
+    Molar flowrate of each input feed species. Shape must be N.
+      Ex) np.array([[448., 58.12], [36., 72.15], [23., 86.17], [39.1, 100.21], [272.2, 114.23], [31., 128.2]])
+  MW : NDArray
+    Molecular weight in g/mol (grams per mole) of each input feed species. Length must be N.
+      Ex) np.array([[448., 58.12], [36., 72.15], [23., 86.17], [39.1, 100.21], [272.2, 114.23], [31., 128.2]])
+  keys : tuple[int, int]
+    Indexes of the High Key Species and Low Key Species in the feed array.
+  spec : tuple[float, float]
+    Required molar flowrate of the High Key Species in the distilate and the Low Key Species in the bottoms in mol/s (moles per second).
+  
+  Returns:
+  -----------
+  distil : NDArray
+    Molar flowrates of all species in the ditilate in mol/s (moles per second).
+  bottoms : NDArray
+    Molar flowrates of all species in the bottoms in mol/s (moles per second).
+  '''
+  F_i = np.atleast_1d(F_i).reshape((-1, 2))
+  topsplit = spec[0] / F_i[keys[0]]
+  botsplit = 1. - (spec[1]) / F_i[keys[1]]
+  splitline = common.point_conn((MW[keys[1]], botsplit), (MW[keys[0]], topsplit))
+  
+  def splitest(MW: float):
+    cutoff = np.max(np.c_[splitline.eval(MW)], 1, initial=0.)
+    return np.min(np.c_[cutoff], 1, initial=1.)
+  
+  distil = F_i * splitest(MW)
+  
+  return distil, F_i - distil
+
+# TODO make a function to calculate column pressure and bubble pressure of distilate based on cooling water temp and other stuff
+
+def fenske_plates(a_lk_hk_DB: npt.NDArray, x_lk_DB: npt.NDArray, x_hk_DB: npt.NDArray) -> float:
+  '''
+  Calculates the minimum number of stages for a multi-component distillation tower using the Fenske equation. Deviation of the relative volatilities of the light key compound and heavy key compound across the column from the geometric mean must be less than 20%.
+  
+  Parameters:
+  -----------
+  a_lk_hk_DB : NDArray
+    Relative volatility of the light key compound to the heavy key compound at the final distilate plate and final reboiler plate. a_lk_hk = K_lk / K_hk.
+      Ex) np.array([a_lk_hk_D, a_lk_hk_B])
+  x_lk_DB : NDArray
+    Liquid mole fractions of the light key component in the distillate and bottom streams. 
+      Ex) np.array([x_lk_D, x_lk_B])
+  x_hk_DB : NDArray
+    Liquid mole fractions of the heavy key component in the distillate and bottom streams. 
+      Ex) np.array([x_hk_D, x_hk_B])
+
   Returns
   ----------
   N_min : float
-    Minimum number of stages of a multi-component distillation tower
+    Minimum number of stages for a multi-component distillation tower.
   '''
-  alpha_m = np.sqrt(alpha[0],alpha[1])
-  if np.abs(alpha[0] - alpha[1] > 0.20):
+  a_lk_hk_DB = np.atleast_1d(a_lk_hk_DB)
+  x_lk_DB = np.atleast_1d(x_lk_DB); x_hk_DB = np.atleast_1d(x_hk_DB)
+  alpha_m = np.sqrt(a_lk_hk_DB[0] * a_lk_hk_DB[1])
+  if np.abs((a_lk_hk_DB[0] - a_lk_hk_DB[1]) / alpha_m) > 0.20:
     raise Exception('Fenske is not valid. Use Winn equation') 
   else:
-    return np.log10((LK[0],LK[1]) * (HK[1]/HK[0])) / np.log10(alpha_m)
-  
-def fenske_distro(N_min: float,i_prop: npt.ArrayLike, d_HK: npt.ArrayLike, b_HK:npt.ArrayLike) -> common.SolutionObj[npt.ArrayLike, npt.ArrayLike, npt.ArrayLike]:
+    return np.log10((x_lk_DB[0] / x_lk_DB[1]) * (x_hk_DB[1] / x_hk_DB[0])) / np.log10(alpha_m)
+
+def fenske_feed_split(F_i: npt.NDArray, a_i_hk: npt.NDArray, N_min: float, D_hk: float, B_hk: float) -> common.SolutionObj[npt.NDArray, npt.NDArray]:
   '''
-  Calculates distribution of non-key components using Fenske equation
-  ----------
-  i_prop : ArrayLike
-    Array of molar flow rates & relative volatilities (relative to the high key) of non-key components in the feed
-      ex) [[f_1, alpha_1], [f_2, alpha_2], [f_3, alpha_3]]
-  d_HK : float
-    Molar flow rate of high key component in distillate flow
-  b_HK : float
-    Molar flow rate of high key component in bottom flow 
+  Calculates the molar flowrates of non-key components in the distillate and bottoms streams of a multi-component distillation using the Fenske equations. Deviation of the relative volatilities of the light key compound and heavy key compound across the column must be less than 20%.
+  
+  Parameters:
+  -----------
+  F_i : NDArray
+    Molar flowrates of all non-key components in the feed stream.
+  a_i_hk : NDArray
+    Relative volatilities of all non-key components (relative to the heavy key).
+  N_min : float
+    Minimum number of stages for a multi-component distillation tower.
+  D_hk : float
+    Molar flowrate of heavy key component in distillate stream.
+  B_hk : float
+    Molar flowrate of heavy key component in bottom stream.
   Returns
   ----------
-  d_i : ArrayLike
-    Distribution of non-key components in distillate flow
-  b_i : ArrayLike
-    Dsitribution of non-key components in bottom flow 
-  f_i : ArrayLike
-    Amount of i'th component in the feed
+  D_i : NDArray
+    Molar flowrates of all non-key components in the distillate stream.
+  B_i : NDArray
+    Molar flowrates of all non-key components in the bottoms stream.
   '''
-  i_prop = np.atleast_1d(i_prop).reshape(-1,2)
-  b_i = i_prop[:,0] / (1 + (d_HK/b_HK) * (i_prop[:,1])**N_min)
-  d_i = i_prop[:,0] * (d_HK/b_HK) * (i_prop)**N_min / (1 + (d_HK/b_HK) * (i_prop[:,1])**N_min)
-  f_i = d_i + b_i
-  sol = common.SolutionObj(b_i = b_i, d_i = d_i, f_i = f_i)
-  return sol
+  F_i = np.atleast_1d(F_i); a_i_hk = np.atleast_1d(a_i_hk)
+  denom = (D_hk / B_hk) * a_i_hk**N_min
+  B_i = F_i / (1. + denom)
+  D_i = F_i * denom / (1. + denom)
+  tops = D_i > B_i
+  D_i[tops] = F_i[tops] - B_i[tops]
+  B_i[~tops] = F_i[~tops] - D_i[~tops]
+  return common.SolutionObj(D_i = D_i, B_i = B_i)
 
-
-def winn(K: npt.ArrayLike,HK: npt.ArrayLike, LK: npt.ArrayLike) -> float:
+def winn_coeff_est(K_i: npt.NDArray, K_hk: npt.NDArray) -> tuple[npt.NDArray, npt.NDArray]:
   '''
-  Calculates minimum number of stages using Winn equation & a graphical method
+  Estimates the zeta coefficient and iota power of binary equalibrium pairs for use in the Winn equation.
+  
+  Parameters:
+  -----------
+  K_i : NDArray
+    Equilibrium constants of non-key components at two or more points in the distillation column. Shape must be N x M, M >= 2.
+      ex) np.array([[K_1_F, K_1_D, K_1_B], [K_2_F, K_2_D, K_2_B], [K_3_F, K_3_D, K_3_B]])
+  K_hk : NDArray
+    Equilibrium constants of the heavy key component at two or more points in the distillation column. Length must be M >= 2.
+      ex) np.array([K_hk_F, K_hk_D, K_hk_B])
+
+  Returns
   ----------
-  K : ArrayLike
-    Array of equilibrium constants K of HK and LK components at two points in the distillation column.
-      ex) [K_HKD, K_LKD, K_HKB, K_HKB] 
-  HK : ArrayLike
-    Liquid mole fraction of high key components in the distillate and bottom. 
-      ex) np.array([x_D,x_B]
-  LK : ArrayLike
-    Liquid mole fraction of low key components in the distillate and bottom. 
-      ex) np.array([x_D,x_B]
+  phi : npt.NDArray
+    Exponent of the Winn K-transform function.
+  logzeta : npt.NDArray
+    Log10 of the coefficient of the Winn K-transform function.
+  '''
+  K_i = np.log10(np.atleast_2d(K_i).reshape(-1, 2))
+  K_hk = np.log10(np.atleast_1d(K_hk))
+  points = np.vstack((K_i.flatten("A"), np.repeat(np.c_[K_hk], len(K_i[:, 0]), axis=1).flatten("F"))).T.reshape(-1, len(K_hk), 2)
+  # ^^^ acrane array wizardry
+  lines = [common.point_conn(v[:-1, :], v[1:, :], avgmode=True) for v in points]
+  phi = np.array([line.m for line in lines]).astype(float)
+  logzeta = np.array([line.b for line in lines]).astype(float)
+  return phi, logzeta
+
+def winn_plates(K_lk: npt.NDArray, K_hk: npt.NDArray, x_lk_DB: npt.NDArray, x_hk_DB: npt.NDArray) -> float:
+  '''
+  Calculates the minimum number of stages for a multi-component distillation tower using the Winn equation, alongside a graphical transformation.
+  
+  Parameters:
+  -----------
+  K_lk : NDArray
+    Equilibrium constants of the light key component at two or more points in the distillation column. Length must be M >= 2.
+      ex) np.array([K_lk_F, K_lk_D, K_lk_B])
+  K_hk : NDArray
+    Equilibrium constants of the heavy key component at two or more points in the distillation column. Length must be M >= 2.
+      ex) np.array([K_hk_F, K_hk_D, K_hk_B])
+  x_lk : NDArray
+    Liquid mole fractions of the light key component in the distillate and bottom streams. 
+      Ex) np.array([x_lk_D, x_lk_B])
+  x_hk : NDArray
+    Liquid mole fractions of the heavy key component in the distillate and bottom streams. 
+      Ex) np.array([x_hk_D, x_hk_B])
+
   Returns
   ----------
   N_min : float
     Minimum number of stages of a multi-component distillation tower
   '''
-  K = np.atleast_1d.reshape(-1,2)
-  line = common.point_conn((K[0]),(K[1]))
-  logzeta = line.b
-  phi = line.m
-  N_min = np.log10((LK[0]/LK[1]) * (HK[1]/HK[0]))**phi / logzeta 
-  sol = common.SolutionObj(N_min = N_min, zeta = 10**logzeta, phi = phi)
-  return sol
+  K_lk = np.atleast_1d(K_lk); K_hk = np.atleast_1d(K_hk)
+  x_lk_DB = np.atleast_1d(x_lk_DB); x_hk_DB = np.atleast_1d(x_hk_DB)
+  phi, logzeta = winn_coeff_est(K_lk, K_hk)
+  N_min = np.log10((x_lk_DB[0] / x_lk_DB[1]) * (x_hk_DB[1] / x_hk_DB[0]))**phi / logzeta 
+  return N_min
 
-def underwood_type1(alpha: float , L_F: float, D: float, HK: npt.ArrayLike, LK: npt.ArrayLike) -> float:
+def winn_feed_split(F_i: npt.NDArray, K_i: npt.NDArray, K_hk: npt.NDArray, N_min: float, D: float, B: float, D_hk: float, B_hk: float) -> common.SolutionObj[npt.NDArray, npt.NDArray]:
   '''
-  Solves for the minimum reflux ratio for a type I system using underwood equations  
-  Parameters
-  ----------
-  alpha : float
-    Relative volatility of the two species equalibrium constants (K) (unitless). This alpha is to be calculated at the feed stage
-  L_F : float
-    Molar liquid feed in moles/time (mol/h, mol/s, etc.) 
+  Calculates the molar flowrates of non-key components in the distillate and bottoms streams of a multi-component distillation using the Winn equations. 
+  
+  Parameters:
+  -----------
+  F_i : NDArray
+    Molar flowrates of all non-key components in the feed stream.
+      Ex) np.array([F_1, F_2, F_3])
+  K_i : NDArray
+    Equilibrium constants of non-key components at two or more points in the distillation column. Shape must be N x M, M >= 2.
+      Ex) np.array([[K_1_F, K_1_D, K_1_B], [K_2_F, K_2_D, K_2_B], [K_3_F, K_3_D, K_3_B]])
+  K_hk : NDArray
+    Equilibrium constants of the heavy key component at two or more points in the distillation column. Length must be M >= 2.
+      Ex) np.array([K_hk_F, K_hk_D, K_hk_B])
+  N_min : float
+    Minimum number of stages for a multi-component distillation tower.
   D : float
-    Distillate flow rate
-  HK : ArrayLike
-    Liquid mole fraction of high key components in the distillate and feed. 
-      ex) np.array([x_D,x_F]
-  LK : ArrayLike
-    Liquid mole fraction of low key components in the distillate and feed. 
-      ex) np.array([x_D,x_F]
+    Molar flowrate of the distillate stream.
+  B : float
+    Molar flowrate of the bottoms stream.
+  D_hk : float
+    Molar flowrate of heavy key component in distillate stream.
+  B_hk : float
+    Molar flowrate of heavy key component in bottoms stream.
   Returns
   ----------
-  R_min : float
-    Minimum reflux ratio for a type I system
+  D_i : NDArray
+    Molar flowrates of all non-key components in the distillate stream.
+  B_i : NDArray
+    Molar flowrates of all non-key components in the bottoms stream.
   '''
-  HK = np.atleast_1d(HK)
-  LK = np.atleast_1d(LK)
+  F_i = np.atleast_1d(F_i)
+  K_i = np.atleast_2d(K_i).reshape(-1, 2); K_hk = np.atleast_1d(K_hk)
+  phi, logzeta = winn_coeff_est(K_i, K_hk)
+  denom = (10.**logzeta)**N_min / (B_hk / D_hk)**phi * (B / D)**(1. - phi)
+  print(denom)
+  B_i = F_i / (1. + denom)
+  D_i = F_i / (1. + 1. / denom)
+  tops = D_i > B_i
+  D_i[tops] = F_i[tops] - B_i[tops]
+  B_i[~tops] = F_i[~tops] - D_i[~tops]
+  common.SolutionObj(D_i = D_i, B_i = B_i)
 
-  return (L_F) * ( (D * LK[0]) / (L_F * LK[1]) - (alpha) * (D * HK[0]) / (L_F * HK[1])) / (alpha - 1) / D
+def underwood_type1(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, x_lk_FD: npt.NDArray, x_hk_FD: npt.NDArray, a_lk_hk_F: float, F: float, F_liq: float, D: float) -> common.SolutionObj[npt.NDArray, npt.NDArray, float, bool]:
+  '''
+  Calculates the minimum reflux ratio and accompanying outflow streams of a Type I System (full component distribution) using the Underwood equations. Can detect if a distilation column fails to meet Type I requirements and is actually Type II.
+  
+  Parameters:
+  -----------
+  x_i_F : NDArray
+    Liquid mole fractions of all non-key components in the feed stream.
+  a_i_hk_F : NDArray
+    Relative volatilities of all non-key components relative to the heavy key at the feed plate.
+  x_lk_FD : NDArray
+    Liquid mole fractions of the light key component in the feed and distillate streams. 
+      Ex) np.array([x_lk_F, x_lk_D])
+  x_hk_FD : NDArray
+    Liquid mole fractions of the heavy key component in the feed and distillate streams. 
+      Ex) np.array([x_hk_F, x_hk_D])
+  a_lk_hk_F : float
+    Relative volatility of the light key compound to the heavy key compound at the feed plate.
+  F : float
+    Molar flowrate of the feed stream.
+  F_liq : float
+    Molar flowrate of the liquid portion of feed stream.
+  D : float
+    Molar flowrate of the distilate stream.
+  
+  Returns
+  ----------
+  D_i_Rmin : NDArray
+    Molar flowrate of all non-key components in the distilate stream at minimum reflux.
+  B_i_Rmin : NDArray
+    Molar flowrate of all non-key components in the bottoms stream at minimum reflux.
+  R_min : float
+    Minimum reflux ratio of the a distilation column as a Type I System.
+  typeII : NDArray
+    If a component failed to distribute, meaning the distilation column is Type II.
+  '''
+  x_i_F = np.atleast_1d(x_i_F)
+  a_i_hk_F = np.atleast_1d(a_i_hk_F)
+  x_lk_FD = np.atleast_1d(x_lk_FD); x_hk_FD = np.atleast_1d(x_hk_FD)
+  heavy = D * x_lk_FD[1] / (F_liq * x_lk_FD[0]) - a_lk_hk_F * (D * x_hk_FD[1] / (F_liq * x_hk_FD[0]))
+  L_inf = heavy * F_liq / (a_lk_hk_F - 1.)
+  R_min = L_inf / D
+  
+  # distribution at R_min
+  lkgalf = D * x_lk_FD[1] * (a_i_hk_F - 1.) / ((a_lk_hk_F - 1.) * F_liq * x_lk_FD[0])
+  hkhlaf = (a_lk_hk_F - a_i_hk_F) * D * x_hk_FD[1] / ((a_lk_hk_F - 1.) * F_liq * x_hk_FD[0])
+  D_i_Rmin = (lkgalf + hkhlaf) * F_liq * x_i_F # TODO check if this is actually what you are supposed to do here
+  B_i_Rmin = F * x_i_F - D_i_Rmin 
+  
+  cond = (lkgalf + hkhlaf) * F_liq / F # TODO check if this is actually what you are supposed to do here
+  typeII = np.any((cond < 0, cond > 1) , axis=1)
+  return common.SolutionObj(D_i_Rmin = D_i_Rmin, B_i_Rmin = B_i_Rmin, R_min = R_min, typeII = typeII)
+
+def underwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeII: npt.NDArray, psi: float):
+  '''
+  Calculates Type II.
+  
+  Parameters:
+  -----------
+  x_i_F : NDArray
+    Liquid mole fractions of all components in the feed stream.
+  a_i_hk_F : NDArray
+    Relative volatilities of all components relative to the heavy key at the feed plate.
+  typeII : NDArray
+    If a component failed to distribute, meaning the distilation column is Type II.
+  '''
+  x_i_F = np.atleast_1d(x_i_F)
+  a_i_hk_F = np.atleast_1d(a_i_hk_F)
+  typeII = np.atleast_1d(typeII)
+  tIa = a_i_hk_F[~typeII]
+  thetaranges = np.linspace(tIa[:-1], tIa[1:], 10).flatten("F")
+  thetasets = np.vstack(np.lib.stride_tricks.sliding_window_view(thetaranges, 2))
+  
+  def err(theta):
+    return psi - np.sum(a_i_hk_F * x_i_F / (a_i_hk_F - theta), keepdims=True)
+  
+  theta, _, _ = common.err_reduc_iterative(err, thetasets)
+  
+  theta.sort(); theta = theta[theta > np.min(tIa)]; theta = theta[theta < np.max(tIa)]
+  ltnind = (np.c_[theta] > tIa).sum(axis=1)
+  split_ind = np.where(ltnind[:-1] != ltnind[1:])[0] + 1
+  thetasgrouped = np.split(theta, split_ind) # theoretically will be len(tIa) - 1 groups of thetas that all converged to approx. the same number
+  
+  # no idea how to use theta to solve for component distilate flowrates when there can be arbitrarily many unknowns!!
+  
+  return
 
 def gilliland(Nmin: float, Rmin: float, Rmin_mult: float = 1.3) -> float:
   '''
@@ -833,42 +985,3 @@ def gilliland(Nmin: float, Rmin: float, Rmin_mult: float = 1.3) -> float:
   if Rmin > 0.53 or Rmin < 0.53 or Nmin <3.4 or Nmin > 60.3:
     raise Exception('Gilliland correlation is not valid in this case!')
   return (Nmin + Y) / (1 - Y)
-
-def type1_distro(D: float, L_F: float, LK: npt.ArrayLike, HK: npt.ArrayLike, i: npt.ArrayLike)->common.SolutionObj[npt.ArrayLike, npt.ArrayLike]:
-  '''
-  Solves for the mole fraction of non key components. All relative volitilities (α) are in relation to the high key
-
-  Parameters
-  ----------
-  D : float
-    Distillate flow rate
-  L_F : float
-    Molar liquid feed in moles/time (mol/h, mol/s, etc.) 
-  LK : ArrayLike
-    Low key component properties. must follow order [x_D_LK, x_F_LK, alpha_LK]
-  HK : ArrayLike
-    High key component properites must follow order [x_D_HK, x_F_HK]
-  i : ArrayLike
-    Non key component relative volatilities (α) []
-  
-  Returns
-  ----------
-  distro : ArrayLike
-    Array of component distributions (D x_i_D) / (L_F, x_i_F)
-  distro_truthmap : ArrayLike
-    Truthmap of whether or not components distribute (To be used with underwood_type2)
-  '''
-  distro = ((i - 1) / (LK[2] -1)) * ((D * LK[0]) / (L_F * LK[1])) + ((LK[2] - i) / (LK[2] - 1)) * ((D * HK[0]) / (L_F * HK[1]))
-  distro_truthmap = [True if i > 0 and i < 1 else False for i in distro]
-  sol = common.SolutionObj(distro = distro, distro_truthmap = distro_truthmap)
-  return sol
-# TODO : Finish Underwood Type 2
-def underwood_type2(alpha, x, distro_truthmap, psi):
-  alpha = np.atleast_1d(alpha)
-  distro_truthmap = np.atleast_1d(distro_truthmap)
-  N_acceptable = sum(bool(i) for i in distro_truthmap)
-  alpha_range = (np.min(alpha[distro_truthmap]), np.max(alpha[distro_truthmap]))
-  def underwood_sum(theta):
-    return np.sum(alpha * x / (alpha - theta)) - psi
-  pass 
-  

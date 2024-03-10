@@ -7,7 +7,7 @@ def bp_est(g : npt.NDArray) -> float:
 
   Parameters:
   -----------
-  g : ArrayLike
+  g : NDArray
     The frequency of a group's appearance and the group's contribution value. Shape must be N x 2.
       Ex) For a molecule containing 4 groups: np.array([[3, 1.233], [1, 23.5], [2, 44.6], [7, 103.6]])
   
@@ -88,7 +88,7 @@ def Kow_est(f: npt.NDArray) -> float:
 
   Parameters:
   -----------
-  g : ArrayLike
+  g : NDArray
     The frequency of a group's appearance, the group's contribution value, and the group's correction factor if necessary (0 for no correction). Shape must be N x 3.
       Ex) For a molecule containing 4 groups: np.array([[3, 1.233, 0], [1, 23.5, 0], [2, 44.6, 8.6], [7, 103.6, 13]])
   
@@ -168,7 +168,7 @@ def henry_est(g : npt.NDArray, T: float = None) -> tuple[float, str | None]:
 
   Parameters:
   -----------
-  g : ArrayLike
+  g : NDArray
     The frequency of a group's appearance, the group's contribution value, and the group's correction factor if necessary (0 for no correction). Shape must be N x 3.
       Ex) For a molecule containing 4 groups: np.array([[3, 1.233, 0], [1, 23.5, 0], [2, 44.6, 8.6], [7, 103.6, 13]])
   T : float
@@ -198,7 +198,7 @@ def soil_sorb_est(g: npt.NDArray, mole_con: npt.NDArray | float) -> float:
 
   Parameters:
   -----------
-  g : ArrayLike
+  g : NDArray
     The frequency of a group's appearance and the group's correction factor. Shape must be N x 2.
       Ex) For a molecule containing 4 groups: np.array([[3, 1.233], [1, 23.5], [2, 44.6], [7, 103.6]])
   mole_con: npt.NDArray | float
@@ -223,7 +223,7 @@ def biodegrade_est(g: npt.NDArray, MW: float) -> tuple[float, str]:
 
   Parameters:
   -----------
-  g : ArrayLike
+  g : NDArray
     The frequency of a group's appearance and the group's contribution value. Shape must be N x 2.
       Ex) For a molecule containing 4 groups: np.array([[3, 1.233], [1, 23.5], [2, 44.6], [7, 103.6]])
   MW: npt.NDArray | float
@@ -273,10 +273,10 @@ def hess(prod: npt.NDArray, reac: npt.NDArray):
 
   Parameters:
   -----------
-  prod : ArrayLike
+  prod : NDArray
     The product species' stoichiometric coefficient and delta H, S, or G for formation in J/mol (Joules per mole). Shape must be N x 2.
       Ex) np.array([coeff1, A1], [coeff2, A2], [coeff3, A3])
-  reac : ArrayLike
+  reac : NDArray
     The reactant species' stoichiometric coefficient and delta H, S, or G for formation in J/mol (Joules per mole). Shape must be N x 2.
       Ex) np.array([coeff1, A1], [coeff2, A2], [coeff3, A3])
   Returns:
@@ -295,10 +295,10 @@ def deltaH_est(prod: npt.NDArray, reac: npt.NDArray, T: float, deltaH_0: float, 
 
   Parameters:
   -----------
-  prod : ArrayLike
+  prod : NDArray
     The product species' stoichiometric coefficient and A, B, C, D specific heat constants. A is the vapor phase average specific heat in J/mol*K (Joule per mole Kelvin). Shape must be N x 5.
       Ex) np.array([coeff1, A1, B1, C1, D1], [coeff2, A2, B2, C2, D2], [coeff3, A3, B3, C3, D3])
-  reac : ArrayLike
+  reac : NDArray
     The reactant species' stoichiometric coefficient and A, B, C, D specific heat constants. A is the vapor phase average specific heat in J/mol*K (Joules per mole Kelvin). Shape must be N x 5.
       Ex) np.array([coeff1, A1, B1, C1, D1], [coeff2, A2, B2, C2, D2], [coeff3, A3, B3, C3, D3])
   T : float
@@ -326,10 +326,10 @@ def deltaS_est(prod: npt.NDArray, reac: npt.NDArray, T: float, deltaS_0: float, 
 
   Parameters:
   -----------
-  prod : ArrayLike
+  prod : NDArray
     The product species' stoichiometric coefficient and A, B, C, D specific heat constants. A is the vapor phase average specific heat in J/mol*K (Joule per mole Kelvin). Shape must be N x 5.
       Ex) np.array([coeff1, A1, B1, C1, D1], [coeff2, A2, B2, C2, D2], [coeff3, A3, B3, C3, D3])
-  reac : ArrayLike
+  reac : NDArray
     The reactant species' stoichiometric coefficient and A, B, C, D specific heat constants. A is the vapor phase average specific heat in J/mol*K (Joule per mole Kelvin). Shape must be N x 5.
       Ex) np.array([coeff1, A1, B1, C1, D1], [coeff2, A2, B2, C2, D2], [coeff3, A3, B3, C3, D3])
   T : float
@@ -376,10 +376,10 @@ def gibbs_est(prod: npt.NDArray, reac: npt.NDArray, T: float, deltaH_0: float, d
 
   Parameters:
   -----------
-  prod : ArrayLike
+  prod : NDArray
     The product species' stoichiometric coefficient and A, B, C, D specific heat constants. A is the vapor phase average specific heat in J/mol*K (Joule per mole Kelvin). Shape must be N x 5.
       Ex) np.array([coeff1, A1, B1, C1, D1], [coeff2, A2, B2, C2, D2], [coeff3, A3, B3, C3, D3])
-  reac : ArrayLike
+  reac : NDArray
     The reactant species' stoichiometric coefficient and A, B, C, D specific heat constants. A is the vapor phase average specific heat in J/mol*K (Joule per mole Kelvin). Shape must be N x 5.
       Ex) np.array([coeff1, A1, B1, C1, D1], [coeff2, A2, B2, C2, D2], [coeff3, A3, B3, C3, D3])
   T : float
@@ -408,10 +408,10 @@ def gibbs_est_HandS(prod: npt.NDArray, reac: npt.NDArray, T: float, deltaH_0: fl
 
   Parameters:
   -----------
-  prod : ArrayLike
+  prod : NDArray
     The product species' stoichiometric coefficient and A, B, C, D specific heat constants. A is the vapor phase average specific heat in J/mol*K (Joule per mole Kelvin). Shape must be N x 5.
       Ex) np.array([coeff1, A1, B1, C1, D1], [coeff2, A2, B2, C2, D2], [coeff3, A3, B3, C3, D3])
-  reac : ArrayLike
+  reac : NDArray
     The reactant species' stoichiometric coefficient and A, B, C, D specific heat constants. A is the vapor phase average specific heat in J/mol*K (Joule per mole Kelvin). Shape must be N x 5.
       Ex) np.array([coeff1, A1, B1, C1, D1], [coeff2, A2, B2, C2, D2], [coeff3, A3, B3, C3, D3])
   T : float
@@ -476,12 +476,12 @@ def fate_analysis(m: float, props: list, env_vol: list, env_dens : list, env_pro
   
   Returns
   -----------
-  fate : ArrayLike
+  fate : NDArray
     Quantity of compound retained within each environmental phase in mol/m^3, mol, and kg (moles per cubic meter, moles, and kilograms). Shape is 3 x 7. 
       Ex) np.array([[Air, Water, Soil, Bottom Sediment, Suspended Sediment, Fish, Aerosols] (mol/m^3),
                     [Air, Water, Soil, Bottom Sediment, Suspended Sediment, Fish, Aerosols] (mol),
                     [Air, Water, Soil, Bottom Sediment, Suspended Sediment, Fish, Aerosols] (kg) ])
-  env_cap : ArrayLike
+  env_cap : NDArray
     Capacity within each environmental phase in mol/Pa*m^3 (moles per Pascal meter cubed).
       Ex) np.array([Air, Water, Soil, Bottom Sediment, Suspended Sediment, Fish, Aerosols])
   fugac : float
@@ -515,7 +515,7 @@ def atom_economy(atoms: npt.NDArray) -> float:
 
   Parameters:
   -----------
-  atoms : ArrayLike
+  atoms : NDArray
     The element's molecular weight in kg/kmol (kilograms per kilomole), the element's quantity in the target product and the element's element's quantity among all reactants. Shape must be N x 3.
       Ex) For a reaction containing 4 elements: np.array([[12., 4, 0], [16, 5, 2], [1, 22, 8], [35.5, 2, 0]])
 

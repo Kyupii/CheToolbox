@@ -450,30 +450,38 @@ def vertical_line(x) -> LinearEq:
 def horizontal_line(y) -> LinearEq:
   return LinearEq(0., y)
 
-def point_conn(point1: tuple[float, float], point2: tuple[float, float]) -> LinearEq:
+def point_conn(point1: npt.NDArray, point2: npt.NDArray, avgmode = False) -> LinearEq | npt.NDArray: #numpy compatible
   '''
   Calculates equation of a line from two points.
   '''
-  point1 = np.atleast_1d(point1); point2 = np.atleast_1d(point2)
-  if point1[0] == point2[0]:
-    return vertical_line(point1[0])
-  elif point1[1] == point2[1]:
-    return horizontal_line(point1[1])
-  m = (point1[1] - point2[1]) / (point1[0] - point2[0])
-  b = point1[1] - m * point1[0]
-  return LinearEq(m, b)
+  point1 = np.atleast_2d(point1).reshape(-1, 2)
+  point2 = np.atleast_2d(point2).reshape(-1, 2)
+  lines = np.zeros_like(point1[:, 0]).astype(np.object_)
+  lines[point1[:, 0] == point2[:, 0]] = [vertical_line(x) for x in point1[:, 0][point1[:, 0] == point2[:, 0]]]
+  lines[point1[:, 1] == point2[:, 1]] = [horizontal_line(y) for y in point1[:, 1][point1[:, 1] == point2[:, 1]]]
+  runcalcs = ~np.any(point1 == point2, axis=1)
+  if np.any(runcalcs):
+    m = (point1[:, 1][runcalcs] - point2[:, 1][runcalcs]) / (point1[:, 0][runcalcs] - point2[:, 0][runcalcs])
+    b = point1[:, 1][runcalcs] - m * point1[:, 0][runcalcs]
+    lines[runcalcs] = [LinearEq(m[i], b[i]) for i in np.arange(len([runcalcs]))]
+  if avgmode:
+    # any vertical lines (m = np.NaN) will poison this
+    return LinearEq(np.average([li.m for li in lines]), np.average([li.b for li in lines]))
+  return lines[0] if len(lines) == 1 else lines
 
-def point_slope(point: tuple[float, float], slope: float ) -> LinearEq:
+def point_slope(point: npt.NDArray, slope: npt.NDArray ) -> LinearEq | npt.NDArray: #numpy compatible
   '''
   Calculates equation of a line from a point and its slope.
   '''
-  point = np.atleast_1d(point)
-  if np.isnan(slope):
-    return vertical_line(point[0])
-  elif slope == 0.:
-    return horizontal_line(point[1])
-  else:
-    return LinearEq(slope, -slope * point[0] + point[1])
+  point = np.atleast_2d(point).reshape(-1, 2)
+  slope = np.atleast_1d(slope)
+  lines = np.zeros_like(slope).astype(np.object_)
+  lines[np.isnan(slope)] = [vertical_line(x) for x in point[:, 0][np.isnan(slope)]]
+  lines[slope == 0.] = [horizontal_line(y) for y in point[:, 1][slope == 0.]]
+  runcalcs = ~np.logical_or(np.isnan(slope), slope == 0.)
+  b = -slope[runcalcs] * point[:, 0][runcalcs] + point[:, 1][runcalcs]
+  lines[runcalcs] = [LinearEq(slope[runcalcs][i], b[i]) for i in np.arange(len([runcalcs]))]
+  return lines[0] if len(lines) == 1 else lines
 
 def linear_intersect(line1: LinearEq, line2: LinearEq) -> tuple[float, float] | None:
   '''
@@ -490,15 +498,17 @@ def linear_intersect(line1: LinearEq, line2: LinearEq) -> tuple[float, float] | 
     x = (line1.b - line2.b)/(line2.m - line1.m)
   return x, line1.eval(x)
 
-def quadratic_formula(coeff: npt.NDArray) -> npt.NDArray | None:
+def quadratic_formula(coeff: npt.NDArray) -> npt.NDArray: #numpy compatible
   '''
   Calculates the roots of a quadratic equation. Ignores imaginary roots.
   '''
-  coeff = np.atleast_1d(coeff)
-  descrim = coeff[1]**2 - 4.*coeff[0]*coeff[2]
-  if descrim < 0.:
-    return None
-  return (- coeff[1] + np.sqrt(descrim) * np.array([1., -1.])) / (2. * coeff[0])
+  coeff = np.atleast_2d(coeff)
+  descrim = coeff[:, 1]**2 - 4.*coeff[:, 0]*coeff[:, 2]
+  roots = np.zeros_like(coeff[:, :-1])
+  roots[descrim < 0.] = np.NaN
+  rad = np.c_[np.sqrt(descrim[descrim >= 0.])] * np.array([1., -1.])
+  roots[descrim >= 0., :] = (np.c_[-coeff[:, 1][descrim >= 0.]] + rad) / (2. * np.c_[coeff[:, 0][descrim >= 0.]])
+  return roots[0] if len(roots) == 1 else roots
 
 def cubic_formula(coeff: npt.NDArray) -> npt.NDArray:
   '''
@@ -566,7 +576,7 @@ def raoult_XtoY(x: list, K: list) -> tuple[npt.NDArray, float]:
   
   Returns
   ---------
-  y : ArrayLike
+  y : NDArray
     Component mole fractions of the feed's vapor phase (unitless).
   error : float
     Error of calculated vapor phase component mole fractions.
@@ -590,7 +600,7 @@ def raoult_YtoX(y: list, K: list) -> tuple[npt.NDArray, float]:
     
   Returns
   ---------
-  x : ArrayLike
+  x : NDArray
     Component mole fractions of the feed's liquid phase (unitless).
   error : float
     Error of calculated liquid phase component mole fractions.
@@ -673,7 +683,7 @@ def err_reduc(err_calc: Callable[[npt.NDArray], npt.NDArray], x: npt.NDArray, to
   x[(np.arange(x.shape[0]), err.argmax(axis=1))] = xnew
   return x, err
 
-def err_reduc_iterative(err_calc: Callable[[float], float], x: npt.NDArray, tol: float = 1e-10) -> tuple[npt.NDArray, npt.NDArray, int]:
+def err_reduc_iterative(err_calc: Callable[[float | npt.NDArray], float | npt.NDArray], x: npt.NDArray, tol: float = 1e-10) -> tuple[npt.NDArray, npt.NDArray, int]:
   '''
   Accepts pairs of inputs and an error function. Returns inputs with tolerable error, the errors, and the number of iterations required.
   Expects 2D arrays, of shape N x 2.
