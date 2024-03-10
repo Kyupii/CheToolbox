@@ -862,7 +862,7 @@ def type1_distro(D: float, L_F: float, LK: npt.ArrayLike, HK: npt.ArrayLike, i: 
   distro_truthmap = [True if i > 0 and i < 1 else False for i in distro]
   sol = common.SolutionObj(distro = distro, distro_truthmap = distro_truthmap)
   return sol
-  
+# TODO : Finish Underwood Type 2
 def underwood_type2(alpha, x, distro_truthmap, psi):
   alpha = np.atleast_1d(alpha)
   distro_truthmap = np.atleast_1d(distro_truthmap)

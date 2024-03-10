@@ -603,6 +603,50 @@ def raoult_YtoX(y: list, K: list) -> tuple[npt.NDArray, float]:
 # endregion
 
 # region Iterative Tools
+
+def approx_deriv(f: Callable, i: npt.NDArray, step: float = 0.001):
+  '''
+  Finite approximation of a derivative
+  
+  Parameters
+  ----------
+  f : Callable
+    Function to be root-solved
+  i : NDArray
+    Initial guess of the root
+  step : float
+    Step size of finite approximation
+  Returns
+  ----------
+  tangent : NDArray | Float
+  Finite approximation of the derivative. (Slope of tangent line)
+  '''
+  i = np.atleast_1d(i)
+  return f((i+step) - i) - ((i+step)-i)
+# TODO : Should figure out exception handling for the root solver. 
+def root_newton(f: Callable, i: npt.NDArray, tol: float = 0.00001):
+  '''
+  Finite approximation of a derivative
+  
+  Parameters
+  ----------
+  f : Callable
+    Function to be root-solved
+  i : NDArray
+    Initial guess of the root
+  tol : float
+    Tolerance of solver. Default of 0.00001
+  Returns
+  ----------
+  root : NDArray | Float
+    Converged value of the root
+  '''
+  i = np.atleast_1d(i)
+  f_prime = approx_deriv(f,i)
+  while f(i) > tol:
+    i = i - (f(i)/f_prime)
+    f_prime = approx_deriv(f,i)
+  return i
 def lin_estimate_error(x_pair: npt.NDArray, y_pair: npt.NDArray, tol: float = 1e-10) -> npt.NDArray:
   '''
   Calculates the x-intercept (y == 0) for pairs of x and y distances. Assumes linearity.
