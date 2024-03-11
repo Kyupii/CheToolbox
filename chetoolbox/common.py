@@ -632,7 +632,7 @@ def approx_deriv(f: Callable, i: npt.NDArray, step: float = 0.001):
   Finite approximation of the derivative. (Slope of tangent line)
   '''
   i = np.atleast_1d(i)
-  return f((i+step) - i) / ((i+step)-i)
+  return (f((i+step) ) - f(i)) / ((step))
 # TODO : Should figure out exception handling for the root solver. 
 def root_newton(f: Callable, i: npt.NDArray, tol: float = 0.00001):
   '''
