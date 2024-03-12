@@ -654,6 +654,8 @@ def root_newton(f: Callable, i: npt.NDArray, tol: float = 0.00001):
   i = np.atleast_1d(i)
   f_prime = approx_deriv(f,i)
   while np.abs(f(i)) > tol:
+    if f_prime == 0:
+      raise Exception('Extrema encountered, convergence is terminated')
     i = i - (f(i)/f_prime)
     f_prime = approx_deriv(f,i)
 
