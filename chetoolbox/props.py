@@ -1,5 +1,9 @@
 import numpy as np
 from numpy import typing as npt
+import pandas as pd
+
+def __init__():
+  antoine = pd.read_csv('antoine.csv')
 
 def bp_est(g : npt.NDArray) -> float:
   '''
