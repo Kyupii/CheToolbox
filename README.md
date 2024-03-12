@@ -9,6 +9,7 @@ The following dependencies will be necessary for CheToolbox to build properly,
 - Python >= 2.7: http://www.python.org/ (also install development files)
 - SciPy >= 0.11.0: http://www.scipy.org/
 - NumPy >= 1.16.0: http://www.numpy.org/
+- Pandas >= 2.2.1 https://pandas.pydata.org/
 ## Usage
 ```py
 import numpy as np

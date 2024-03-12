@@ -2,8 +2,34 @@ import numpy as np
 from numpy import typing as npt
 import pandas as pd
 
-def __init__():
+def antoine_coeff(query: str | npt.NDArray):
+  '''
+  Obtains antoine coefficients for components based on a query 
+
+  Parameters:
+  -----------
+  Query: Float | NDArray
+    A single string query or an array of string values 
+  
+  Returns:
+  -----------
+  ABC : NDArray
+    Antoine coefficients
+
+  Example Usage:
+  -----------
+  ```py
+  props.antoine_coeff(['c1','c2', 'ic4'])
+  ```
+  '''
   antoine = pd.read_csv('antoine.csv')
+  ABC = np.array([])
+  if type(query) == str:
+    return antoine.loc[antoine.loc[:,'Compound Name'] == query].iloc[:,3:6].to_numpy()
+  else:
+    for i, item in enumerate(query):
+      ABC = np.append(ABC,antoine.loc[antoine.loc[:,'Compound Name'] == item].iloc[:,3:6].to_numpy()).reshape((-1,3))
+    return ABC
 
 def bp_est(g : npt.NDArray) -> float:
   '''
@@ -15,7 +41,7 @@ def bp_est(g : npt.NDArray) -> float:
     The frequency of a group's appearance and the group's contribution value. Shape must be N x 2.
       Ex) For a molecule containing 4 groups: np.array([[3, 1.233], [1, 23.5], [2, 44.6], [7, 103.6]])
   
-  Retruns:
+  Returns:
   -----------
   T_b : float
     Estimated boiling point temperature in K (Kelvin).
