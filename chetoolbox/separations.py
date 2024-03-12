@@ -927,6 +927,22 @@ def underwood_type1(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, x_lk_FD: npt.NDAr
   typeII = np.any((cond < 0, cond > 1) , axis=1)
   return common.SolutionObj(D_i_Rmin = D_i_Rmin, B_i_Rmin = B_i_Rmin, R_min = R_min, typeII = typeII)
 
+# I am trying to make sense of this too. Trying to figure out how to get Theta -> Flow rates
+def quanderwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeII: npt.NDArray, psi: float):
+  x_i_F = np.atleast_1d(x_i_F)
+  a_i_hk_F = np.atleast_1d(a_i_hk_F)
+  typeII = np.atleast_1d(typeII)
+  theta_range = (np.min(a_i_hk_F[typeII]),np.max(a_i_hk_F[typeII]))
+  theta = np.array([])
+  walker = theta_range[0]+.001
+  def err(theta):
+    return psi - np.sum(a_i_hk_F * x_i_F / (a_i_hk_F - theta))
+  for i in np.linspace(theta_range[0],theta_range[1],1000):
+    j = common.root_newton(err,i) 
+    if j < theta_range[1] and j > theta_range[0]:
+      theta = np.append(theta,j)
+  return np.unique(np.round(theta,3))
+
 def underwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeII: npt.NDArray, psi: float):
   '''
   Calculates Type II.

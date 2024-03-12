@@ -614,7 +614,7 @@ def raoult_YtoX(y: list, K: list) -> tuple[npt.NDArray, float]:
 
 # region Iterative Tools
 
-def approx_deriv(f: Callable, i: npt.NDArray, step: float = 0.001):
+def approx_deriv(f: Callable, i: npt.NDArray, step: float = 0.0001):
   '''
   Finite approximation of a derivative
   
@@ -631,7 +631,7 @@ def approx_deriv(f: Callable, i: npt.NDArray, step: float = 0.001):
   tangent : NDArray | Float
   Finite approximation of the derivative. (Slope of tangent line)
   '''
-  i = np.atleast_1d(i)
+  # i = np.atleast_1d(i)
   return (f((i+step) ) - f(i)) / ((step))
 # TODO : Should figure out exception handling for the root solver. 
 def root_newton(f: Callable, i: npt.NDArray, tol: float = 0.00001):
@@ -653,9 +653,10 @@ def root_newton(f: Callable, i: npt.NDArray, tol: float = 0.00001):
   '''
   i = np.atleast_1d(i)
   f_prime = approx_deriv(f,i)
-  while f(i) > tol:
+  while np.abs(f(i)) > tol:
     i = i - (f(i)/f_prime)
     f_prime = approx_deriv(f,i)
+
   return i
 def lin_estimate_error(x_pair: npt.NDArray, y_pair: npt.NDArray, tol: float = 1e-10) -> npt.NDArray:
   '''
