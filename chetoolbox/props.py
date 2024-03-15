@@ -557,3 +557,13 @@ def atom_economy(atoms: npt.NDArray) -> float:
 
   atoms = np.atleast_1d(atoms).reshape(-1, 3)
   return np.sum(atoms[:,0] * atoms[:,1]) / np.sum(atoms[:,0] * atoms[:,2])
+
+def k_est_regression(P: float, T: float, query: str | npt.NDArray):
+  df = pd.read_csv('k_hydrocarbons.csv')
+  coeff = np.array([])
+  if type(query) == str:
+    coeff = df.loc[df.loc[:,'Hydrocarbon'] == query].iloc[:,3:14].to_numpy()
+  else:
+    for i, item in enumerate(query):
+      coeff = np.append(coeff,df.loc[df.loc[:,'Hydrocarbon'] == item].iloc[:,3:14].to_numpy()).reshape((-1,11))
+  return np.exp(coeff) # OK so we do not have a correct equation (or coefficients for all we know...) 
