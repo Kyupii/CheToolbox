@@ -5,7 +5,7 @@ import pandas as pd
 def antoine_coeff(query: str | npt.NDArray):
   '''
   Obtains antoine coefficients for components based on a query 
-
+  
   Parameters:
   -----------
   Query: Float | NDArray
@@ -22,7 +22,7 @@ def antoine_coeff(query: str | npt.NDArray):
   props.antoine_coeff(['c1','c2', 'ic4'])
   ```
   '''
-  antoine = pd.read_csv('antoine.csv')
+  antoine = pd.read_csv('datasets/antoine.csv')
   ABC = np.array([])
   if type(query) == str:
     return antoine.loc[antoine.loc[:,'Compound Name'] == query].iloc[:,3:6].to_numpy()
@@ -115,7 +115,7 @@ def pvap_liq_est(T_b: float, K_F: float, T: float)-> float:
 def Kow_est(f: npt.NDArray) -> float:
   '''
   Estimates the octanol / water equilibrium constant of a compound via the group contribution method.
-
+  
   Parameters:
   -----------
   g : NDArray
@@ -132,7 +132,7 @@ def Kow_est(f: npt.NDArray) -> float:
 def bioconc_est(K_ow: float, c: list = None) -> tuple[float, str]:
   '''
   Estimates the tissue / water bioconcentration factor of a compound.
-
+  
   Parameters:
   -----------
   K_ow : float
@@ -159,7 +159,7 @@ def bioconc_est(K_ow: float, c: list = None) -> tuple[float, str]:
 def water_sol_est(K_ow: float, c: list = None, T_m: float = None, MW: float = None) -> tuple[float, str]: 
   '''
   Estimates the water solubility of a compound. Either T_m, MW, or both are required.
-
+  
   Parameters:
   -----------
   K_ow : float
@@ -195,7 +195,7 @@ def water_sol_est(K_ow: float, c: list = None, T_m: float = None, MW: float = No
 def henry_est(g : npt.NDArray, T: float = None) -> tuple[float, str | None]: 
   '''
   Estimates the Henry's Law constant of a compound by group contribution method.
-
+  
   Parameters:
   -----------
   g : NDArray
@@ -203,7 +203,7 @@ def henry_est(g : npt.NDArray, T: float = None) -> tuple[float, str | None]:
       Ex) For a molecule containing 4 groups: np.array([[3, 1.233, 0], [1, 23.5, 0], [2, 44.6, 8.6], [7, 103.6, 13]])
   T : float
     Current temperature of the compound in K (Kelvin).
-
+  
   Returns:
   -----------
   H : float
@@ -225,7 +225,7 @@ def henry_est(g : npt.NDArray, T: float = None) -> tuple[float, str | None]:
 def soil_sorb_est(g: npt.NDArray, mole_con: npt.NDArray | float) -> float:
   '''
   Estimates the soil sobrtion coefficient of a compound via the group contribution method.
-
+  
   Parameters:
   -----------
   g : NDArray
@@ -250,7 +250,7 @@ def soil_sorb_est(g: npt.NDArray, mole_con: npt.NDArray | float) -> float:
 def biodegrade_est(g: npt.NDArray, MW: float) -> tuple[float, str]:
   '''
   Estimates the biodegradation index of a compound via the group contribution method.
-
+  
   Parameters:
   -----------
   g : NDArray
@@ -280,7 +280,7 @@ def biodegrade_est(g: npt.NDArray, MW: float) -> tuple[float, str]:
 def cp_est(const: list, T: float) -> float:
   '''
   Estimates the specific heat capacity of a compound.
-
+  
   Parameters:
   -----------
   const : list
@@ -300,7 +300,7 @@ def cp_est(const: list, T: float) -> float:
 def hess(prod: npt.NDArray, reac: npt.NDArray):
   '''
   Estimates change in enthalpy, entropy, or Gibb's free energy based on formation values for delta H, delta S or delta G.
-
+  
   Parameters:
   -----------
   prod : NDArray
@@ -322,7 +322,7 @@ def hess(prod: npt.NDArray, reac: npt.NDArray):
 def deltaH_est(prod: npt.NDArray, reac: npt.NDArray, T: float, deltaH_0: float, T_0: float = 298.) -> float:
   '''
   Estimates enthalpy of a balanced chemical reaction. A negative value indicates a net energy release.
-
+  
   Parameters:
   -----------
   prod : NDArray
@@ -353,7 +353,7 @@ def deltaH_est(prod: npt.NDArray, reac: npt.NDArray, T: float, deltaH_0: float, 
 def deltaS_est(prod: npt.NDArray, reac: npt.NDArray, T: float, deltaS_0: float, T_0: float = 298.) -> float:
   '''
   Estimates entropy of a balanced chemical reaction. A negative value indicates a net increase in order.
-
+  
   Parameters:
   -----------
   prod : NDArray
@@ -383,7 +383,7 @@ def deltaS_est(prod: npt.NDArray, reac: npt.NDArray, T: float, deltaS_0: float, 
 def gibbs_rxn(deltaH: float, deltaS: float, T: float) -> float:
   '''
   Calculates Gibbs free energy of a balanced chemical reaction from the reaction's net change in enthalpy and entropy. A negative value indicates a spontaneous reaction.
-
+  
   Parameters:
   -----------
   deltaH : float
@@ -403,7 +403,7 @@ def gibbs_rxn(deltaH: float, deltaS: float, T: float) -> float:
 def gibbs_est(prod: npt.NDArray, reac: npt.NDArray, T: float, deltaH_0: float, deltaG_0: float, T_0: float = 298.) -> float:
   '''
   Estimates Gibbs free energy of a balanced chemical reaction via its standard net change in enthalpy and Gibbs free energy. A negative value indicates a spontaneous reaction.
-
+  
   Parameters:
   -----------
   prod : NDArray
@@ -435,7 +435,7 @@ def gibbs_est(prod: npt.NDArray, reac: npt.NDArray, T: float, deltaH_0: float, d
 def gibbs_est_HandS(prod: npt.NDArray, reac: npt.NDArray, T: float, deltaH_0: float, deltaS_0: float, T_0: float = 298.) -> float:
   '''
   Estimates Gibbs free energy of a balanced chemical reaction via its standard net change in enthalpy and entropy. A negative value indicates a spontaneous reaction.
-
+  
   Parameters:
   -----------
   prod : NDArray
@@ -468,7 +468,7 @@ def gibbs_est_HandS(prod: npt.NDArray, reac: npt.NDArray, T: float, deltaH_0: fl
 def k_est_gibbs(G: float, T: float) -> float:
   '''
   Estimates equilibrium constant of a reaction from Gibbs free energy.
-
+  
   Parameters:
   -----------
   G : float
@@ -486,7 +486,7 @@ def k_est_gibbs(G: float, T: float) -> float:
 def fate_analysis(m: float, props: list, env_vol: list, env_dens : list, env_props: list) -> npt.NDArray:
   '''
   Calculates the volumetric retention of a compound in the environment based on its chemical properties.
-
+  
   Parameters:
   -----------
   m : float
@@ -542,7 +542,7 @@ def fate_analysis(m: float, props: list, env_vol: list, env_dens : list, env_pro
 def atom_economy(atoms: npt.NDArray) -> float:
   '''
   Calculates the atom economy of a reaction for a specific produced compound by elemental mass.
-
+  
   Parameters:
   -----------
   atoms : NDArray
@@ -559,7 +559,7 @@ def atom_economy(atoms: npt.NDArray) -> float:
   return np.sum(atoms[:,0] * atoms[:,1]) / np.sum(atoms[:,0] * atoms[:,2])
 
 def k_est_regression(P: float, T: float, query: str | npt.NDArray):
-  df = pd.read_csv('k_hydrocarbons.csv')
+  df = pd.read_csv('datasets/k_hydrocarbons.csv')
   coeff = np.array([])
   if type(query) == str:
     coeff = df.loc[df.loc[:,'Hydrocarbon'] == query].iloc[:,3:14].to_numpy()
