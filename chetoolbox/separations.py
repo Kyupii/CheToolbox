@@ -103,7 +103,7 @@ def dew_point_stepper(y: list, K: list) -> common.SolutionObj[float, npt.NDArray
   err = np.sum(x) - 1 
   return common.SolutionObj(x = x, err = err)
 
-def bubble_point_antoine(x: list, ant_coeff: npt.NDArray, P: float, tol: float = .05) -> common.SolutionObj[float, npt.NDArray, npt.NDArray, npt.NDArray, float, int]:
+def bubble_temp_antoine(x: list, ant_coeff: npt.NDArray, P: float, tol: float = .05) -> common.SolutionObj[float, npt.NDArray, npt.NDArray, npt.NDArray, float, int]:
   '''
   Iteratively solves for the bubble point temperature of a multi-component liquid mixture.
 
@@ -153,7 +153,7 @@ def bubble_point_antoine(x: list, ant_coeff: npt.NDArray, P: float, tol: float =
   Pvap, k, y = TtoY(bubbleT)
   return common.SolutionObj(bubbleT = bubbleT, Pvap = Pvap, k = k, y = y, error = error, i = i)
 
-def dew_point_antoine(y: list, ant_coeff: npt.NDArray, P: float, tol: float = .05) -> common.SolutionObj[float, npt.NDArray, npt.NDArray, npt.NDArray, float, int]:
+def dew_temp_antoine(y: list, ant_coeff: npt.NDArray, P: float, tol: float = .05) -> common.SolutionObj[float, npt.NDArray, npt.NDArray, npt.NDArray, float, int]:
   '''
   Iteratively solves for the dew point temperature of a multi-component vapor mixture.
 
@@ -972,6 +972,7 @@ def underwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeII: npt.NDArr
   ltnind = (np.c_[theta] > tIa).sum(axis=1)
   split_ind = np.where(ltnind[:-1] != ltnind[1:])[0] + 1
   thetasgrouped = np.split(theta, split_ind) # theoretically will be len(tIa) - 1 groups of thetas that all converged to approx. the same number
+  thetas = [np.average(thet) for thet in thetasgrouped]
   
   # no idea how to use theta to solve for component distilate flowrates when there can be arbitrarily many unknowns!!
   

@@ -15,7 +15,7 @@ def antoine_coeff(query: str | npt.NDArray):
   -----------
   ABC : NDArray
     Antoine coefficients
-
+  
   Example Usage:
   -----------
   ```py
