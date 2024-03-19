@@ -203,7 +203,7 @@ def dew_temp_antoine(y: list, ant_coeff: npt.NDArray, P: float, tol: float = .05
   Pvap, k, y = TtoX(dewT)
   return common.SolutionObj(dewT = dewT, Pvap = Pvap, k = k, y = y, error = error, i = i)
 
-def bubble_press_antoine(x: list, ant_coeff: npt.NDArray, T: float, tol: float = .05) -> float:
+def bubble_press_antoine(x: list, ant_coeff: npt.NDArray, T: float) -> float:
   '''
   Iteratively solves for the bubble point pressure of a multi-component liquid mixture.
   
@@ -217,24 +217,18 @@ def bubble_press_antoine(x: list, ant_coeff: npt.NDArray, T: float, tol: float =
     Ambient temperature of the liquid mixture in K (Kelvin).
   tol : float
     Largest error value to stop iterating and return.
-
+  
   Returns
   ----------
-  bubbleT : float
-    Temperature of the liquid mixture's bubble point in C (Celcius).
+  bubbleP : float
+    Pressure of the liquid mixture's bubble point in mmHg (millimeters of mercury).
+  Pvaps : NDArray
+    Vapor pressures of the liquid mixture's components in mmHg (millimeters of mercury).
   '''
   x = np.atleast_1d(x)
   ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
   Pvaps = common.antoine_P(ant_coeff, T)
-  P = np.sum(Pvaps)
-  
-  def err(P):
-    K = Pvaps / np.c_[P] #Raoult's Law
-    y = x * np.c_[K]
-    return np.sum(y, axis=0, keepdims=True) - 1.
-  
-  bubbleP, _, _ = common.err_reduc_iterative(err, [np.max(Pvaps), np.min(Pvaps)], tol)
-  return bubbleP[0]
+  return common.SolutionObj(bubbleP=np.sum(Pvaps*x), Pvaps=Pvaps)
 
 def liq_frac_subcooled(Cpl: float, heatvap: float, Tf: float, Tb: float) -> float:
   '''

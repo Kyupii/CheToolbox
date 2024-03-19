@@ -19,17 +19,21 @@ def antoine_coeff(query: str | npt.NDArray):
   Example Usage:
   -----------
   ```py
-  props.antoine_coeff(['c1','c2', 'ic4'])
+  props.antoine_coeff(['c1', 'c2', 'ic4'])
   ```
   '''
+  query = np.atleast_1d(query)
+  headers = ["ID", "Formula", "Compound Name", "A", "B", "C", "TMIN", "TMAX"]
+  if type(query[0]) == np.str_: #assume name
+    col = headers[2]
+  else: # assume ID
+    col = headers[0]
+  
   antoine = pd.read_csv('datasets/antoine.csv')
-  ABC = np.array([])
-  if type(query) == str:
-    return antoine.loc[antoine.loc[:,'Compound Name'] == query].iloc[:,3:6].to_numpy()
-  else:
-    for i, item in enumerate(query):
-      ABC = np.append(ABC,antoine.loc[antoine.loc[:,'Compound Name'] == item].iloc[:,3:6].to_numpy()).reshape((-1,3))
-    return ABC
+  coeff = np.zeros((query.shape[-1], 3))
+  for i, item in enumerate(query):
+    coeff[i] = antoine[antoine.loc[:, col] == item].iloc[:, 3:6].to_numpy()
+  return coeff
 
 def bp_est(g : npt.NDArray) -> float:
   '''
