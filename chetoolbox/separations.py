@@ -77,7 +77,7 @@ def bubble_press_antoine(x: list, ant_coeff: npt.NDArray, T: float) -> float:
   bubbleP = np.sum(Pvaps*x, axis=0)
   return common.SolutionObj(bubbleP=bubbleP, Pvaps=Pvaps)
 
-def dew_press_antoine(x: list, ant_coeff: npt.NDArray, T: float) -> float:
+def dew_press_antoine(y: list, ant_coeff: npt.NDArray, T: float) -> float:
   '''
   Iteratively solves for the bubble point pressure of a multi-component liquid mixture.
   
