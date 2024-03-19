@@ -51,25 +51,76 @@ def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> common.Soluti
   y_out = (x * K) / (1 + psi * (K - 1))
   return common.SolutionObj(psi = psi, x_out = x_out, y_out = y_out, error = error(psi), i = i)
 
+def bubble_press_antoine(x: list, ant_coeff: npt.NDArray, T: float) -> float:
+  '''
+  Iteratively solves for the bubble point pressure of a multi-component liquid mixture.
+  
+  Parameters
+  ----------
+  x : list
+    Component mole fractions of the liquid mixture (unitless). Must sum to 1.
+  ant_coeff : NDArray
+    Components' coefficients for the Antoine Equation of State (unitless). Shape must be N x 3.
+  T : float
+    Ambient temperature of the liquid mixture in K (Kelvin).
+  
+  Returns
+  ----------
+  bubbleP : float
+    Pressure of the liquid mixture's bubble point in mmHg (millimeters of mercury).
+  Pvaps : NDArray
+    Vapor pressures of the liquid mixture's components in mmHg (millimeters of mercury).
+  '''
+  x = np.atleast_1d(x)
+  ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
+  Pvaps = common.antoine_P(ant_coeff, T)
+  bubbleP = np.sum(Pvaps*x, axis=0)
+  return common.SolutionObj(bubbleP=bubbleP, Pvaps=Pvaps)
+
+def dew_press_antoine(x: list, ant_coeff: npt.NDArray, T: float) -> float:
+  '''
+  Iteratively solves for the bubble point pressure of a multi-component liquid mixture.
+  
+  Parameters
+  ----------
+  y : list
+    Component mole fractions of the vapor mixture (unitless). Must sum to 1.
+  ant_coeff : NDArray
+    Components' coefficients for the Antoine Equation of State (unitless). Shape must be N x 3.
+  T : float
+    Ambient temperature of the liquid mixture in K (Kelvin).
+  
+  Returns
+  ----------
+  dewP : float
+    Pressure of the liquid mixture's bubble point in mmHg (millimeters of mercury).
+  Pvaps : NDArray
+    Vapor pressures of the liquid mixture's components in mmHg (millimeters of mercury).
+  '''
+  y = np.atleast_1d(y)
+  ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
+  Pvaps = common.antoine_P(ant_coeff, T)
+  dewP = 1. / np.sum(y / Pvaps, axis=0)
+  return common.SolutionObj(dewP=dewP, Pvaps=Pvaps)
+
+# TODO finish these stepper functions, or delete them
 def bubble_point_stepper(x: list, K: list) -> common.SolutionObj[float, npt.NDArray, float]:
   '''
   Intended to be used with a DePriester Chart. Calculates the vapor mole fractions & associated error, then proposes a new temperature on the DePriester chart to try.
-
+  
   Parameters
   ----------
   x : list
     Component mole fractions of the liquid mixture (unitless). Must sum to 1.
   K : list
     Component equilibrium constants
-
-
+  
   Returns
   ----------
   err : float
     associated error of the proposed bubble point temperature
   y : list
     list of vapor mole fractions based on equilibrium constants
-
   '''
   x = np.atleast_1d(x)
   K = np.atleast_1d(K)
@@ -80,22 +131,20 @@ def bubble_point_stepper(x: list, K: list) -> common.SolutionObj[float, npt.NDAr
 def dew_point_stepper(y: list, K: list) -> common.SolutionObj[float, npt.NDArray, float]:
   '''
   Intended to be used with a DePriester Chart. Calculates the vapor mole fractions & associated error, then proposes a new temperature on the DePriester chart to try.
-
+  
   Parameters
   ----------
   y : list
     Component mole fractions of the vapor mixture (unitless). Must sum to 1.
   K : list
     Component equilibrium constants
-
-
+  
   Returns
   ----------
   err : float
     associated error of the proposed dew point temperature
   x : list
     list of liquid mole fractions based on equilibrium constants
-
   '''
   y = np.atleast_1d(x)
   K = np.atleast_1d(K)
@@ -103,10 +152,11 @@ def dew_point_stepper(y: list, K: list) -> common.SolutionObj[float, npt.NDArray
   err = np.sum(x) - 1 
   return common.SolutionObj(x = x, err = err)
 
+# TODO refactor these to use the b/d_press_antoine functions
 def bubble_temp_antoine(x: list, ant_coeff: npt.NDArray, P: float, tol: float = .05) -> common.SolutionObj[float, npt.NDArray, npt.NDArray, npt.NDArray, float, int]:
   '''
   Iteratively solves for the bubble point temperature of a multi-component liquid mixture.
-
+  
   Parameters
   ----------
   x : list
@@ -117,7 +167,7 @@ def bubble_temp_antoine(x: list, ant_coeff: npt.NDArray, P: float, tol: float = 
     Ambient pressure of the liquid mixture in mmHg (millimeters of mercury).
   tol : float
     Largest error value to stop iterating and return.
-
+  
   Returns
   ----------
   bubbleT : float
@@ -136,7 +186,7 @@ def bubble_temp_antoine(x: list, ant_coeff: npt.NDArray, P: float, tol: float = 
   x = np.atleast_1d(x)
   ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
   boil_points = common.antoine_T(ant_coeff, P)
-
+  
   def TtoY(T):
     Pvap = common.antoine_P(ant_coeff, T)
     k = Pvap / P
@@ -203,37 +253,10 @@ def dew_temp_antoine(y: list, ant_coeff: npt.NDArray, P: float, tol: float = .05
   Pvap, k, y = TtoX(dewT)
   return common.SolutionObj(dewT = dewT, Pvap = Pvap, k = k, y = y, error = error, i = i)
 
-def bubble_press_antoine(x: list, ant_coeff: npt.NDArray, T: float) -> float:
-  '''
-  Iteratively solves for the bubble point pressure of a multi-component liquid mixture.
-  
-  Parameters
-  ----------
-  x : list
-    Component mole fractions of the liquid mixture (unitless). Must sum to 1.
-  ant_coeff : NDArray
-    Components' coefficients for the Antoine Equation of State (unitless). Shape must be N x 3.
-  T : float
-    Ambient temperature of the liquid mixture in K (Kelvin).
-  tol : float
-    Largest error value to stop iterating and return.
-  
-  Returns
-  ----------
-  bubbleP : float
-    Pressure of the liquid mixture's bubble point in mmHg (millimeters of mercury).
-  Pvaps : NDArray
-    Vapor pressures of the liquid mixture's components in mmHg (millimeters of mercury).
-  '''
-  x = np.atleast_1d(x)
-  ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
-  Pvaps = common.antoine_P(ant_coeff, T)
-  return common.SolutionObj(bubbleP=np.sum(Pvaps*x), Pvaps=Pvaps)
-
 def liq_frac_subcooled(Cpl: float, heatvap: float, Tf: float, Tb: float) -> float:
   '''
   Calculates the liquid fraction of a subcooled binary liquid mixture feed.
-
+  
   Parameters:
   -----------
   Cpl : float
@@ -244,7 +267,7 @@ def liq_frac_subcooled(Cpl: float, heatvap: float, Tf: float, Tb: float) -> floa
     Temperature of the liquid feed in K (Kelvin).
   Tb : float
     Bubble temperature of the liquid feed in K (Kelvin).
-
+  
   Returns:
   -----------
   q : float
@@ -255,7 +278,7 @@ def liq_frac_subcooled(Cpl: float, heatvap: float, Tf: float, Tb: float) -> floa
 def liq_frac_superheated(Cpv: float, heatvap: float, Tf: float, Td: float) -> float:
   '''
   Calculates the liquid fraction of a superheated binary vapor mixture feed.
-
+  
   Parameters:
   -----------
   Cpv : float
@@ -266,7 +289,7 @@ def liq_frac_superheated(Cpv: float, heatvap: float, Tf: float, Td: float) -> fl
     Temperature of the vapor feed in K (Kelvin).
   Td : float
     Dew temperature of the vapor feed in K (Kelvin).
-
+  
   Returns:
   -----------
   q : float
