@@ -64,6 +64,29 @@ def k_coeff_query(query: str | npt.NDArray):
     coeff[i] = antoine[antoine.loc[:, col] == item].iloc[:, 1:].to_numpy()
   return coeff
 
+def k_uae_est(coeffs : npt.NDArray, P: float | npt.NDArray, T: float | npt.NDArray, omega: npt.NDArray | None = None):
+  coeffs = np.atleast_2d(coeffs)
+  # T must be in Rankin
+  Kstar = coeffs[:, 0] / T**2 + coeffs[:, 1] / T + coeffs[:, 2] + coeffs[:, 3] * np.log(P) + coeffs[:, 4] / P**2 + coeffs[:, 5] / P
+  if omega is not None and np.sum(omega) > 0.:
+    Kstar[omega != 0.] += coeffs[:, 6][omega != 0.] / omega[omega != 0.]
+  
+  # TODO use the adjusting factors
+  def Pk(MWC7, sgC7, T):
+    linterm = -2381.8542 + 46.341487*MWC7*sgC7
+    ais = np.array([6124.3049, -2753.2538, 415.42049])
+    sumterm = np.sum(ais*(MWC7*sgC7/(T - 460.))**np.arange(3))
+    return linterm + sumterm
+  
+  def A(P, Pk):
+    return 1. - ((P - 14.7) / (Pk - 14.7))**.6
+  
+  def K(Kstar, P, Pk, Pci, A):
+    rat = (Pci / Pk)**(A - 1.)
+    return rat * Pci * np.exp(A * Kstar) / P
+  
+  return np.exp(Kstar)
+
 def bp_est(g : npt.NDArray) -> float:
   '''
   Estimates the boiling point of a compound via the group contribution method.
