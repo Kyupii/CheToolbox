@@ -773,7 +773,7 @@ def multicomp_column_press(y: npt.NDArray, x: npt.NDArray, ant_coeff: npt.NDArra
   Pbot = Ptop + 5.
   if numplates is not None:
     dP = .05 if vacuumColumn else .1
-    Pbot = Pbot + dP * numplates 
+    Pbot = Pbot + dP * numplates
   Tbot = bubble_temp_antoine(x, ant_coeff, common.UnitConv.psia2mmHg(Pbot))
   if not noDecomp and Tbot > Tdecomp:
     raise ValueError("Lower Column Pressure Appropriately") #what are we actually supposed to do here?
