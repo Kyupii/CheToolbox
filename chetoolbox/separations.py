@@ -51,6 +51,7 @@ def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> common.Soluti
   y_out = (x * K) / (1 + psi * (K - 1))
   return common.SolutionObj(psi = psi, x_out = x_out, y_out = y_out, error = error(psi), i = i)
 
+# TODO double check antoine units
 def bubble_press_antoine(x: list, ant_coeff: npt.NDArray, T: float) -> float:
   '''
   Calcualtes the bubble point pressure of a multi-component liquid mixture.
@@ -163,6 +164,7 @@ def dew_temp_antoine(y: list, ant_coeff: npt.NDArray, P: float, tol: float = .05
   
   T, _, _ = common.err_reduc_iterative(err, Tvaps)
   return T
+
 
 # TODO finish these stepper functions, or delete them
 def bubble_point_stepper(x: list, K: list) -> common.SolutionObj[float, npt.NDArray, float]:
@@ -682,18 +684,18 @@ def lost_work(inlet: npt.NDArray, outlet: npt.NDArray, Q: npt.NDArray, T_s: npt.
     return h - T_0 * s
   return np.sum(inlet[:,0] * b(inlet[:,1], inlet[:,2]) + Q[0] * (1 - T_0/T_s[0]) + W_s) - np.sum(outlet[:,0] * b(outlet[:,1], outlet[:,2]) + Q[1] * (1 - T_0/T_s[1]) + W_s)
 
-def multicomp_feed_split_est(F_i: npt.NDArray, MW: npt.NDArray, keys: tuple[int, int], spec: tuple[float, float]) -> tuple[npt.NDArray, npt.NDArray]:
+def multicomp_feed_split_est(F_i: npt.NDArray, MW: npt.NDArray, keys: tuple[int, int], spec: tuple[float, float]) -> tuple[npt.NDArray, npt.NDArray, float, float]:
   '''
   Estimates the distilate and bottoms outflowrates of a multi-component distilation column.
   
   Parameters:
   -----------
   F_i : NDArray
-    Molar flowrate of each input feed species. Shape must be N.
-      Ex) np.array([[448., 58.12], [36., 72.15], [23., 86.17], [39.1, 100.21], [272.2, 114.23], [31., 128.2]])
+    Molar flowrate of each input feed species. Length must be N.
+      Ex) np.array([448., 36., 23., 39.1, 272.2, 31.])
   MW : NDArray
     Molecular weight in g/mol (grams per mole) of each input feed species. Length must be N.
-      Ex) np.array([[448., 58.12], [36., 72.15], [23., 86.17], [39.1, 100.21], [272.2, 114.23], [31., 128.2]])
+      Ex) np.array([58.12, 72.15, 86.17, 100.21, 114.23, 128.2])
   keys : tuple[int, int]
     Indexes of the High Key Species and Low Key Species in the feed array.
   spec : tuple[float, float]
@@ -701,12 +703,16 @@ def multicomp_feed_split_est(F_i: npt.NDArray, MW: npt.NDArray, keys: tuple[int,
   
   Returns:
   -----------
-  distil : NDArray
+  D_i : NDArray
     Molar flowrates of all species in the ditilate in mol/s (moles per second).
-  bottoms : NDArray
+  B_i : NDArray
     Molar flowrates of all species in the bottoms in mol/s (moles per second).
+  y : NDArray
+    Mole fractions of all species in the ditilate (unitless).
+  x : NDArray
+    Mole fractions of all species in the bottoms (unitless).
   '''
-  F_i = np.atleast_1d(F_i).reshape((-1, 2))
+  F_i = np.atleast_1d(F_i); MW = np.atleast_1d(MW)
   topsplit = spec[0] / F_i[keys[0]]
   botsplit = 1. - (spec[1]) / F_i[keys[1]]
   splitline = common.point_conn((MW[keys[1]], botsplit), (MW[keys[0]], topsplit))
@@ -715,9 +721,63 @@ def multicomp_feed_split_est(F_i: npt.NDArray, MW: npt.NDArray, keys: tuple[int,
     cutoff = np.max(np.c_[splitline.eval(MW)], 1, initial=0.)
     return np.min(np.c_[cutoff], 1, initial=1.)
   
-  distil = F_i * splitest(MW)
+  D_i = F_i * splitest(MW)
+  B_i = F_i - D_i
+  F = np.sum(F_i)
+  D = np.sum(D_i)
+  B = F - D
   
-  return distil, F_i - distil
+  return D_i, B_i, D_i/D, B_i/B
+
+def multicomp_column_press(y: npt.NDArray, x: npt.NDArray, ant_coeff: npt.NDArray, Tdecomp: float, T: float = 312.15, numplates: float | None = None, vacuumColumn: bool = False, noDecomp: bool = False):
+  '''
+  Calcualtes the pressure across a distilation column.
+  
+  Parameters:
+  -----------
+  y : NDArray
+    Mole fractions of all species in the ditilate (unitless).
+  x : NDArray
+    Mole fractions of all species in the bottoms (unitless).
+  ant_coeff : NDArray
+    Components' coefficients for the Antoine Equation of State (unitless). Shape must be N x 3.
+  Tdecomp : float
+    Temperature of decomposition of the bottoms product in K (Kelvin).
+  T : float
+    Temperature of the distillate liquid in the reflux drum in K (Kelvin). Assumes 49 Celcius (312.15 K) by default.
+  
+  Returns:
+  -----------
+  Ptop : float
+    Pressure at the top of the distilation column in psia (absolute pressure per square inch).
+  Pbot : float
+    Pressure at the bottom of the distilation column in psia (absolute pressure per square inch).
+  condenserType : str
+    Type of condesner that ought to be used at the calculated distilate pressure.
+  '''
+  y = np.atleast_1d(y)
+  ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
+  bubbleP = bubble_press_antoine(y, ant_coeff, T) # in mmHg
+  P = common.UnitConv.mmHg2psia(bubbleP)
+  P = np.maximum(P, 30.)
+  condenserType = "Total Condenser"
+  if P >= 215.:
+    dewP = dew_press_antoine(y, ant_coeff, T) # in mmHg
+    P = common.UnitConv.mmHg2psia(dewP)
+    condenserType = "Partial Condenser"
+  if P > 365.:
+    P = np.minimum(P, 415.)
+    condenserType = "Partial Condenser with Refridgerant"
+  
+  Ptop = P + 5.
+  Pbot = Ptop + 5.
+  if numplates is not None:
+    dP = .05 if vacuumColumn else .1
+    Pbot = Pbot + dP * numplates 
+  Tbot = bubble_temp_antoine(x, ant_coeff, common.UnitConv.psia2mmHg(Pbot))
+  if not noDecomp and Tbot > Tdecomp:
+    raise ValueError("Lower Column Pressure Appropriately") #what are we actually supposed to do here?
+  return Ptop, Pbot, condenserType
 
 def fenske_plates(a_lk_hk_DB: npt.NDArray, x_lk_DB: npt.NDArray, x_hk_DB: npt.NDArray) -> float:
   '''
@@ -734,7 +794,7 @@ def fenske_plates(a_lk_hk_DB: npt.NDArray, x_lk_DB: npt.NDArray, x_hk_DB: npt.ND
   x_hk_DB : NDArray
     Liquid mole fractions of the heavy key component in the distillate and bottom streams. 
       Ex) np.array([x_hk_D, x_hk_B])
-
+  
   Returns
   ----------
   N_min : float

@@ -373,6 +373,14 @@ class UnitConv:
   def lbs2kgs(lbs):
     lbs = np.atleast_1d(lbs)
     return lbs * .4535934
+  
+  def mmHg2psia(mmHg):
+    mmHg = np.atleast_1d(mmHg)
+    return mmHg * .019336777496394
+  
+  def psia2mmHg(psia):
+    psia = np.atleast_1d(psia)
+    return psia * 51.714925105101
 
 # region String Operations
 # credit to scipy team for _dict_formatter
