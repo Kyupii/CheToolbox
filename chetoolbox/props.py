@@ -2,7 +2,7 @@ import numpy as np
 from numpy import typing as npt
 import pandas as pd
 
-def antoine_coeff(query: str | npt.NDArray):
+def antoine_coeff_query(query: str | npt.NDArray):
   '''
   Obtains antoine coefficients for components based on a query. 
   
@@ -34,6 +34,27 @@ def antoine_coeff(query: str | npt.NDArray):
   for i, item in enumerate(query):
     coeff[i] = antoine[antoine.loc[:, col] == item].iloc[:, 3:6].to_numpy()
   return coeff
+
+def k_coeff_query(query: str | npt.NDArray):
+  '''
+  Obtains UAE K coefficients for components based on a query. 
+  
+  Parameters:
+  -----------
+  Query: Float | NDArray
+    A single string query or an array of string values.
+  
+  Returns:
+  -----------
+  coeff : NDArray
+    UAE K coefficients of each queried compound. Shape is N x 7.
+  
+  Example Usage:
+  -----------
+  ```py
+  props.antoine_coeff(['c1', 'c2', 'ic4'])
+  ```
+  '''
 
 def bp_est(g : npt.NDArray) -> float:
   '''
