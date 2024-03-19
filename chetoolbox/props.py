@@ -55,6 +55,14 @@ def k_coeff_query(query: str | npt.NDArray):
   props.antoine_coeff(['c1', 'c2', 'ic4'])
   ```
   '''
+  query = np.atleast_1d(query)
+  headers = ["Compound Name", "aT1", "aT2", "aT3", "aP1", "aP2", "aP3", "aw"]
+  col = headers[0]
+  antoine = pd.read_csv('datasets/k_UAE.csv')
+  coeff = np.zeros((query.shape[-1], 7))
+  for i, item in enumerate(query):
+    coeff[i] = antoine[antoine.loc[:, col] == item].iloc[:, 1:].to_numpy()
+  return coeff
 
 def bp_est(g : npt.NDArray) -> float:
   '''
