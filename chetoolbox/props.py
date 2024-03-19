@@ -4,17 +4,17 @@ import pandas as pd
 
 def antoine_coeff(query: str | npt.NDArray):
   '''
-  Obtains antoine coefficients for components based on a query 
+  Obtains antoine coefficients for components based on a query. 
   
   Parameters:
   -----------
   Query: Float | NDArray
-    A single string query or an array of string values 
+    A single string query or an array of string values.
   
   Returns:
   -----------
-  ABC : NDArray
-    Antoine coefficients
+  coeff : NDArray
+    Antoine coefficients of each queried compound. Shape is N x 3.
   
   Example Usage:
   -----------
