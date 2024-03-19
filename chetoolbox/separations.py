@@ -53,7 +53,7 @@ def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> common.Soluti
 
 def bubble_press_antoine(x: list, ant_coeff: npt.NDArray, T: float) -> float:
   '''
-  Iteratively solves for the bubble point pressure of a multi-component liquid mixture.
+  Calcualtes the bubble point pressure of a multi-component liquid mixture.
   
   Parameters
   ----------
@@ -71,6 +71,7 @@ def bubble_press_antoine(x: list, ant_coeff: npt.NDArray, T: float) -> float:
   Pvaps : NDArray
     Vapor pressures of the liquid mixture's components in mmHg (millimeters of mercury).
   '''
+  # resources for me, the coder, a moron: https://en.wikibooks.org/wiki/Introduction_to_Chemical_Engineering_Processes
   x = np.atleast_1d(x)
   ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
   Pvaps = common.antoine_P(ant_coeff, T)
@@ -79,7 +80,7 @@ def bubble_press_antoine(x: list, ant_coeff: npt.NDArray, T: float) -> float:
 
 def dew_press_antoine(y: list, ant_coeff: npt.NDArray, T: float) -> float:
   '''
-  Iteratively solves for the bubble point pressure of a multi-component liquid mixture.
+  Calcualtes the dew point pressure of a multi-component vapor mixture.
   
   Parameters
   ----------
@@ -93,15 +94,75 @@ def dew_press_antoine(y: list, ant_coeff: npt.NDArray, T: float) -> float:
   Returns
   ----------
   dewP : float
-    Pressure of the liquid mixture's bubble point in mmHg (millimeters of mercury).
+    Pressure of the the vapor mixture's dew point in mmHg (millimeters of mercury).
   Pvaps : NDArray
-    Vapor pressures of the liquid mixture's components in mmHg (millimeters of mercury).
+    Vapor pressures of the vapor mixture's components in mmHg (millimeters of mercury).
   '''
   y = np.atleast_1d(y)
   ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
   Pvaps = common.antoine_P(ant_coeff, T)
   dewP = 1. / np.sum(y / Pvaps, axis=0)
   return common.SolutionObj(dewP=dewP, Pvaps=Pvaps)
+
+def bubble_temp_antoine(x: list, ant_coeff: npt.NDArray, P: float, tol: float = .05) -> float:
+  '''
+  Iteratively solves for the bubble point temperature of a multi-component liquid mixture.
+  
+  Parameters
+  ----------
+  x : list
+    Component mole fractions of the liquid mixture (unitless). Must sum to 1.
+  ant_coeff : NDArray
+    Components' coefficients for the Antoine Equation of State (unitless). Shape must be N x 3.
+  P : float
+    Ambient pressure of the liquid mixture in K (Kelvin).
+  
+  Returns
+  ----------
+  bubbleP : float
+    Pressure of the liquid mixture's bubble point in mmHg (millimeters of mercury).
+  '''
+  x = np.atleast_1d(x)
+  ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
+  Tvaps = common.antoine_T(ant_coeff, P)
+  if Tvaps[0] == Tvaps[1]:
+    Tvaps = Tvaps * np.array([.5, 1.5])
+  
+  def err(T):
+    return bubble_press_antoine(x, ant_coeff, T) - P
+  
+  T, _, _ = common.err_reduc_iterative(err, Tvaps)
+  return T
+
+def dew_temp_antoine(y: list, ant_coeff: npt.NDArray, P: float, tol: float = .05) -> float:
+  '''
+  Iteratively solves for the dew point temperature of a multi-component liquid mixture.
+  
+  Parameters
+  ----------
+  x : list
+    Component mole fractions of the liquid mixture (unitless). Must sum to 1.
+  ant_coeff : NDArray
+    Components' coefficients for the Antoine Equation of State (unitless). Shape must be N x 3.
+  P : float
+    Ambient pressure of the liquid mixture in K (Kelvin).
+  
+  Returns
+  ----------
+  dewP : float
+    Pressure of the vapor mixture's dew point in mmHg (millimeters of mercury).
+  '''
+  y = np.atleast_1d(y)
+  ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
+  Tvaps = common.antoine_T(ant_coeff, P)
+  if Tvaps[0] == Tvaps[1]:
+    Tvaps = Tvaps * np.array([.5, 1.5])
+  
+  def err(T):
+    return bubble_press_antoine(y, ant_coeff, T) - P
+  
+  T, _, _ = common.err_reduc_iterative(err, Tvaps)
+  return T
 
 # TODO finish these stepper functions, or delete them
 def bubble_point_stepper(x: list, K: list) -> common.SolutionObj[float, npt.NDArray, float]:
@@ -152,106 +213,6 @@ def dew_point_stepper(y: list, K: list) -> common.SolutionObj[float, npt.NDArray
   err = np.sum(x) - 1 
   return common.SolutionObj(x = x, err = err)
 
-# TODO refactor these to use the b/d_press_antoine functions
-def bubble_temp_antoine(x: list, ant_coeff: npt.NDArray, P: float, tol: float = .05) -> common.SolutionObj[float, npt.NDArray, npt.NDArray, npt.NDArray, float, int]:
-  '''
-  Iteratively solves for the bubble point temperature of a multi-component liquid mixture.
-  
-  Parameters
-  ----------
-  x : list
-    Component mole fractions of the liquid mixture (unitless). Must sum to 1.
-  ant_coeff : NDArray
-    Components' coefficients for the Antoine Equation of State (unitless). Shape must be N x 3.
-  P : float
-    Ambient pressure of the liquid mixture in mmHg (millimeters of mercury).
-  tol : float
-    Largest error value to stop iterating and return.
-  
-  Returns
-  ----------
-  bubbleT : float
-    Temperature of the liquid mixture's bubble point in C (Celcius).
-  Pvap : NDArray
-    Vapor pressure for each component at the bubble point temperature in mmHg (millimeters of mercury). 
-  K : NDArray
-    Equalibrium constant for each component at the stated pressure and bubble point temperature (units vary). 
-  y : NDArray
-    Component mole fractions of the first bubble of vapor (unitless).
-  error : float
-    Error at the final iteration.
-  i : int
-    Number of iterations to calculate to the specified tolerance.
-  '''
-  x = np.atleast_1d(x)
-  ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
-  boil_points = common.antoine_T(ant_coeff, P)
-  
-  def TtoY(T):
-    Pvap = common.antoine_P(ant_coeff, T)
-    k = Pvap / P
-    y = np.c_[x] * k
-    return Pvap, k, y
-  
-  def err(T):
-    _, _, y = TtoY(T)
-    return np.sum(y, axis=0, keepdims=True) - 1.
-  
-  bubbleT, error, i = common.err_reduc_iterative(err, [np.max(boil_points), np.min(boil_points)], tol)
-  bubbleT = bubbleT[0]; error = error[0]
-
-  Pvap, k, y = TtoY(bubbleT)
-  return common.SolutionObj(bubbleT = bubbleT, Pvap = Pvap, k = k, y = y, error = error, i = i)
-
-def dew_temp_antoine(y: list, ant_coeff: npt.NDArray, P: float, tol: float = .05) -> common.SolutionObj[float, npt.NDArray, npt.NDArray, npt.NDArray, float, int]:
-  '''
-  Iteratively solves for the dew point temperature of a multi-component vapor mixture.
-
-  Parameters
-  ----------
-  y : list
-    Component mole fractions of the vapor mixture (unitless). Must sum to 1.
-  ant_coeff : NDArray
-    Components' coefficients for the Antoine Equation of State (unitless). Shape must be N x 3.
-  P : float
-    Ambient pressure of the vapor mixture in mmHg (millimeters of mercury).
-  tol : float
-    Largest error value to stop iterating and return.
-
-  Returns
-  ----------
-  dewT : float
-    Temperature of the vapor mixture's dew point in C (Celcius).
-  Pvap : NDArray
-    Vapor pressure for each component at the dew point temperature in mmHg (millimeters of mercury). 
-  K : NDArray
-    Equalibrium constant for each component at the stated pressure and dew point temperature (units vary). 
-  x : NDArray
-    Component mole fractions of the first dew of liquid (unitless).
-  error : float
-    Error at the final iteration.
-  i : int
-    Number of iterations to calculate to the specified tolerance.
-  '''
-  y = np.atleast_1d(y)
-  ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
-  boil_points = common.antoine_T(ant_coeff, P)
-
-  def TtoX(T):
-    Pvap = common.antoine_P(ant_coeff, T)
-    k = Pvap / P
-    x = np.c_[y] / k
-    return Pvap, k, x
-  
-  def err(T):
-    _, _, x = TtoX(T)
-    return np.sum(x, axis=0, keepdims=True) - 1.
-  
-  dewT, error, i = common.err_reduc_iterative(err, [np.max(boil_points), np.min(boil_points)], tol)
-  dewT = dewT[0]; error = error[0]
-  
-  Pvap, k, y = TtoX(dewT)
-  return common.SolutionObj(dewT = dewT, Pvap = Pvap, k = k, y = y, error = error, i = i)
 
 def liq_frac_subcooled(Cpl: float, heatvap: float, Tf: float, Tb: float) -> float:
   '''
@@ -757,8 +718,6 @@ def multicomp_feed_split_est(F_i: npt.NDArray, MW: npt.NDArray, keys: tuple[int,
   distil = F_i * splitest(MW)
   
   return distil, F_i - distil
-
-# TODO make a function to calculate column pressure and bubble pressure of distilate based on cooling water temp and other stuff
 
 def fenske_plates(a_lk_hk_DB: npt.NDArray, x_lk_DB: npt.NDArray, x_hk_DB: npt.NDArray) -> float:
   '''

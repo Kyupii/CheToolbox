@@ -561,8 +561,7 @@ def antoine_T(coeffs: npt.NDArray, P: npt.NDArray) -> npt.NDArray:
   Calculates the temperature in degC for each set of vapor pressure in mmHg.
   '''
   coeffs = np.atleast_2d(coeffs); P = np.atleast_2d(P)
-  T = (np.c_[-coeffs[:, 1]] / (np.log10(P) - np.c_[coeffs[:, 0]])) - np.c_[coeffs[:, 2]]
-  return np.average(T, axis=0)
+  return (np.c_[-coeffs[:, 1]] / (np.log10(P) - np.c_[coeffs[:, 0]])) - np.c_[coeffs[:, 2]]
 
 def raoult_XtoY(x: list, K: list) -> tuple[npt.NDArray, float]:
   '''
