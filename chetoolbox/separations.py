@@ -729,7 +729,7 @@ def multicomp_feed_split_est(F_i: npt.NDArray, MW: npt.NDArray, keys: tuple[int,
   
   return D_i, B_i, D_i/D, B_i/B
 
-def multicomp_column_press(y: npt.NDArray, x: npt.NDArray, ant_coeff: npt.NDArray, T: float = 312.15, Tdecomp: float | None = None, numplates: float | None = None, vacuumColumn: bool = False, decompSafeFac: float = .5):
+def multicomp_column_cond(y: npt.NDArray, x: npt.NDArray, ant_coeff: npt.NDArray, T: float = 312.15, Tdecomp: float | None = None, numplates: float | None = None, vacuumColumn: bool = False, decompSafeFac: float = .5):
   '''
   Calcualtes the pressure across a distilation column.
   
@@ -741,13 +741,23 @@ def multicomp_column_press(y: npt.NDArray, x: npt.NDArray, ant_coeff: npt.NDArra
     Mole fractions of all species in the bottoms (unitless).
   ant_coeff : NDArray
     Components' coefficients for the Antoine Equation of State (unitless). Shape must be N x 3.
+  T : float
+    Temperature of the distillate liquid in the reflux drum in K (Kelvin). Assumes 49 C (Celcius) == 312.15 Kelvin (K) by default.
   Tdecomp : float
     Temperature of decomposition of the bottoms product in K (Kelvin).
-  T : float
-    Temperature of the distillate liquid in the reflux drum in K (Kelvin). Assumes 49 Celcius (312.15 K) by default.
+  numplates : float
+    Number of plates in the distilation column, if known.
+  vacuumColumn : bool
+    If the distilation column is operating below ambient pressure.
+  decompSafeFac : float
+    Ratio of the maximum reboiler temperature to the bottom product's decompostion temperature.
   
   Returns:
   -----------
+  Ttop : float
+    Temperature at the top of the distilation column in K (Kelvin).
+  Tbot : float
+    Temperature at the bottom of the distilation column in K (Kelvin).
   Ptop : float
     Pressure at the top of the distilation column in psia (absolute pressure per square inch).
   Pbot : float
@@ -770,6 +780,8 @@ def multicomp_column_press(y: npt.NDArray, x: npt.NDArray, ant_coeff: npt.NDArra
     condenserType = "Partial Condenser with Refridgerant"
   
   Ptop = P + 5.
+  # TODO how to calculate temperature at the top of the column
+  Ttop = dew_temp_antoine(y, ant_coeff, common.UnitConv.psia2mmHg(Ptop))
   if numplates is None:
     dP = 5.
   else:
@@ -778,11 +790,12 @@ def multicomp_column_press(y: npt.NDArray, x: npt.NDArray, ant_coeff: npt.NDArra
   Tbot = bubble_temp_antoine(x, ant_coeff, common.UnitConv.psia2mmHg(Pbot))
   
   if Tdecomp is not None and Tbot > decompSafeFac * Tdecomp:
-    P = bubble_press_antoine(x, decompSafeFac * Tdecomp) - dP - 5.
+    bubP = bubble_press_antoine(x, decompSafeFac * Tdecomp) - dP - 5.
+    P = common.UnitConv.mmHg2psia(bubP)
     T = dew_temp_antoine(y, ant_coeff, P) if P >= 215. else bubble_temp_antoine(y, ant_coeff, P)
-    Ptop, Pbot, condenserType = multicomp_column_press(y, x, ant_coeff, T, Tdecomp, numplates, vacuumColumn, decompSafeFac)
-
-  return Ptop, Pbot, condenserType
+    Ttop, Tbot, Ptop, Pbot, condenserType = multicomp_column_cond(y, x, ant_coeff, T, Tdecomp, numplates, vacuumColumn, decompSafeFac)
+  
+  return Ttop, Tbot, Ptop, Pbot, condenserType
 
 def fenske_plates(a_lk_hk_DB: npt.NDArray, x_lk_DB: npt.NDArray, x_hk_DB: npt.NDArray) -> float:
   '''
