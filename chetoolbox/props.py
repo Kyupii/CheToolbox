@@ -4,7 +4,7 @@ import pandas as pd
 
 def antoine_coeff_query(query: str | npt.NDArray):
   '''
-  Obtains antoine coefficients for components based on a query. 
+  Obtains Antoine coefficients for components based on a query. 
   
   Parameters:
   -----------
@@ -37,7 +37,7 @@ def antoine_coeff_query(query: str | npt.NDArray):
 
 def k_coeff_query(query: str | npt.NDArray):
   '''
-  Obtains UAE K coefficients for components based on a query. 
+  Obtains McWilliams / Almehaideb K coefficients for components based on a query. 
   
   Parameters:
   -----------
@@ -47,7 +47,7 @@ def k_coeff_query(query: str | npt.NDArray):
   Returns:
   -----------
   coeff : NDArray
-    UAE K coefficients of each queried compound. Shape is N x 7.
+    McWilliams / Almehaideb K coefficients of each queried compound. Shape is N x 7.
   
   Example Usage:
   -----------
@@ -58,34 +58,51 @@ def k_coeff_query(query: str | npt.NDArray):
   query = np.atleast_1d(query)
   headers = ["Compound Name", "aT1", "aT2", "aT3", "aP1", "aP2", "aP3", "aw"]
   col = headers[0]
-  antoine = pd.read_csv('datasets/k_UAE.csv')
+  antoine = pd.read_csv('datasets/k_almehaideb.csv')
   coeff = np.zeros((query.shape[-1], 7))
   for i, item in enumerate(query):
     coeff[i] = antoine[antoine.loc[:, col] == item].iloc[:, 1:].to_numpy()
   return coeff
 
-def k_uae_est(coeffs : npt.NDArray, P: float | npt.NDArray, T: float | npt.NDArray, omega: npt.NDArray | None = None):
+def convergence_P(T_and_P: npt.NDArray, MWC7p: float, sgC7p: float):
+  T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2); T = np.c_[T_and_P[:, 0]]; P = np.c_[T_and_P[:, 1]]
+  linterm = -2381.8542 + 46.341487 * MWC7p * sgC7p
+  ais = np.array([6124.3049, -2753.2538, 415.42049])
+  sumterm = np.sum(ais*(MWC7p*sgC7p/(T - 460.))**np.arange(3), axis=1, keepdims=True)
+  Pk = linterm + sumterm
+  A = 1. - ((P - 14.7) / (Pk - 14.7))**.6
+  return Pk, A 
+
+def k_wilson(Pci: npt.NDArray, Tci: npt.NDArray, omega: npt.NDArray, T_and_P: npt.NDArray):
+  # T must be in Rankin # P must be in psia
+  Pci = np.atleast_1d(Pci); Tci = np.atleast_1d(Tci); omega = np.atleast_1d(omega)
+  T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2); T = np.c_[T_and_P[:, 0]]; P = np.c_[T_and_P[:, 1]]
+  return (Pci / P) * np.exp(5.37 * (1. + omega) * (1. - Tci / T))
+
+def k_whitson(Pci: npt.NDArray, Tci: npt.NDArray, omega: npt.NDArray, T_and_P: npt.NDArray, MWC7p: float, sgC7p: float):
+  Pci = np.atleast_1d(Pci); Tci = np.atleast_1d(Tci); omega = np.atleast_1d(omega)
+  T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2); P = np.c_[T_and_P[:, 1]]
+  PciP = Pci / P
+  K = k_wilson(Pci, Tci, omega, T_and_P)
+  Pk, A = convergence_P(T_and_P, MWC7p, sgC7p)
+  return K**A * PciP**(1. - A) * (Pci / Pk)**(A - 1.)
+
+def k_mcwilliams(coeffs: npt.NDArray, T_and_P: npt.NDArray):
+  # T must be in Rankin # P must be in psia
+  T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2); T = np.c_[T_and_P[:, 0]]; P = np.c_[T_and_P[:, 1]]
+  return np.exp(coeffs[:, 0] / T**2 + coeffs[:, 1] / T + coeffs[:, 2] + coeffs[:, 3] * np.log(P) + coeffs[:, 4] / P**2 + coeffs[:, 5] / P)
+
+def k_almehaideb(coeffs: npt.NDArray, Pci: npt.NDArray, T_and_P: npt.NDArray, omega: float, MWC7p: float, sgC7p: float):
+  # T must be in Rankin # P must be in psia
   coeffs = np.atleast_2d(coeffs)
-  # T must be in Rankin
-  Kstar = coeffs[:, 0] / T**2 + coeffs[:, 1] / T + coeffs[:, 2] + coeffs[:, 3] * np.log(P) + coeffs[:, 4] / P**2 + coeffs[:, 5] / P
-  if omega is not None and np.sum(omega) > 0.:
-    Kstar[omega != 0.] += coeffs[:, 6][omega != 0.] / omega[omega != 0.]
+  T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2); P = np.c_[T_and_P[:, 1]]
+  Kstar = k_mcwilliams(coeffs, T_and_P)
   
-  # TODO use the adjusting factors
-  def Pk(MWC7, sgC7, T):
-    linterm = -2381.8542 + 46.341487*MWC7*sgC7
-    ais = np.array([6124.3049, -2753.2538, 415.42049])
-    sumterm = np.sum(ais*(MWC7*sgC7/(T - 460.))**np.arange(3))
-    return linterm + sumterm
+  if coeffs[-1, 6] != 0. and omega is not None: # assumes the last component is the C7+
+    Kstar[:, -1] = Kstar[:, -1] * np.exp(coeffs[-1, 6] / omega)
   
-  def A(P, Pk):
-    return 1. - ((P - 14.7) / (Pk - 14.7))**.6
-  
-  def K(Kstar, P, Pk, Pci, A):
-    rat = (Pci / Pk)**(A - 1.)
-    return rat * Pci * np.exp(A * Kstar) / P
-  
-  return np.exp(Kstar)
+  Pk, A = convergence_P(T_and_P, MWC7p, sgC7p)
+  return (Pci / Pk)**(A - 1.) * (Pci / P) * Kstar**A
 
 def bp_est(g : npt.NDArray) -> float:
   '''

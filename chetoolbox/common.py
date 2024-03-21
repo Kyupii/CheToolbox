@@ -362,9 +362,22 @@ class SolutionObj(dict):
     return tuple(self.values())
 
 class UnitConv:
-  def faren2kelvin(T):
-    T = np.atleast_1d(T)
-    return (T - 32.) * (5./9.) + 273.15
+  class temp:
+    def faren2celsius(T):
+      T = np.atleast_1d(T)
+      return (T - 32.) * (5./9.)
+    
+    def celsius2kelvin(self, T):
+      T = np.atleast_1d(T)
+      return T + 273.15
+    
+    def kelvin2rankine(T):
+      T = np.atleast_1d(T)
+      return T * (9./5.)
+    
+    def rankine2faren(T):
+      T = np.atleast_1d(T)
+      return T -459.67
   
   def ft2meters(ft):
     ft = np.atleast_1d(ft)
