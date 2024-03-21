@@ -77,11 +77,27 @@ def convergence_P(T_and_P: npt.NDArray, MWC7p: float, sgC7p: float):
   A = 1. - ((P - 14.7) / (Pk - 14.7))**.6
   return Pk, A 
 
-def acentric_omega(ant_coeff: npt.NDArray, Tc: npt.NDArray, Pc: npt.NDArray):
+def acentric_omega(ant_coeff: npt.NDArray, Tc: float | npt.NDArray, Pc: float | npt.NDArray) -> npt.NDArray:
+  '''
+  Calculates the acentric factor (ω) of a compound, estimating vapor pressure via the Antoine equation.
+  
+  Parameters:
+  -----------
+  ant_coeff : NDArray
+    Coefficients for the Antoine Equation of State (unitless) for all components. Shape must be N x 3.
+  Tc : float | npt.NDArray
+    Critical temperature of all components in K (Kelvin). Lenght must be N.
+  Pc : float | npt.NDArray
+    Critical pressure of all components in atm (atmospheres). Lenght must be N.
+  
+  Returns:
+  -----------
+  omega : npt.NDArray
+    Acentric factor of a compound. Describes the non-sphericity of a molecule.
+  '''
   ant_coeff = np.atleast_2d(ant_coeff).reshape(-1, 3)
   Tc = np.atleast_1d(Tc); Pc = np.atleast_1d(Pc)
   Psat = common.antoine_P(ant_coeff, .7 * Tc).diagonal()
-  print(Psat, Psat / common.UnitConv.atm2mmHg(Pc))
   return -np.log10(Psat / common.UnitConv.atm2mmHg(Pc)) - 1.
 
 def k_wilson(Tci: npt.NDArray, Pci: npt.NDArray, omega: npt.NDArray, T_and_P: npt.NDArray):
