@@ -367,7 +367,7 @@ class UnitConv:
       T = np.atleast_1d(T)
       return (T - 32.) * (5./9.)
     
-    def celsius2kelvin(self, T):
+    def celsius2kelvin(T):
       T = np.atleast_1d(T)
       return T + 273.15
     
