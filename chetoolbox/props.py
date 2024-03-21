@@ -31,9 +31,11 @@ def antoine_coeff_query(query: str | npt.NDArray):
     col = headers[0]
   
   antoine = pd.read_csv('datasets/antoine.csv')
-  coeff = np.zeros((query.shape[-1], 3))
+  coeff = np.zeros((query.shape[0], 3))
   for i, item in enumerate(query):
-    coeff[i] = antoine[antoine.loc[:, col] == item].iloc[:, 3:6].to_numpy()
+    line = antoine[antoine.loc[:, col] == item]
+    if line.empty: raise KeyError(f"Invalid Compound Query: {item}")
+    coeff[i] = line.iloc[:, 3:6].to_numpy()
   return coeff
 
 def k_coeff_query(query: str | npt.NDArray):
@@ -77,7 +79,7 @@ def convergence_P(T_and_P: npt.NDArray, MWC7p: float, sgC7p: float):
 
 def acentric_omega(ant_coeff: npt.NDArray, T_and_P: npt.NDArray):
   T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2); T = np.c_[T_and_P[:, 0]]
-  common.antoine_P(ant_coeff, T)
+  Psat = common.antoine_P(ant_coeff, T)
   return
 
 def k_wilson(Tci: npt.NDArray, Pci: npt.NDArray, omega: npt.NDArray, T_and_P: npt.NDArray):

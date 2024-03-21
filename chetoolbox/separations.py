@@ -51,7 +51,7 @@ def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> common.Soluti
   y_out = (x * K) / (1 + psi * (K - 1))
   return common.SolutionObj(psi = psi, x_out = x_out, y_out = y_out, error = error(psi), i = i)
 
-def bubble_press_antoine(x: list, ant_coeff: npt.NDArray, T: float) -> float:
+def bubble_press_antoine(x: list, ant_coeff: npt.NDArray, T: float | npt.NDArray) -> common.SolutionObj[float | npt.NDArray, npt.NDArray]:
   '''
   Calcualtes the bubble point pressure of a multi-component liquid mixture.
   
@@ -75,10 +75,10 @@ def bubble_press_antoine(x: list, ant_coeff: npt.NDArray, T: float) -> float:
   x = np.atleast_1d(x)
   ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
   Pvaps = common.antoine_P(ant_coeff, T)
-  bubbleP = np.sum(Pvaps*x, axis=0)
+  bubbleP = np.sum(Pvaps*x, axis=1)
   return common.SolutionObj(bubbleP=bubbleP, Pvaps=Pvaps)
 
-def dew_press_antoine(y: list, ant_coeff: npt.NDArray, T: float) -> float:
+def dew_press_antoine(y: list, ant_coeff: npt.NDArray, T: float | npt.NDArray) -> common.SolutionObj[float | npt.NDArray, npt.NDArray]:
   '''
   Calcualtes the dew point pressure of a multi-component vapor mixture.
   
@@ -101,10 +101,10 @@ def dew_press_antoine(y: list, ant_coeff: npt.NDArray, T: float) -> float:
   y = np.atleast_1d(y)
   ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
   Pvaps = common.antoine_P(ant_coeff, T)
-  dewP = 1. / np.sum(y / Pvaps, axis=0)
+  dewP = 1. / np.sum(y / Pvaps, axis=1)
   return common.SolutionObj(dewP=dewP, Pvaps=Pvaps)
 
-def bubble_temp_antoine(x: list, ant_coeff: npt.NDArray, P: float) -> float:
+def bubble_temp_antoine(x: list, ant_coeff: npt.NDArray, P: float) -> common.SolutionObj[float | npt.NDArray, npt.NDArray]:
   '''
   Iteratively solves for the bubble point temperature of a multi-component liquid mixture.
   
@@ -122,19 +122,21 @@ def bubble_temp_antoine(x: list, ant_coeff: npt.NDArray, P: float) -> float:
   bubbleP : float
     Pressure of the liquid mixture's bubble point in mmHg (millimeters of mercury).
   '''
-  x = np.atleast_1d(x)
+  x = np.atleast_1d(x); P = np.c_[np.atleast_1d(P)]
   ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
   Tvaps = common.antoine_T(ant_coeff, P)
-  if Tvaps[0] == Tvaps[1]:
-    Tvaps = Tvaps * np.array([.5, 1.5])
+  extrema = np.hstack([Tvaps.min(axis=1, keepdims=True), Tvaps.max(axis=1, keepdims=True)])
+  match = extrema[:, 0] == extrema[:, 1]
+  if match.any():
+    extrema[match] = extrema[match] * np.array([.5, 1.5])
   
   def err(T):
-    return bubble_press_antoine(x, ant_coeff, T) - P
+    return bubble_press_antoine(x, ant_coeff, T.flatten("A")).bubbleP.reshape(-1, 2) - P
   
-  T, _, _ = common.err_reduc_iterative(err, Tvaps)
+  T, _, _ = common.err_reduc_iterative(err, extrema)
   return T
 
-def dew_temp_antoine(y: list, ant_coeff: npt.NDArray, P: float) -> float:
+def dew_temp_antoine(y: list, ant_coeff: npt.NDArray, P: float) -> common.SolutionObj[float | npt.NDArray, npt.NDArray]:
   '''
   Iteratively solves for the dew point temperature of a multi-component liquid mixture.
   
@@ -152,16 +154,18 @@ def dew_temp_antoine(y: list, ant_coeff: npt.NDArray, P: float) -> float:
   dewP : float
     Pressure of the vapor mixture's dew point in mmHg (millimeters of mercury).
   '''
-  y = np.atleast_1d(y)
+  y = np.atleast_1d(y); P = np.c_[np.atleast_1d(P)]
   ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
   Tvaps = common.antoine_T(ant_coeff, P)
-  if Tvaps[0] == Tvaps[1]:
-    Tvaps = Tvaps * np.array([.5, 1.5])
+  extrema = np.hstack([Tvaps.min(axis=1, keepdims=True), Tvaps.max(axis=1, keepdims=True)])
+  match = extrema[:, 0] == extrema[:, 1]
+  if match.any():
+    extrema[match] = extrema[match] * np.array([.5, 1.5])
   
   def err(T):
-    return bubble_press_antoine(y, ant_coeff, T) - P
+    return dew_press_antoine(y, ant_coeff, T.flatten("A")).dewP.reshape(-1, 2) - P
   
-  T, _, _ = common.err_reduc_iterative(err, Tvaps)
+  T, _, _ = common.err_reduc_iterative(err, extrema)
   return T
 
 

@@ -348,13 +348,13 @@ class SolutionObj(dict):
       return self[name]
     except KeyError as e:
       raise AttributeError(name) from e
-    
+  
   def __repr__(self):
     if self.keys():
         return _dict_formatter(self)
     else:
         return self.__class__.__name__ + "()"
-    
+  
   def __dir__(self) -> tuple:
     return tuple(self.keys())
   
@@ -583,15 +583,15 @@ def antoine_P(coeffs: npt.NDArray, T: npt.NDArray) -> npt.NDArray:
   '''
   Calculates the vapor pressure in mmHg of every component for each temperature in K.
   '''
-  coeffs = np.atleast_2d(coeffs); T = np.atleast_2d(T)
-  return 10 ** (np.c_[coeffs[:, 0]] - np.c_[coeffs[:, 1]] / (T + np.c_[coeffs[:, 2]]))
+  coeffs = np.atleast_2d(coeffs); T = np.c_[np.atleast_1d(T)]
+  return 10. ** (coeffs[:, 0] - coeffs[:, 1] / (T + coeffs[:, 2]))
 
 def antoine_T(coeffs: npt.NDArray, P: npt.NDArray) -> npt.NDArray:
   '''
   Calculates the temperature in K for each set of vapor pressure in mmHg.
   '''
-  coeffs = np.atleast_2d(coeffs); P = np.atleast_2d(P)
-  return (np.c_[-coeffs[:, 1]] / (np.log10(P) - np.c_[coeffs[:, 0]])) - np.c_[coeffs[:, 2]]
+  coeffs = np.atleast_2d(coeffs); P = np.c_[np.atleast_1d(P)]
+  return (-coeffs[:, 1] / (np.log10(P) - coeffs[:, 0])) - coeffs[:, 2]
 
 def raoult_XtoY(x: list, K: list) -> tuple[npt.NDArray, float]:
   '''
