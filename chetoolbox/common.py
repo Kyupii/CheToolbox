@@ -362,22 +362,32 @@ class SolutionObj(dict):
     return tuple(self.values())
 
 class UnitConv:
-  class temp:
+  def temp(T: float | npt.NDArray, unit: str, des: str):
     def faren2celsius(T):
       T = np.atleast_1d(T)
       return (T - 32.) * (5./9.)
-    
     def celsius2kelvin(T):
       T = np.atleast_1d(T)
       return T + 273.15
-    
     def kelvin2rankine(T):
       T = np.atleast_1d(T)
       return T * (9./5.)
-    
     def rankine2faren(T):
       T = np.atleast_1d(T)
       return T -459.67
+    unit = unit.lower(); des = des.lower()
+    unitdict = {
+      "f": (faren2celsius, "c"),
+      "c": (celsius2kelvin, "k"),
+      "k": (kelvin2rankine, "r"),
+      "r": (rankine2faren, "f")
+    }
+    if unit not in unitdict.keys() or des not in unitdict.keys():
+      raise KeyError("Incorrect Temperature Units")
+    while unit != des:
+      T = unitdict[unit][0](T)
+      unit = unitdict[unit][1]
+    return T
   
   def ft2meters(ft):
     ft = np.atleast_1d(ft)
@@ -390,7 +400,6 @@ class UnitConv:
   def mmHg2psia(mmHg):
     mmHg = np.atleast_1d(mmHg)
     return mmHg * .019336777496394
-  
   def psia2mmHg(psia):
     psia = np.atleast_1d(psia)
     return psia * 51.714925105101
