@@ -51,7 +51,6 @@ def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> common.Soluti
   y_out = (x * K) / (1 + psi * (K - 1))
   return common.SolutionObj(psi = psi, x_out = x_out, y_out = y_out, error = error(psi), i = i)
 
-# TODO double check antoine units
 def bubble_press_antoine(x: list, ant_coeff: npt.NDArray, T: float) -> float:
   '''
   Calcualtes the bubble point pressure of a multi-component liquid mixture.
@@ -105,7 +104,7 @@ def dew_press_antoine(y: list, ant_coeff: npt.NDArray, T: float) -> float:
   dewP = 1. / np.sum(y / Pvaps, axis=0)
   return common.SolutionObj(dewP=dewP, Pvaps=Pvaps)
 
-def bubble_temp_antoine(x: list, ant_coeff: npt.NDArray, P: float, tol: float = .05) -> float:
+def bubble_temp_antoine(x: list, ant_coeff: npt.NDArray, P: float) -> float:
   '''
   Iteratively solves for the bubble point temperature of a multi-component liquid mixture.
   
@@ -135,7 +134,7 @@ def bubble_temp_antoine(x: list, ant_coeff: npt.NDArray, P: float, tol: float = 
   T, _, _ = common.err_reduc_iterative(err, Tvaps)
   return T
 
-def dew_temp_antoine(y: list, ant_coeff: npt.NDArray, P: float, tol: float = .05) -> float:
+def dew_temp_antoine(y: list, ant_coeff: npt.NDArray, P: float) -> float:
   '''
   Iteratively solves for the dew point temperature of a multi-component liquid mixture.
   

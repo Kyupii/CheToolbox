@@ -1,6 +1,7 @@
 import numpy as np
 from numpy import typing as npt
 import pandas as pd
+import common
 
 def antoine_coeff_query(query: str | npt.NDArray):
   '''
@@ -73,6 +74,11 @@ def convergence_P(T_and_P: npt.NDArray, MWC7p: float, sgC7p: float):
   Pk = linterm + sumterm
   A = 1. - ((P - 14.7) / (Pk - 14.7))**.6
   return Pk, A 
+
+def acentric_omega(ant_coeff: npt.NDArray, T_and_P: npt.NDArray):
+  T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2); T = np.c_[T_and_P[:, 0]]
+  common.antoine_P(ant_coeff, T)
+  return
 
 def k_wilson(Tci: npt.NDArray, Pci: npt.NDArray, omega: npt.NDArray, T_and_P: npt.NDArray):
   # T must be in Rankin # P must be in psia
