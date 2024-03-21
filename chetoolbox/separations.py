@@ -729,7 +729,7 @@ def multicomp_feed_split_est(F_i: npt.NDArray, MW: npt.NDArray, keys: tuple[int,
   
   return D_i, B_i, D_i/D, B_i/B
 
-def multicomp_column_press(y: npt.NDArray, x: npt.NDArray, ant_coeff: npt.NDArray, Tdecomp: float, T: float = 312.15, numplates: float | None = None, vacuumColumn: bool = False, noDecomp: bool = False):
+def multicomp_column_press(y: npt.NDArray, x: npt.NDArray, ant_coeff: npt.NDArray, T: float = 312.15, Tdecomp: float | None = None, numplates: float | None = None, vacuumColumn: bool = False, decompSafeFac: float = .5):
   '''
   Calcualtes the pressure across a distilation column.
   
@@ -770,13 +770,18 @@ def multicomp_column_press(y: npt.NDArray, x: npt.NDArray, ant_coeff: npt.NDArra
     condenserType = "Partial Condenser with Refridgerant"
   
   Ptop = P + 5.
-  Pbot = Ptop + 5.
-  if numplates is not None:
-    dP = .05 if vacuumColumn else .1
-    Pbot = Pbot + dP * numplates
+  if numplates is None:
+    dP = 5.
+  else:
+    dP = (.05 if vacuumColumn else .1) * numplates
+  Pbot = Ptop + dP
   Tbot = bubble_temp_antoine(x, ant_coeff, common.UnitConv.psia2mmHg(Pbot))
-  if not noDecomp and Tbot > Tdecomp:
-    raise ValueError("Lower Column Pressure Appropriately") #what are we actually supposed to do here?
+  
+  if Tdecomp is not None and Tbot > decompSafeFac * Tdecomp:
+    P = bubble_press_antoine(x, decompSafeFac * Tdecomp) - dP - 5.
+    T = dew_temp_antoine(y, ant_coeff, P) if P >= 215. else bubble_temp_antoine(y, ant_coeff, P)
+    Ptop, Pbot, condenserType = multicomp_column_press(y, x, ant_coeff, T, Tdecomp, numplates, vacuumColumn, decompSafeFac)
+
   return Ptop, Pbot, condenserType
 
 def fenske_plates(a_lk_hk_DB: npt.NDArray, x_lk_DB: npt.NDArray, x_hk_DB: npt.NDArray) -> float:
