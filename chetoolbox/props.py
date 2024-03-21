@@ -74,15 +74,15 @@ def convergence_P(T_and_P: npt.NDArray, MWC7p: float, sgC7p: float):
   A = 1. - ((P - 14.7) / (Pk - 14.7))**.6
   return Pk, A 
 
-def k_wilson(Pci: npt.NDArray, Tci: npt.NDArray, omega: npt.NDArray, T_and_P: npt.NDArray):
+def k_wilson(Tci: npt.NDArray, Pci: npt.NDArray, omega: npt.NDArray, T_and_P: npt.NDArray):
   # T must be in Rankin # P must be in psia
-  Pci = np.atleast_1d(Pci); Tci = np.atleast_1d(Tci); omega = np.atleast_1d(omega)
+  Tci = np.atleast_1d(Tci); Pci = np.atleast_1d(Pci); omega = np.atleast_1d(omega)
   T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2); T = np.c_[T_and_P[:, 0]]; P = np.c_[T_and_P[:, 1]]
   return (Pci / P) * np.exp(5.37 * (1. + omega) * (1. - Tci / T))
 
-def k_whitson(Pci: npt.NDArray, Tci: npt.NDArray, omega: npt.NDArray, T_and_P: npt.NDArray, MWC7p: float, sgC7p: float):
+def k_whitson(Tci: npt.NDArray, Pci: npt.NDArray, omega: npt.NDArray, T_and_P: npt.NDArray, MWC7p: float, sgC7p: float):
   # T must be in Rankin # P must be in psia
-  Pci = np.atleast_1d(Pci); Tci = np.atleast_1d(Tci); omega = np.atleast_1d(omega)
+  Tci = np.atleast_1d(Tci); Pci = np.atleast_1d(Pci); omega = np.atleast_1d(omega)
   T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2); P = np.c_[T_and_P[:, 1]]
   PciP = Pci / P
   K = k_wilson(Pci, Tci, omega, T_and_P)
