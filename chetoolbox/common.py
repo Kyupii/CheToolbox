@@ -362,15 +362,15 @@ class SolutionObj(dict):
     return tuple(self.values())
 
 class UnitConv:
-  def temp(val: float | npt.NDArray, unit: str, des: str):
+  def temp(val: float | npt.NDArray, unit: str, des: str) :
     def faren2celsius(F):
-      return (np.atleast_1d(F) - 32.) * (5./9.)
+      return (F - 32.) * (5./9.)
     def celsius2kelvin(C):
-      return np.atleast_1d(C) + 273.15
+      return C + 273.15
     def kelvin2rankine(K):
-      return np.atleast_1d(K) * (9./5.)
+      return K * (9./5.)
     def rankine2faren(R):
-      return np.atleast_1d(R) - 459.67
+      return R - 459.67
     unit = unit.lower(); des = des.lower()
     unitdict = {
       "f": (faren2celsius, "c"),
@@ -387,15 +387,15 @@ class UnitConv:
   
   def press(val: float | npt.NDArray, unit: str, des: str):
     def atm2psia(atm):
-      return np.atleast_1d(atm) * 14.695948803581
+      return atm * 14.695948803581
     def psia2mmHg(psia):
-      return np.atleast_1d(psia) * 51.714925105101
+      return psia * 51.714925105101
     def mmHg2Pa(mmHg):
-      return np.atleast_1d(mmHg) * 133.322387415
+      return mmHg * 133.322387415
     def Pa2inwa(Pa):
-      return np.atleast_1d(Pa) * 0.0040146307866177
+      return Pa * 0.0040146307866177
     def inwa2atm(inwa):
-      return np.atleast_1d(inwa) * 0.0024583163911506
+      return inwa * 0.0024583163911506
     unit = unit.lower(); des = des.lower()
     unitdict = {
       "atm": (atm2psia, "psia"),
