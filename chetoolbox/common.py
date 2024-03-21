@@ -397,6 +397,9 @@ class UnitConv:
     lbs = np.atleast_1d(lbs)
     return lbs * .4535934
   
+  def atm2mmHg(atm):
+    atm = np.atleast_1d(atm)
+    return 760. * atm
   def mmHg2psia(mmHg):
     mmHg = np.atleast_1d(mmHg)
     return mmHg * .019336777496394

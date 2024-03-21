@@ -125,6 +125,7 @@ def bubble_temp_antoine(x: list, ant_coeff: npt.NDArray, P: float) -> common.Sol
   x = np.atleast_1d(x); P = np.c_[np.atleast_1d(P)]
   ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
   Tvaps = common.antoine_T(ant_coeff, P)
+  
   extrema = np.hstack([Tvaps.min(axis=1, keepdims=True), Tvaps.max(axis=1, keepdims=True)])
   match = extrema[:, 0] == extrema[:, 1]
   if match.any():
@@ -157,6 +158,7 @@ def dew_temp_antoine(y: list, ant_coeff: npt.NDArray, P: float) -> common.Soluti
   y = np.atleast_1d(y); P = np.c_[np.atleast_1d(P)]
   ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
   Tvaps = common.antoine_T(ant_coeff, P)
+  
   extrema = np.hstack([Tvaps.min(axis=1, keepdims=True), Tvaps.max(axis=1, keepdims=True)])
   match = extrema[:, 0] == extrema[:, 1]
   if match.any():

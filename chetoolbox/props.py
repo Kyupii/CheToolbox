@@ -77,10 +77,12 @@ def convergence_P(T_and_P: npt.NDArray, MWC7p: float, sgC7p: float):
   A = 1. - ((P - 14.7) / (Pk - 14.7))**.6
   return Pk, A 
 
-def acentric_omega(ant_coeff: npt.NDArray, T_and_P: npt.NDArray):
-  T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2); T = np.c_[T_and_P[:, 0]]
-  Psat = common.antoine_P(ant_coeff, T)
-  return
+def acentric_omega(ant_coeff: npt.NDArray, Tc: npt.NDArray, Pc: npt.NDArray):
+  ant_coeff = np.atleast_2d(ant_coeff).reshape(-1, 3)
+  Tc = np.atleast_1d(Tc); Pc = np.atleast_1d(Pc)
+  Psat = common.antoine_P(ant_coeff, .7 * Tc).diagonal()
+  print(Psat, Psat / common.UnitConv.atm2mmHg(Pc))
+  return -np.log10(Psat / common.UnitConv.atm2mmHg(Pc)) - 1.
 
 def k_wilson(Tci: npt.NDArray, Pci: npt.NDArray, omega: npt.NDArray, T_and_P: npt.NDArray):
   # T must be in Rankin # P must be in psia
