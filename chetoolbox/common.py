@@ -362,19 +362,15 @@ class SolutionObj(dict):
     return tuple(self.values())
 
 class UnitConv:
-  def temp(T: float | npt.NDArray, unit: str, des: str):
-    def faren2celsius(T):
-      T = np.atleast_1d(T)
-      return (T - 32.) * (5./9.)
-    def celsius2kelvin(T):
-      T = np.atleast_1d(T)
-      return T + 273.15
-    def kelvin2rankine(T):
-      T = np.atleast_1d(T)
-      return T * (9./5.)
-    def rankine2faren(T):
-      T = np.atleast_1d(T)
-      return T -459.67
+  def temp(val: float | npt.NDArray, unit: str, des: str):
+    def faren2celsius(F):
+      return (np.atleast_1d(F) - 32.) * (5./9.)
+    def celsius2kelvin(C):
+      return np.atleast_1d(C) + 273.15
+    def kelvin2rankine(K):
+      return np.atleast_1d(K) * (9./5.)
+    def rankine2faren(R):
+      return np.atleast_1d(R) - 459.67
     unit = unit.lower(); des = des.lower()
     unitdict = {
       "f": (faren2celsius, "c"),
@@ -383,11 +379,37 @@ class UnitConv:
       "r": (rankine2faren, "f")
     }
     if unit not in unitdict.keys() or des not in unitdict.keys():
-      raise KeyError("Incorrect Temperature Units")
+      raise KeyError(f"Incorrect Unit: {unit}")
     while unit != des:
       T = unitdict[unit][0](T)
       unit = unitdict[unit][1]
     return T
+  
+  def press(val: float | npt.NDArray, unit: str, des: str):
+    def atm2psia(atm):
+      return np.atleast_1d(atm) * 14.695948803581
+    def psia2mmHg(psia):
+      return np.atleast_1d(psia) * 51.714925105101
+    def mmHg2Pa(mmHg):
+      return np.atleast_1d(mmHg) * 133.322387415
+    def Pa2inwa(Pa):
+      return np.atleast_1d(Pa) * 0.0040146307866177
+    def inwa2atm(inwa):
+      return np.atleast_1d(inwa) * 0.0024583163911506
+    unit = unit.lower(); des = des.lower()
+    unitdict = {
+      "atm": (atm2psia, "psia"),
+      "psia": (psia2mmHg, "mmhg"),
+      "mmhg": (mmHg2Pa, "pa"),
+      "pa": (Pa2inwa, "inwa"),
+      "inwa": (inwa2atm, "atm"),
+    }
+    if unit not in unitdict.keys() or des not in unitdict.keys():
+      raise KeyError(f"Incorrect Unit: {unit}")
+    while unit != des:
+      val = unitdict[unit][0](val)
+      unit = unitdict[unit][1]
+    return val
   
   def ft2meters(ft):
     ft = np.atleast_1d(ft)
@@ -400,6 +422,9 @@ class UnitConv:
   def atm2mmHg(atm):
     atm = np.atleast_1d(atm)
     return 760. * atm
+  def atm2psia(atm):
+    atm = np.atleast_1d(atm)
+    return 14.695948803581 * atm
   def mmHg2psia(mmHg):
     mmHg = np.atleast_1d(mmHg)
     return mmHg * .019336777496394

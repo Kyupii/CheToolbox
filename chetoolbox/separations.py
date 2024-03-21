@@ -764,9 +764,9 @@ def multicomp_column_cond(y: npt.NDArray, x: npt.NDArray, ant_coeff: npt.NDArray
   Tbot : float
     Temperature at the bottom of the distilation column in K (Kelvin).
   Ptop : float
-    Pressure at the top of the distilation column in psia (absolute pressure per square inch).
+    Pressure at the top of the distilation column in psia (absolute pounds per square inch).
   Pbot : float
-    Pressure at the bottom of the distilation column in psia (absolute pressure per square inch).
+    Pressure at the bottom of the distilation column in psia (absolute pounds per square inch).
   condenserType : str
     Type of condesner that ought to be used at the calculated distilate pressure.
   '''

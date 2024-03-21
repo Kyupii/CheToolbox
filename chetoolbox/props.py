@@ -100,27 +100,46 @@ def acentric_omega(ant_coeff: npt.NDArray, Tc: float | npt.NDArray, Pc: float | 
   Psat = common.antoine_P(ant_coeff, .7 * Tc).diagonal()
   return -np.log10(Psat / common.UnitConv.atm2mmHg(Pc)) - 1.
 
-def k_wilson(Tci: npt.NDArray, Pci: npt.NDArray, omega: npt.NDArray, T_and_P: npt.NDArray):
-  # T must be in Rankin # P must be in psia
-  Tci = np.atleast_1d(Tci); Pci = np.atleast_1d(Pci); omega = np.atleast_1d(omega)
-  T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2); T = np.c_[T_and_P[:, 0]]; P = np.c_[T_and_P[:, 1]]
-  return (Pci / P) * np.exp(5.37 * (1. + omega) * (1. - Tci / T))
+def k_wilson(Tc: float | npt.NDArray, Pc: float | npt.NDArray, omega: float | npt.NDArray, T_and_P: npt.NDArray) -> npt.NDArray:
+  '''
+  Estiamtes the equalibrium coefficient of a compound.
+  
+  Parameters:
+  -----------
+  Tc : float | npt.NDArray
+    Critical temperature of all components in K (Kelvin). Lenght must be N.
+  Pc : float | npt.NDArray
+    Critical pressure of all components in atm (atmospheres). Lenght must be N.
+  omega : npt.NDArray
+    Acentric factor of a compound. Describes the non-sphericity of a molecule.
+  T_and_P : npt.NDArray
+    Pairs of temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) at which to calculate K_eq.
+  
+  Returns:
+  -----------
+  
+  '''
+  Tc = np.atleast_1d(Tc); Pc = np.atleast_1d(Pc); omega = np.atleast_1d(omega)
+  T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2)
+  P = np.c_[common.UnitConv.atm2mmHg(T_and_P[:, 1])]
+  T = np.c_[common.UnitConv.temp(T_and_P[:, 0], "k", "r")]
+  return (Pc / P) * np.exp(5.37 * (1. + omega) * (1. - Tc / T))
 
-def k_whitson(Tci: npt.NDArray, Pci: npt.NDArray, omega: npt.NDArray, T_and_P: npt.NDArray, MWC7p: float, sgC7p: float):
+def k_whitson(Tc: float | npt.NDArray, Pc: float | npt.NDArray, omega: float | npt.NDArray, T_and_P: npt.NDArray, MWC7p: float, sgC7p: float):
   # T must be in Rankin # P must be in psia
-  Tci = np.atleast_1d(Tci); Pci = np.atleast_1d(Pci); omega = np.atleast_1d(omega)
+  Tc = np.atleast_1d(Tc); Pc = np.atleast_1d(Pc); omega = np.atleast_1d(omega)
   T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2); P = np.c_[T_and_P[:, 1]]
-  PciP = Pci / P
-  K = k_wilson(Pci, Tci, omega, T_and_P)
+  PciP = Pc / P
+  K = k_wilson(Pc, Tc, omega, T_and_P)
   Pk, A = convergence_P(T_and_P, MWC7p, sgC7p)
-  return K**A * PciP**(1. - A) * (Pci / Pk)**(A - 1.)
+  return K**A * PciP**(1. - A) * (Pc / Pk)**(A - 1.)
 
 def k_mcwilliams(coeffs: npt.NDArray, T_and_P: npt.NDArray):
   # T must be in Rankin # P must be in psia
   T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2); T = np.c_[T_and_P[:, 0]]; P = np.c_[T_and_P[:, 1]]
   return np.exp(coeffs[:, 0] / T**2 + coeffs[:, 1] / T + coeffs[:, 2] + coeffs[:, 3] * np.log(P) + coeffs[:, 4] / P**2 + coeffs[:, 5] / P)
 
-def k_almehaideb(coeffs: npt.NDArray, Pci: npt.NDArray, T_and_P: npt.NDArray, omega: float, MWC7p: float, sgC7p: float):
+def k_almehaideb(coeffs: npt.NDArray, Pc: float | npt.NDArray, T_and_P: npt.NDArray, omega: float, MWC7p: float, sgC7p: float):
   # T must be in Rankin # P must be in psia
   coeffs = np.atleast_2d(coeffs)
   T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2); P = np.c_[T_and_P[:, 1]]
@@ -130,12 +149,12 @@ def k_almehaideb(coeffs: npt.NDArray, Pci: npt.NDArray, T_and_P: npt.NDArray, om
     Kstar[:, -1] = Kstar[:, -1] * np.exp(coeffs[-1, 6] / omega)
   
   Pk, A = convergence_P(T_and_P, MWC7p, sgC7p)
-  return (Pci / Pk)**(A - 1.) * (Pci / P) * Kstar**A
+  return (Pc / Pk)**(A - 1.) * (Pc / P) * Kstar**A
 
 def bp_est(g : npt.NDArray) -> float:
   '''
   Estimates the boiling point of a compound via the group contribution method.
-
+  
   Parameters:
   -----------
   g : NDArray
@@ -157,12 +176,12 @@ def bp_est(g : npt.NDArray) -> float:
 def mp_est(T_b: float)-> float:
   '''
   Estimates the melting point of a compound from its boiling point.
-
+  
   Parameters:
   -----------
   T_b : float
     Boiling point temperature in K (Kelvin).
-
+  
   returns:
   -----------
   T_m : float
@@ -173,7 +192,7 @@ def mp_est(T_b: float)-> float:
 def pvap_solid_est(T_b: float, T_m: float, T: float)-> float:
   '''
   Estimates the vapor pressure of a solid compound.
-
+  
   Parameters:
   -----------
   T_b : float
@@ -182,7 +201,7 @@ def pvap_solid_est(T_b: float, T_m: float, T: float)-> float:
     Estimated melting point temperature in K (Kelvin).
   T : float
     Current temperature of the solid compound in K (Kelvin).
-
+  
   Returns:
   -----------
   pvap : float
