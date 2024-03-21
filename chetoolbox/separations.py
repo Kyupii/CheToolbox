@@ -1026,7 +1026,6 @@ def quanderwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeII: npt.NDA
   typeII = np.atleast_1d(typeII)
   theta_range = (np.min(a_i_hk_F[typeII]),np.max(a_i_hk_F[typeII]))
   theta = np.array([])
-  walker = theta_range[0]+.001
   def err(theta):
     return psi - np.sum(a_i_hk_F * x_i_F / (a_i_hk_F - theta))
   for i in np.linspace(theta_range[0],theta_range[1],1000):
