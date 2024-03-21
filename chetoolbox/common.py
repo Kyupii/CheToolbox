@@ -371,13 +371,13 @@ class UnitConv:
       return K * (9./5.)
     def rankine2faren(R):
       return R - 459.67
-    unit = unit.lower(); des = des.lower()
     unitdict = {
       "f": (faren2celsius, "c"),
       "c": (celsius2kelvin, "k"),
       "k": (kelvin2rankine, "r"),
-      "r": (rankine2faren, "f")
+      "r": (rankine2faren, "f"),
     }
+    unit = unit.lower(); des = des.lower()
     if unit not in unitdict.keys() or des not in unitdict.keys():
       raise KeyError(f"Incorrect Unit: {unit}")
     while unit != des:
@@ -396,7 +396,6 @@ class UnitConv:
       return Pa * 0.0040146307866177
     def inwa2atm(inwa):
       return inwa * 0.0024583163911506
-    unit = unit.lower(); des = des.lower()
     unitdict = {
       "atm": (atm2psia, "psia"),
       "psia": (psia2mmHg, "mmhg"),
@@ -404,6 +403,7 @@ class UnitConv:
       "pa": (Pa2inwa, "inwa"),
       "inwa": (inwa2atm, "atm"),
     }
+    unit = unit.lower(); des = des.lower()
     if unit not in unitdict.keys() or des not in unitdict.keys():
       raise KeyError(f"Incorrect Unit: {unit}")
     while unit != des:
