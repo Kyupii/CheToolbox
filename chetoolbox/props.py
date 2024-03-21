@@ -98,7 +98,7 @@ def acentric_omega(ant_coeff: npt.NDArray, Tc: float | npt.NDArray, Pc: float | 
   ant_coeff = np.atleast_2d(ant_coeff).reshape(-1, 3)
   Tc = np.atleast_1d(Tc); Pc = np.atleast_1d(Pc)
   Psat = common.antoine_P(ant_coeff, .7 * Tc).diagonal()
-  return -np.log10(Psat / common.UnitConv.atm2mmHg(Pc)) - 1.
+  return -np.log10(Psat / common.UnitConv.press(Pc, "atm", "mmHg")) - 1.
 
 def k_wilson(Tc: float | npt.NDArray, Pc: float | npt.NDArray, omega: float | npt.NDArray, T_and_P: npt.NDArray) -> npt.NDArray:
   '''
@@ -121,8 +121,8 @@ def k_wilson(Tc: float | npt.NDArray, Pc: float | npt.NDArray, omega: float | np
   '''
   Tc = np.atleast_1d(Tc); Pc = np.atleast_1d(Pc); omega = np.atleast_1d(omega)
   T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2)
-  P = np.c_[common.UnitConv.atm2mmHg(T_and_P[:, 1])]
   T = np.c_[common.UnitConv.temp(T_and_P[:, 0], "k", "r")]
+  P = np.c_[common.UnitConv.press(T_and_P[:, 1], "psia", "atm")]
   return (Pc / P) * np.exp(5.37 * (1. + omega) * (1. - Tc / T))
 
 def k_whitson(Tc: float | npt.NDArray, Pc: float | npt.NDArray, omega: float | npt.NDArray, T_and_P: npt.NDArray, MWC7p: float, sgC7p: float):

@@ -362,7 +362,7 @@ class SolutionObj(dict):
     return tuple(self.values())
 
 class UnitConv:
-  def temp(val: float | npt.NDArray, unit: str, des: str) :
+  def temp(val: float | npt.NDArray, unit: str, des: str) -> float | npt.NDArray:
     def faren2celsius(F):
       return (F - 32.) * (5./9.)
     def celsius2kelvin(C):
@@ -385,7 +385,7 @@ class UnitConv:
       unit = unitdict[unit][1]
     return T
   
-  def press(val: float | npt.NDArray, unit: str, des: str):
+  def press(val: float | npt.NDArray, unit: str, des: str) -> float | npt.NDArray:
     def atm2psia(atm):
       return atm * 14.695948803581
     def psia2mmHg(psia):
@@ -418,19 +418,6 @@ class UnitConv:
   def lbs2kgs(lbs):
     lbs = np.atleast_1d(lbs)
     return lbs * .4535934
-  
-  def atm2mmHg(atm):
-    atm = np.atleast_1d(atm)
-    return 760. * atm
-  def atm2psia(atm):
-    atm = np.atleast_1d(atm)
-    return 14.695948803581 * atm
-  def mmHg2psia(mmHg):
-    mmHg = np.atleast_1d(mmHg)
-    return mmHg * .019336777496394
-  def psia2mmHg(psia):
-    psia = np.atleast_1d(psia)
-    return psia * 51.714925105101
 
 # region String Operations
 # credit to scipy team for _dict_formatter

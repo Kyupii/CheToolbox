@@ -773,12 +773,12 @@ def multicomp_column_cond(y: npt.NDArray, x: npt.NDArray, ant_coeff: npt.NDArray
   y = np.atleast_1d(y)
   ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
   bubbleP = bubble_press_antoine(y, ant_coeff, T) # in mmHg
-  P = common.UnitConv.mmHg2psia(bubbleP)
+  P = common.UnitConv.press(bubbleP, "mmHg", "psia")
   P = np.maximum(P, 30.)
   condenserType = "Total Condenser"
   if P >= 215.:
     dewP = dew_press_antoine(y, ant_coeff, T) # in mmHg
-    P = common.UnitConv.mmHg2psia(dewP)
+    P = common.UnitConv.press(dewP, "mmHg", "psia")
     condenserType = "Partial Condenser"
   if P > 365.:
     P = np.minimum(P, 415.)
@@ -786,17 +786,17 @@ def multicomp_column_cond(y: npt.NDArray, x: npt.NDArray, ant_coeff: npt.NDArray
   
   Ptop = P + 5.
   # TODO how to calculate temperature at the top of the column
-  Ttop = dew_temp_antoine(y, ant_coeff, common.UnitConv.psia2mmHg(Ptop))
+  Ttop = dew_temp_antoine(y, ant_coeff, common.UnitConv.press(Ptop, "psia", "mmHg"))
   if numplates is None:
     dP = 5.
   else:
     dP = (.05 if vacuumColumn else .1) * numplates
   Pbot = Ptop + dP
-  Tbot = bubble_temp_antoine(x, ant_coeff, common.UnitConv.psia2mmHg(Pbot))
+  Tbot = bubble_temp_antoine(x, ant_coeff, common.UnitConv.press(Pbot, "psia", "mmHg"))
   
   if Tdecomp is not None and Tbot > decompSafeFac * Tdecomp:
     bubP = bubble_press_antoine(x, decompSafeFac * Tdecomp) - dP - 5.
-    P = common.UnitConv.mmHg2psia(bubP)
+    P = common.UnitConv.press(bubP, "mmHg", "psia")
     T = dew_temp_antoine(y, ant_coeff, P) if P >= 215. else bubble_temp_antoine(y, ant_coeff, P)
     Ttop, Tbot, Ptop, Pbot, condenserType = multicomp_column_cond(y, x, ant_coeff, T, Tdecomp, numplates, vacuumColumn, decompSafeFac)
   
