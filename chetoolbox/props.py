@@ -3,7 +3,7 @@ from numpy import typing as npt
 import pandas as pd
 import common
 
-def antoine_coeff_query(query: str | npt.NDArray):
+def antoine_coeff_query(query: str | npt.NDArray) -> npt.NDArray:
   '''
   Obtains Antoine coefficients for components based on a query. 
   
@@ -38,7 +38,7 @@ def antoine_coeff_query(query: str | npt.NDArray):
     coeff[i] = line.iloc[:, 3:6].to_numpy()
   return coeff
 
-def k_coeff_query(query: str | npt.NDArray):
+def k_coeff_query(query: str | npt.NDArray) -> npt.NDArray:
   '''
   Obtains McWilliams / Almehaideb K coefficients for components based on a query. 
   
@@ -67,9 +67,27 @@ def k_coeff_query(query: str | npt.NDArray):
     coeff[i] = antoine[antoine.loc[:, col] == item].iloc[:, 1:].to_numpy()
   return coeff
 
-def convergence_P(T_and_P: npt.NDArray, MWC7p: float, sgC7p: float):
-  # T must be in Rankin # P must be in psia
-  T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2); T = np.c_[T_and_P[:, 0]]; P = np.c_[T_and_P[:, 1]]
+def convergence_P(T_and_P: npt.NDArray, MWC7p: float, sgC7p: float) -> npt.NDArray:
+  '''
+  Calculates the convergence pressure of a multi-component mixture based on the C7+ components.
+  
+  Parameters:
+  -----------
+  T_and_P : npt.NDArray
+    Pairs of temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) at which to calculate K_eq.
+  MWC7p : float
+    Molecular weight of the C7+ components in g/mol (grams per mole).
+  MWC7p : float
+   Specific gravity of the C7+ components in (unitless).
+  
+  Returns:
+  -----------
+  Pk : NDArray
+    Convergence pressure in psia (absolute pounds per square inch). The pressure at which the equilibrium values of all components converge.
+  '''
+  T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2)
+  T = np.c_[common.UnitConv.temp(T_and_P[:, 0], "k", "r")]
+  P = np.c_[T_and_P[:, 1]]
   linterm = -2381.8542 + 46.341487 * MWC7p * sgC7p
   ais = np.array([6124.3049, -2753.2538, 415.42049])
   sumterm = np.sum(ais*(MWC7p*sgC7p/(T - 460.))**np.arange(3), axis=1, keepdims=True)
@@ -86,63 +104,131 @@ def acentric_omega(ant_coeff: npt.NDArray, Tc: float | npt.NDArray, Pc: float | 
   ant_coeff : NDArray
     Coefficients for the Antoine Equation of State (unitless) for all components. Shape must be N x 3.
   Tc : float | npt.NDArray
-    Critical temperature of all components in K (Kelvin). Lenght must be N.
+    Critical temperature of all components in K (Kelvin). Length must be N.
   Pc : float | npt.NDArray
-    Critical pressure of all components in atm (atmospheres). Lenght must be N.
+    Critical pressure of all components in atm (atmospheres). Length must be N.
   
   Returns:
   -----------
   omega : npt.NDArray
-    Acentric factor of a compound. Describes the non-sphericity of a molecule.
+    Acentric factor of a compound (unitless). Describes the non-sphericity of a molecule.
   '''
   ant_coeff = np.atleast_2d(ant_coeff).reshape(-1, 3)
   Tc = np.atleast_1d(Tc); Pc = np.atleast_1d(Pc)
   Psat = common.antoine_P(ant_coeff, .7 * Tc).diagonal()
   return -np.log10(Psat / common.UnitConv.press(Pc, "atm", "mmHg")) - 1.
 
-def k_wilson(Tc: float | npt.NDArray, Pc: float | npt.NDArray, omega: float | npt.NDArray, T_and_P: npt.NDArray) -> npt.NDArray:
+def k_wilson(ant_coeff: npt.NDArray, Tc: float | npt.NDArray, Pc: float | npt.NDArray, T_and_P: npt.NDArray) -> npt.NDArray:
   '''
-  Estiamtes the equalibrium coefficient of a compound.
+  Estimates the equalibrium coefficient of a compound.
   
   Parameters:
   -----------
+  ant_coeff : NDArray
+    Coefficients for the Antoine Equation of State (unitless) for all components. Shape must be N x 3.
   Tc : float | npt.NDArray
-    Critical temperature of all components in K (Kelvin). Lenght must be N.
+    Critical temperature of all components in K (Kelvin). Length must be N.
   Pc : float | npt.NDArray
-    Critical pressure of all components in atm (atmospheres). Lenght must be N.
-  omega : npt.NDArray
-    Acentric factor of a compound. Describes the non-sphericity of a molecule.
+    Critical pressure of all components in atm (atmospheres). Length must be N.
   T_and_P : npt.NDArray
     Pairs of temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) at which to calculate K_eq.
   
   Returns:
   -----------
-  
+  K : NDArray
+    Equilibrium Constant (units vary).
   '''
-  Tc = np.atleast_1d(Tc); Pc = np.atleast_1d(Pc); omega = np.atleast_1d(omega)
+  ant_coeff = np.atleast_2d(ant_coeff).reshape(-1, 3)
+  Tc = np.atleast_1d(Tc); Pc = np.atleast_1d(Pc)
   T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2)
   T = np.c_[common.UnitConv.temp(T_and_P[:, 0], "k", "r")]
   P = np.c_[common.UnitConv.press(T_and_P[:, 1], "psia", "atm")]
+  omega = acentric_omega(ant_coeff, Tc, Pc)
   return (Pc / P) * np.exp(5.37 * (1. + omega) * (1. - Tc / T))
 
-def k_whitson(Tc: float | npt.NDArray, Pc: float | npt.NDArray, omega: float | npt.NDArray, T_and_P: npt.NDArray, MWC7p: float, sgC7p: float):
-  # T must be in Rankin # P must be in psia
-  Tc = np.atleast_1d(Tc); Pc = np.atleast_1d(Pc); omega = np.atleast_1d(omega)
-  T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2); P = np.c_[T_and_P[:, 1]]
-  PciP = Pc / P
-  K = k_wilson(Pc, Tc, omega, T_and_P)
+def k_whitson(ant_coeff: npt.NDArray, Tc: float | npt.NDArray, Pc: float | npt.NDArray, T_and_P: npt.NDArray, MWC7p: float, sgC7p: float) -> npt.NDArray:
+  '''
+  Estimates the equalibrium coefficient of a compound.
+  
+  Parameters:
+  -----------
+  ant_coeff : NDArray
+    Coefficients for the Antoine Equation of State (unitless) for all components. Shape must be N x 3.
+  Tc : float | npt.NDArray
+    Critical temperature of all components in K (Kelvin). Length must be N.
+  Pc : float | npt.NDArray
+    Critical pressure of all components in atm (atmospheres). Length must be N.
+  T_and_P : npt.NDArray
+    Pairs of temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) at which to calculate K_eq.
+  MWC7p : float
+    Molecular weight of the C7+ components in g/mol (grams per mole).
+  MWC7p : float
+   Specific gravity of the C7+ components in (unitless).
+  
+  Returns:
+  -----------
+  K : NDArray
+    Equilibrium Constant (units vary).
+  '''
+  ant_coeff = np.atleast_2d(ant_coeff).reshape(-1, 3)
+  Tc = np.atleast_1d(Tc); Pc = np.atleast_1d(Pc)
+  T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2)
+  P = T_and_P[:, 1]; Pc = common.UnitConv.press(Pc, "atm", "psia")
+  PciP = Pc / np.c_[P]
+  K = k_wilson(ant_coeff, Tc, Pc, T_and_P)
   Pk, A = convergence_P(T_and_P, MWC7p, sgC7p)
   return K**A * PciP**(1. - A) * (Pc / Pk)**(A - 1.)
 
-def k_mcwilliams(coeffs: npt.NDArray, T_and_P: npt.NDArray):
-  # T must be in Rankin # P must be in psia
-  T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2); T = np.c_[T_and_P[:, 0]]; P = np.c_[T_and_P[:, 1]]
+def k_mcwilliams(coeffs: npt.NDArray, T_and_P: npt.NDArray) -> npt.NDArray:
+  '''
+  Estimates the equalibrium coefficient of a compound using the McWilliams correlation equation.
+  
+  Parameters:
+  -----------
+  coeffs : NDArray
+    Coefficients for the McWilliams / Almehaideb K_eq relation for all components. Shape must be N x 7.
+  T_and_P : npt.NDArray
+    Pairs of temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) at which to calculate K_eq.
+  
+  Returns:
+  -----------
+  K : NDArray
+    Equilibrium Constant (units vary).
+  '''
+  coeffs = np.atleast_2d(coeffs).reshape(-1, 7)
+  T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2)
+  T = np.c_[common.UnitConv.temp(T_and_P[:, 0], "k", "r")]
+  P = np.c_[T_and_P[:, 1]]
   return np.exp(coeffs[:, 0] / T**2 + coeffs[:, 1] / T + coeffs[:, 2] + coeffs[:, 3] * np.log(P) + coeffs[:, 4] / P**2 + coeffs[:, 5] / P)
 
-def k_almehaideb(coeffs: npt.NDArray, Pc: float | npt.NDArray, T_and_P: npt.NDArray, omega: float, MWC7p: float, sgC7p: float):
-  # T must be in Rankin # P must be in psia
+def k_almehaideb(coeffs: npt.NDArray, Pc: float | npt.NDArray, T_and_P: npt.NDArray, omega: float, MWC7p: float, sgC7p: float) -> npt.NDArray:
+  '''
+  Estimates the equalibrium coefficient of a compound using the Almehaideb correlation equation.
+  
+  Parameters:
+  -----------
+  coeffs : NDArray
+    Coefficients for the McWilliams / Almehaideb K_eq relation for all components. Shape must be N x 7.
+  Pc : float | npt.NDArray
+    Critical pressure of all components in atm (atmospheres). Length must be N.
+  T_and_P : npt.NDArray
+    Pairs of temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) at which to calculate K_eq.
+  omega : float
+    Acentric factor of the C7+ components (unitless). Describes the non-sphericity of a molecule.
+  MWC7p : float
+    Molecular weight of the C7+ components in g/mol (grams per mole).
+  MWC7p : float
+   Specific gravity of the C7+ components in (unitless).
+  
+  Returns:
+  -----------
+  K : NDArray
+    Equilibrium Constant (units vary).
+  '''
   coeffs = np.atleast_2d(coeffs)
-  T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2); P = np.c_[T_and_P[:, 1]]
+  Pc = np.atleast_1d(Pc)
+  T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2)
+  P = T_and_P[:, 1]; Pc = common.UnitConv.press(Pc, "atm", "psia")
   Kstar = k_mcwilliams(coeffs, T_and_P)
   
   if coeffs[-1, 6] != 0. and omega is not None: # assumes the last component is the C7+
