@@ -381,9 +381,9 @@ class UnitConv:
     if unit not in unitdict.keys() or des not in unitdict.keys():
       raise KeyError(f"Incorrect Unit: {unit}")
     while unit != des:
-      T = unitdict[unit][0](T)
+      val = unitdict[unit][0](val)
       unit = unitdict[unit][1]
-    return T
+    return val
   
   def press(val: float | npt.NDArray, unit: str, des: str) -> float | npt.NDArray:
     def atm2psia(atm):
