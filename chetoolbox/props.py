@@ -65,6 +65,7 @@ def k_coeff_query(query: str | npt.NDArray):
   return coeff
 
 def convergence_P(T_and_P: npt.NDArray, MWC7p: float, sgC7p: float):
+  # T must be in Rankin # P must be in psia
   T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2); T = np.c_[T_and_P[:, 0]]; P = np.c_[T_and_P[:, 1]]
   linterm = -2381.8542 + 46.341487 * MWC7p * sgC7p
   ais = np.array([6124.3049, -2753.2538, 415.42049])
@@ -80,6 +81,7 @@ def k_wilson(Pci: npt.NDArray, Tci: npt.NDArray, omega: npt.NDArray, T_and_P: np
   return (Pci / P) * np.exp(5.37 * (1. + omega) * (1. - Tci / T))
 
 def k_whitson(Pci: npt.NDArray, Tci: npt.NDArray, omega: npt.NDArray, T_and_P: npt.NDArray, MWC7p: float, sgC7p: float):
+  # T must be in Rankin # P must be in psia
   Pci = np.atleast_1d(Pci); Tci = np.atleast_1d(Tci); omega = np.atleast_1d(omega)
   T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2); P = np.c_[T_and_P[:, 1]]
   PciP = Pci / P
