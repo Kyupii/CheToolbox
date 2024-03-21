@@ -581,14 +581,14 @@ def curve_bouncer(upper: Equation, lower: Equation, x_start: float, x_stop: floa
 # region Chemistry
 def antoine_P(coeffs: npt.NDArray, T: npt.NDArray) -> npt.NDArray:
   '''
-  Calculates the vapor pressure in mmHg of every component for each temperature in degC.
+  Calculates the vapor pressure in mmHg of every component for each temperature in K.
   '''
   coeffs = np.atleast_2d(coeffs); T = np.atleast_2d(T)
   return 10 ** (np.c_[coeffs[:, 0]] - np.c_[coeffs[:, 1]] / (T + np.c_[coeffs[:, 2]]))
 
 def antoine_T(coeffs: npt.NDArray, P: npt.NDArray) -> npt.NDArray:
   '''
-  Calculates the temperature in degC for each set of vapor pressure in mmHg.
+  Calculates the temperature in K for each set of vapor pressure in mmHg.
   '''
   coeffs = np.atleast_2d(coeffs); P = np.atleast_2d(P)
   return (np.c_[-coeffs[:, 1]] / (np.log10(P) - np.c_[coeffs[:, 0]])) - np.c_[coeffs[:, 2]]
