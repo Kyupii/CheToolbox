@@ -1062,7 +1062,9 @@ def underwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeI: npt.NDArra
   theta, _, _ = common.err_reduc_iterative(err, thetasets, bounds=tIa, ceil=tIa.max(), floor=tIa.min())
   thetas = np.array([np.average(thet) for thet in common.array_boundsplit(theta, tIa)])
   
-  return thetas
+  # assuming: typeI looks like [non-distrib D only, distrib (LK and HK here), non-distrib B only]
+  nondist_D = D_i[:-len(common.array_boundsplit(typeI)[-1])]
+  return nondist_D
 
 def gilliland(Nmin: float, Rmin: float, Rmin_mult: float = 1.3) -> float:
   '''

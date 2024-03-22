@@ -469,12 +469,16 @@ def _float_formatter_10(x):
 # endregion
 
 # region Array Operations
-def array_boundsplit(a: npt.NDArray, bounds: npt.NDArray) -> list[npt.NDArray]:
+def array_boundsplit(a: npt.NDArray, bounds: npt.NDArray | None = None) -> list[npt.NDArray]:
   '''
   Sorts and splits an array by the bounds provided. Returns a list of size len(bounds) + 1.
   '''
-  a = np.atleast_1d(a); a.sort(); bounds = np.atleast_1d(bounds)
-  change = (np.c_[a] > bounds).sum(axis=1)
+  a = np.atleast_1d(a); bounds = np.atleast_1d(bounds)
+  if a.dtype == bool:
+    change = a
+  else:
+    a.sort()
+    change = (np.c_[a] > bounds).sum(axis=1)
   split_ind = np.where(change[:-1] != change[1:])[0] + 1
   return np.split(a, split_ind)
 
