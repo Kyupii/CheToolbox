@@ -698,12 +698,12 @@ def root_newton(f: Callable, i: npt.NDArray, tol: float = 0.00001):
     Converged value of the root
   '''
   i = np.atleast_1d(i)
-  f_prime = approx_deriv(f,i)
+  f_prime = approx_deriv(f, i)
   while np.abs(f(i)) > tol:
     if f_prime == 0:
       raise Exception('Extrema encountered, convergence is terminated')
     i = i - (f(i)/f_prime)
-    f_prime = approx_deriv(f,i)
+    f_prime = approx_deriv(f, i)
   return i
 
 def lin_estimate_error(x_pair: npt.NDArray, y_pair: npt.NDArray, tol: float = 1e-10) -> npt.NDArray:
@@ -732,7 +732,7 @@ def err_reduc(err_calc: Callable[[npt.NDArray], npt.NDArray], x: npt.NDArray, to
   x[(np.arange(x.shape[0]), err.argmax(axis=1))] = xnew
   return x, err
 
-def err_reduc_iterative(err_calc: Callable[[float | npt.NDArray], float | npt.NDArray], x: npt.NDArray, tol: float = 1e-10) -> tuple[npt.NDArray, npt.NDArray, int]:
+def err_reduc_iterative(err_calc: Callable[[float | npt.NDArray], float | npt.NDArray], x: npt.NDArray, tol: float = 1e-10, bounds: npt.NDArray | None = None, ceil: float | None = None, floor: float | None = None) -> tuple[npt.NDArray, npt.NDArray, int]:
   '''
   Accepts pairs of inputs and an error function. Returns inputs with tolerable error, the errors, and the number of iterations required.
   Expects 2D arrays, of shape N x 2.
@@ -743,5 +743,12 @@ def err_reduc_iterative(err_calc: Callable[[float | npt.NDArray], float | npt.ND
   while np.any(np.min(error, axis=1) > tol):
     x, error = err_reduc(err_calc, x, tol)
     i += 1
+    if i % 5 == 0:
+      if bounds is not None:
+        x = x[np.sign(x[:, :, None] - bounds).prod(axis=1).sum(axis=1) == len(bounds)]
+      if ceil is not None:
+        x = x[np.any(x <= ceil, axis=1)]
+      if floor is not None:
+        x = x[np.any(x >= floor, axis=1)]
   return x[(np.arange(x.shape[0]), error.argmin(axis=1))], np.min(error, axis=1), i
 # endregion

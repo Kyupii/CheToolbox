@@ -999,8 +999,8 @@ def underwood_type1(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, x_lk_FD: npt.NDAr
     Molar flowrate of all non-key components in the bottoms stream at minimum reflux.
   R_min : float
     Minimum reflux ratio of the a distilation column as a Type I System.
-  typeII : NDArray
-    If a component failed to distribute, meaning the distilation column is Type II.
+  typeI : NDArray
+    If a component successfully to distributed. If any component is false, the distilation column is Type II.
   '''
   x_i_F = np.atleast_1d(x_i_F)
   a_i_hk_F = np.atleast_1d(a_i_hk_F)
@@ -1016,25 +1016,27 @@ def underwood_type1(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, x_lk_FD: npt.NDAr
   B_i_Rmin = F * x_i_F - D_i_Rmin 
   
   cond = (lkgalf + hkhlaf) * F_liq / F # TODO check if this is actually what you are supposed to do here
-  typeII = np.any((cond < 0, cond > 1) , axis=1)
-  return common.SolutionObj(D_i_Rmin = D_i_Rmin, B_i_Rmin = B_i_Rmin, R_min = R_min, typeII = typeII)
+  typeI = ~np.any((cond < 0, cond > 1) , axis=1)
+  return common.SolutionObj(D_i_Rmin = D_i_Rmin, B_i_Rmin = B_i_Rmin, R_min = R_min, typeI = typeI)
 
 # I am trying to make sense of this too. Trying to figure out how to get Theta -> Flow rates
-def quanderwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeII: npt.NDArray, psi: float):
+def quanderwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeI: npt.NDArray, psi: float):
   x_i_F = np.atleast_1d(x_i_F)
   a_i_hk_F = np.atleast_1d(a_i_hk_F)
-  typeII = np.atleast_1d(typeII)
-  theta_range = (np.min(a_i_hk_F[typeII]),np.max(a_i_hk_F[typeII]))
+  typeI = np.atleast_1d(typeI)
+  theta_range = (np.min(a_i_hk_F[typeI]), np.max(a_i_hk_F[typeI]))
   theta = np.array([])
+  
   def err(theta):
     return psi - np.sum(a_i_hk_F * x_i_F / (a_i_hk_F - theta))
-  for i in np.linspace(theta_range[0],theta_range[1],1000):
-    j = common.root_newton(err,i) 
+  
+  for i in np.linspace(theta_range[0], theta_range[1], 1000):
+    j = common.root_newton(err, i) 
     if j < theta_range[1] and j > theta_range[0]:
       theta = np.append(theta,j)
   return np.unique(np.round(theta,3))
 
-def underwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeII: npt.NDArray, psi: float):
+def underwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeI: npt.NDArray, psi: float):
   '''
   Calculates Type II.
   
@@ -1049,17 +1051,19 @@ def underwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeII: npt.NDArr
   '''
   x_i_F = np.atleast_1d(x_i_F)
   a_i_hk_F = np.atleast_1d(a_i_hk_F)
-  typeII = np.atleast_1d(typeII)
-  tIa = a_i_hk_F[~typeII]
-  thetaranges = np.linspace(tIa[:-1], tIa[1:], 10).flatten("F")
+  typeI = np.atleast_1d(typeI)
+  tIa = a_i_hk_F[typeI]
+  thetaranges = np.linspace(tIa[:-1] - .001, tIa[1:] + .001, 10).flatten("F")
+  thetaranges[::-1].sort()
   thetasets = np.vstack(np.lib.stride_tricks.sliding_window_view(thetaranges, 2))
   
   def err(theta):
-    return psi - np.sum(a_i_hk_F * x_i_F / (a_i_hk_F - theta), keepdims=True)
+    trueerr = psi - np.sum(a_i_hk_F * x_i_F / (a_i_hk_F - np.c_[theta.flatten("A")]), axis=1, keepdims=True).reshape(-1, 2)
+    return trueerr
   
-  theta, _, _ = common.err_reduc_iterative(err, thetasets)
+  theta, _, _ = common.err_reduc_iterative(err, thetasets, tol=1e-5, bounds=tIa, ceil=tIa.max(), floor=tIa.min())
   
-  theta.sort(); theta = theta[theta > np.min(tIa)]; theta = theta[theta < np.max(tIa)]
+  theta = theta[theta > np.min(tIa)]; theta = theta[theta < np.max(tIa)]
   ltnind = (np.c_[theta] > tIa).sum(axis=1)
   split_ind = np.where(ltnind[:-1] != ltnind[1:])[0] + 1
   thetasgrouped = np.split(theta, split_ind) # theoretically will be len(tIa) - 1 groups of thetas that all converged to approx. the same number
@@ -1067,7 +1071,7 @@ def underwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeII: npt.NDArr
   
   # no idea how to use theta to solve for component distilate flowrates when there can be arbitrarily many unknowns!!
   
-  return
+  return thetas
 
 def gilliland(Nmin: float, Rmin: float, Rmin_mult: float = 1.3) -> float:
   '''
