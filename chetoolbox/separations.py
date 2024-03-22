@@ -1053,21 +1053,17 @@ def underwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeI: npt.NDArra
   a_i_hk_F = np.atleast_1d(a_i_hk_F)
   typeI = np.atleast_1d(typeI)
   tIa = a_i_hk_F[typeI]
-  thetaranges = np.linspace(tIa[:-1] - .001, tIa[1:] + .001, 10).flatten("F")
-  thetaranges[::-1].sort()
+  thetaranges = np.linspace(tIa[:-1] - .001, tIa[1:] + .001, 100).flatten("F")
   thetasets = np.vstack(np.lib.stride_tricks.sliding_window_view(thetaranges, 2))
   
   def err(theta):
-    trueerr = psi - np.sum(a_i_hk_F * x_i_F / (a_i_hk_F - np.c_[theta.flatten("A")]), axis=1, keepdims=True).reshape(-1, 2)
-    return trueerr
+    return psi - np.sum(a_i_hk_F * x_i_F / (a_i_hk_F - np.c_[theta.flatten("A")]), axis=1, keepdims=True).reshape(-1, 2)
   
-  theta, _, _ = common.err_reduc_iterative(err, thetasets, tol=1e-5, bounds=tIa, ceil=tIa.max(), floor=tIa.min())
-  
-  theta = theta[theta > np.min(tIa)]; theta = theta[theta < np.max(tIa)]
-  ltnind = (np.c_[theta] > tIa).sum(axis=1)
+  theta, _, _ = common.err_reduc_iterative(err, thetasets, bounds=tIa, ceil=tIa.max(), floor=tIa.min())
+  theta.sort(); ltnind = (np.c_[theta] > tIa).sum(axis=1)
   split_ind = np.where(ltnind[:-1] != ltnind[1:])[0] + 1
-  thetasgrouped = np.split(theta, split_ind) # theoretically will be len(tIa) - 1 groups of thetas that all converged to approx. the same number
-  thetas = [np.average(thet) for thet in thetasgrouped]
+  thetasgrouped = np.split(theta, split_ind)
+  thetas = np.array([np.average(thet) for thet in thetasgrouped])
   
   # no idea how to use theta to solve for component distilate flowrates when there can be arbitrarily many unknowns!!
   
