@@ -469,9 +469,18 @@ def _float_formatter_10(x):
 # endregion
 
 # region Array Operations
+def array_boundsplit(a: npt.NDArray, bounds: npt.NDArray) -> list[npt.NDArray]:
+  '''
+  Sorts and splits an array by the bounds provided. Returns a list of size len(bounds) + 1.
+  '''
+  a = np.atleast_1d(a); a.sort(); bounds = np.atleast_1d(bounds)
+  change = (np.c_[a] > bounds).sum(axis=1)
+  split_ind = np.where(change[:-1] != change[1:])[0] + 1
+  return np.split(a, split_ind)
+
 def array_pad(arrs: tuple[npt.NDArray]) -> npt.NDArray:
   '''
-  Takes an arbitrary list of np.arrays of varying length and pads each np.array to form a homogeneous 2D array of size len(arrs) x max(lens)
+  Takes an arbitrary list of np.arrays of varying length and pads each np.array to form a homogeneous 2D array of size len(arrs) x max(lens).
   '''
   lens = np.array([len(v) for v in arrs])
   mask = lens[:, None] > np.arange(lens.max())

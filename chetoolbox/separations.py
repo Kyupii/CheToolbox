@@ -1036,7 +1036,7 @@ def quanderwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeI: npt.NDAr
       theta = np.append(theta,j)
   return np.unique(np.round(theta,3))
 
-def underwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeI: npt.NDArray, psi: float):
+def underwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeI: npt.NDArray, D_i: npt.NDArray, psi: float):
   '''
   Calculates Type II.
   
@@ -1060,12 +1060,7 @@ def underwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeI: npt.NDArra
     return psi - np.sum(a_i_hk_F * x_i_F / (a_i_hk_F - np.c_[theta.flatten("A")]), axis=1, keepdims=True).reshape(-1, 2)
   
   theta, _, _ = common.err_reduc_iterative(err, thetasets, bounds=tIa, ceil=tIa.max(), floor=tIa.min())
-  theta.sort(); ltnind = (np.c_[theta] > tIa).sum(axis=1)
-  split_ind = np.where(ltnind[:-1] != ltnind[1:])[0] + 1
-  thetasgrouped = np.split(theta, split_ind)
-  thetas = np.array([np.average(thet) for thet in thetasgrouped])
-  
-  # no idea how to use theta to solve for component distilate flowrates when there can be arbitrarily many unknowns!!
+  thetas = np.array([np.average(thet) for thet in common.array_boundsplit(theta, tIa)])
   
   return thetas
 
