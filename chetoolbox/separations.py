@@ -759,14 +759,8 @@ def multicomp_column_cond(y: npt.NDArray, x: npt.NDArray, ant_coeff: npt.NDArray
   
   Returns:
   -----------
-  Ttop : float
-    Temperature at the top of the distilation column in K (Kelvin).
-  Tbot : float
-    Temperature at the bottom of the distilation column in K (Kelvin).
-  Ptop : float
-    Pressure at the top of the distilation column in psia (absolute pounds per square inch).
-  Pbot : float
-    Pressure at the bottom of the distilation column in psia (absolute pounds per square inch).
+  T_and_P : NDArray
+    Temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) pairs for the top, average, and bottom of the distilation column.
   condenserType : str
     Type of condesner that ought to be used at the calculated distilate pressure.
   '''
@@ -793,14 +787,15 @@ def multicomp_column_cond(y: npt.NDArray, x: npt.NDArray, ant_coeff: npt.NDArray
     dP = (.05 if vacuumColumn else .1) * numplates
   Pbot = Ptop + dP
   Tbot = bubble_temp_antoine(x, ant_coeff, common.UnitConv.press(Pbot, "psia", "mmHg"))
+  T_and_P = np.array([[Ttop, Ptop], [np.average([Ttop, Tbot]), np.average([Ptop, Pbot])], [Tbot, Pbot]])
   
   if Tdecomp is not None and Tbot > decompSafeFac * Tdecomp:
     bubP = bubble_press_antoine(x, decompSafeFac * Tdecomp) - dP - 5.
     P = common.UnitConv.press(bubP, "mmHg", "psia")
     T = dew_temp_antoine(y, ant_coeff, P) if P >= 215. else bubble_temp_antoine(y, ant_coeff, P)
-    Ttop, Tbot, Ptop, Pbot, condenserType = multicomp_column_cond(y, x, ant_coeff, T, Tdecomp, numplates, vacuumColumn, decompSafeFac)
+    T_and_P, condenserType = multicomp_column_cond(y, x, ant_coeff, T, Tdecomp, numplates, vacuumColumn, decompSafeFac)
   
-  return Ttop, Tbot, Ptop, Pbot, condenserType
+  return T_and_P, condenserType
 
 def fenske_plates(a_lk_hk_DB: npt.NDArray, x_lk_DB: npt.NDArray, x_hk_DB: npt.NDArray) -> float:
   '''
@@ -813,10 +808,10 @@ def fenske_plates(a_lk_hk_DB: npt.NDArray, x_lk_DB: npt.NDArray, x_hk_DB: npt.ND
       Ex) np.array([a_lk_hk_D, a_lk_hk_B])
   x_lk_DB : NDArray
     Liquid mole fractions of the light key component in the distillate and bottom streams. 
-      Ex) np.array([x_lk_D, x_lk_B])
+      Ex) np.array([y_lk_D, x_lk_B])
   x_hk_DB : NDArray
     Liquid mole fractions of the heavy key component in the distillate and bottom streams. 
-      Ex) np.array([x_hk_D, x_hk_B])
+      Ex) np.array([y_hk_D, x_hk_B])
   
   Returns
   ----------

@@ -131,7 +131,7 @@ def k_wilson(ant_coeff: npt.NDArray, Tc: float | npt.NDArray, Pc: float | npt.ND
   Pc : float | npt.NDArray
     Critical pressure of all components in atm (atmospheres). Length must be N.
   T_and_P : npt.NDArray
-    Pairs of temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) at which to calculate K_eq.
+    Pairs of temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) at which to calculate K_eq. Shape must be N x 2.
   
   Returns:
   -----------
@@ -159,7 +159,7 @@ def k_whitson(ant_coeff: npt.NDArray, Tc: float | npt.NDArray, Pc: float | npt.N
   Pc : float | npt.NDArray
     Critical pressure of all components in atm (atmospheres). Length must be N.
   T_and_P : npt.NDArray
-    Pairs of temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) at which to calculate K_eq.
+    Pairs of temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) at which to calculate K_eq.  Shape must be N x 2.
   MWC7p : float
     Molecular weight of the C7+ components in g/mol (grams per mole).
   MWC7p : float
@@ -188,7 +188,7 @@ def k_mcwilliams(coeffs: npt.NDArray, T_and_P: npt.NDArray) -> npt.NDArray:
   coeffs : NDArray
     Coefficients for the McWilliams / Almehaideb K_eq relation for all components. Shape must be N x 7.
   T_and_P : npt.NDArray
-    Pairs of temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) at which to calculate K_eq.
+    Pairs of temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) at which to calculate K_eq.  Shape must be N x 2.
   
   Returns:
   -----------
@@ -212,7 +212,7 @@ def k_almehaideb(coeffs: npt.NDArray, Pc: float | npt.NDArray, T_and_P: npt.NDAr
   Pc : float | npt.NDArray
     Critical pressure of all components in atm (atmospheres). Length must be N.
   T_and_P : npt.NDArray
-    Pairs of temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) at which to calculate K_eq.
+    Pairs of temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) at which to calculate K_eq.  Shape must be N x 2.
   omega : float
     Acentric factor of the C7+ components (unitless). Describes the non-sphericity of a molecule.
   MWC7p : float
