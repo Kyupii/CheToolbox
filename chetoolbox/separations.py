@@ -18,7 +18,7 @@ def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> common.Soluti
     Initial value of psi to begin iterating on (unitless). Must be 0 <= psi <= 1.
   tol : float
     Largest error value to stop iterating and return.
-
+  
   Returns
   ----------
   psi : float
@@ -268,7 +268,7 @@ def liq_frac_superheated(Cpv: float, heatvap: float, Tf: float, Td: float) -> fl
 def eq_curve_estim(points: npt.NDArray, alpha: float = None) -> common.EqualibEq:
   '''
   Estimates an equilibrium curve for a binary mixture. Assumes constant equilibrium ratio (K1 / K2) between the two species.
-
+  
   Parameters:
   -----------
   points : NDArray
@@ -276,7 +276,7 @@ def eq_curve_estim(points: npt.NDArray, alpha: float = None) -> common.EqualibEq
       Ex) np.array([ [.2, .1], [.3, .23], [.4, .5] ])
   alpha : float (Optional)
     Relative volatility of the two species equilibrium constants (K) (unitless). Takes priority over point-based estimation.
-
+  
   Returns:
   -----------
   equilibrium_curve : EqualibEq
@@ -290,7 +290,7 @@ def eq_curve_estim(points: npt.NDArray, alpha: float = None) -> common.EqualibEq
 def mccabe_thiel_feedline(q: float, xf: float) -> common.LinearEq:
   '''
   Calculates the feed line on a McCabe Thiel Diagram for a binary mixture distillation column. Assumes equal molar heats of vaporization.
-
+  
   Parameters:
   -----------
   q : float
@@ -313,7 +313,7 @@ def mccabe_thiel_feedline(q: float, xf: float) -> common.LinearEq:
 def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: float, xb: float, Rmin_mult: float = 1.2) -> common.SolutionObj[common.LinearEq, common.LinearEq, tuple[float, float], float]:
   '''
   Calculates the rectifying and stripping operating lines of a McCabe Thiel Diagram for a binary mixture distillation column. Assumes equal molar heats of vaporization.
-
+  
   Parameters:
   -----------
   feedline : LinearEq
@@ -326,7 +326,7 @@ def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: 
     Liquid fraction of the bottoms' lower boiling point species (unitless).
   Rmin_mult : float
     Factor by which to exceed the minimum reflux ratio, Rmin (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf).
-
+  
   Returns:
   -----------
   rectifyline : LinearEq
@@ -342,16 +342,16 @@ def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: 
   '''
   # "distillate to feed at equilibrium" line
   eq_rectifyline = common.point_conn(eq_feedpoint, (xd, xd))
-
+  
   # "distillate to feedpoint" line
   Rmin = eq_rectifyline.m / (1. - eq_rectifyline.m)
   R = Rmin_mult * Rmin
   m = R / (1. + R)
   rectifyline = common.point_slope((xd, xd), m)
-
+  
   # feedpoint
   feedpoint = common.linear_intersect(feedline, rectifyline)
-
+  
   # bottoms to feed point
   stripline = common.point_conn(feedpoint, (xb, xb))
   return common.SolutionObj(rectifyline = rectifyline, stripline = stripline, feedpoint = feedpoint, Rmin = Rmin, R = R)
@@ -359,7 +359,7 @@ def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: 
 def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq, xf: float, xd: float, xb: float, Rmin_mult: float = 1.2, tol: float = .00001, PLOTTING_ENABLED = False) -> common.SolutionObj[float, float, float, float]:
   '''
   Calculates the reflux ratio and ideal stages of a binary mixture distillation column, as well as their ideal minimums. Uses a McCabe Thiel diagram and assumes equal molar heats of vaporization.
-
+  
   Parameters:
   -----------
   equilibrium_curve : EqualibEq
@@ -376,7 +376,7 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
     Factor by which to exceed the minimum reflux ratio, Rmin (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf).
   tol : float
     Largest error value to stop iterating and return.
-
+  
   Returns:
   -----------
   Rmin : float
@@ -388,7 +388,7 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
   ideal_stages : float
     Number of ideal stages (includes reboiler and partial condenser if applicable).
   '''
-
+  
   def err(x):
     return eq_curve.eval(x) - feedline.eval(x)
   if np.isnan(feedline.m):
@@ -399,12 +399,12 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
   
   eq_feedpoint = (x, eq_curve.eval(x))
   rectifyline, stripline, feedpoint, Rmin, R = mccabe_thiel_otherlines(feedline, eq_feedpoint, xd, xb, Rmin_mult).unpack()
-
+  
   y_reflect = common.LinearEq(1., 0.)
   min_stages = common.curve_bouncer(eq_curve, y_reflect, xd, xb)
-
+  
   y_operlines = common.PiecewiseEq((stripline, rectifyline), (feedpoint[0],))
-
+  
   linestograph = []
   def x_graphcapture(x):
     y = eq_curve.eval(x)
@@ -416,7 +416,7 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
     return y
   
   ideal_stages = common.curve_bouncer(eq_curve, y_operlines, xd, xb, x_graphcapture, y_graphcapture)
-
+  
   if PLOTTING_ENABLED:
     fig, ax = plt.subplots(); ax.set_title("McCabe Thiel Diagram")
     plt.xlim(0, 1); plt.ylim(0, 1)
@@ -430,13 +430,13 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
     for dom, vals in linestograph:
       ax.plot(dom, vals, "r")
     # ax.plot(eq_feedpoint[0], eq_feedpoint[1], 'o'); ax.plot(feedpoint[0], feedpoint[1], 'o')
-
+  
   return common.SolutionObj(Rmin = Rmin, R = R, min_stages = min_stages, ideal_stages = ideal_stages)
 
 def binary_feed_split(F: float, xf: float, xd: float, xb: float, R: float = None, q: float = None) -> tuple[float, float, float | None, float | None, float | None, float | None]:
   '''
   Calculates the distillate and bottom flowrates out of a binary mixture distillation column. Optionally calculates the internal flows between the feed tray, rectifying, and stripping sections of the distillation column.
-
+  
   Parameters:
   -----------
   F : float
@@ -451,7 +451,7 @@ def binary_feed_split(F: float, xf: float, xd: float, xb: float, R: float = None
     Reflux ratio of the rectifying section (unitless).
   q : float (Optional)
     The liquid fraction of the incoming feed. Should be 1. when the feed is saturated liquid (vaporless / at its bubble point). Should be 0. when the feed is saturated vapor (liquidless / at its dew point).
-
+  
   Returns:
   -----------
   D : float
@@ -477,13 +477,13 @@ def binary_feed_split(F: float, xf: float, xd: float, xb: float, R: float = None
     if q != None:
       Vprime = V - F*(1. - q)
       Lprime = Vprime + B
-
+  
   return D, B, V, L, Vprime, Lprime
 
 def ponchon_savarit_enthalpylines(props: npt.NDArray) -> tuple[common.LinearEq, common.LinearEq]:
   '''
   Calculates the liquid and vapor enthalpy lines on a Ponchon Savarit diagram for a binary mixture distillation column.
-
+  
   Parameters:
   -----------
   props : NDArray
@@ -502,13 +502,13 @@ def ponchon_savarit_enthalpylines(props: npt.NDArray) -> tuple[common.LinearEq, 
     props = props[::-1]
   liqlineH = common.point_conn((1., 0.), (0., props[1, 1] * (props[1, 0] - props[0, 0])))
   vaplineH = common.point_conn((1., props[0, 2]), (0., props[1, 1] * (props[1, 0] - props[0, 0]) + props[1, 2]))
-
+  
   return liqlineH, vaplineH
 
 def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq, xf: float, yf: float, xd: float, xb: float, Rmin_mult: float = 1.2) -> common.SolutionObj[common.LinearEq, float, float, float, float]:
   '''
   Calculates the tieline and Rmin of a Ponchon Savarit diagram for a binary mixture distillation column.
-
+  
   Parameters:
   -----------
   liqlineH : LinearEq
@@ -525,7 +525,7 @@ def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq
     Liquid fraction of the lower boiling point species in the bottoms (unitless).
   Rmin_mult : float
     Factor by which to exceed the minimum reflux ratio, Rmin (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf).
-
+  
   Returns:
   -----------
   tieline : LinearEq
@@ -548,13 +548,13 @@ def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq
   Hd = R * (hv1 - hd) + hv1
   tieline = common.point_conn((xf, liqlineH.eval(xf)), (xd, Hd)) # tieline for real R, not Rmin
   Hb = tieline.eval(xb)
-
+  
   return common.SolutionObj(tieline = tieline, Rmin = Rmin, R = R, Hd = Hd, Hb = Hb)
 
 def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.LinearEq, vaplineH: common.LinearEq, Fpoint: tuple[float, float], q: bool | float, xd: float, xb: float, Rmin_mult: float, tol: float = .00001, PLOTTING_ENABLED = False) -> common.SolutionObj[common.LinearEq, float, float, float, float]:
   '''
   Calculates the liquid and vapor enthalpy lines on a Ponchon Savarit diagram for a binary mixture distillation column.
-
+  
   Parameters:
   -----------
   eq_curve : EqualibEq
@@ -575,7 +575,7 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
     Factor by which to exceed the minimum reflux ratio, Rmin (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf).
   tol : float
     Largest error value to stop iterating and return.
-
+  
   Returns:
   -----------
   Rmin : float
@@ -600,7 +600,7 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
     yf = eq_curve.eval(xf)
     q_alt = common.point_conn(Fpoint, (yf, vaplineH.eval(yf))).m
     tieslopes = np.array([q, q_alt])
-
+    
     def error(q):
       xf, _ = common.linear_intersect(common.point_slope(Fpoint, q), liqlineH)
       return 1. - (xf + eq_curve.eval(xf))
