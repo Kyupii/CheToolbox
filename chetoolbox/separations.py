@@ -726,18 +726,18 @@ def multicomp_feed_split_est(F_i: npt.NDArray, MW: npt.NDArray, keys: tuple[int,
   B_i = F_i - D_i
   return D_i, B_i
 
-def multicomp_column_cond(D_i: npt.NDArray, B_i: npt.NDArray, ant_coeff: npt.NDArray, T_D: float = 312.15, T_decomp: float | None = None, numplates: float | None = None, vacuumColumn: bool = False, decompSafeFac: float = .5) -> tuple[npt.NDArray, str]:
+def multicomp_column_cond(ant_coeff: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDArray, T_D: float = 312.15, T_decomp: float | None = None, numplates: float | None = None, vacuumColumn: bool = False, decompSafeFac: float = .5) -> tuple[npt.NDArray, str]:
   '''
   Calcualtes the pressure across a distilation column.
   
   Parameters:
   -----------
+  ant_coeff : NDArray
+    Components' coefficients for the Antoine Equation of State (unitless). Shape must be N x 3.
   D_i : NDArray
     Molar flowrates of all components in the distilate stream.
   B_i : NDArray
     Molar flowrates of all components in the bottoms stream.
-  ant_coeff : NDArray
-    Components' coefficients for the Antoine Equation of State (unitless). Shape must be N x 3.
   T_D : float
     Temperature of the distillate liquid in the reflux drum in K (Kelvin). Assumes 49 C (Celcius) == 312.15 Kelvin (K) by default.
   T_decomp : float
@@ -757,8 +757,8 @@ def multicomp_column_cond(D_i: npt.NDArray, B_i: npt.NDArray, ant_coeff: npt.NDA
     Type of condenser that ought to be used at the calculated distilate pressure.
   '''
   D_i = np.atleast_1d(D_i); B_i = np.atleast_1d(B_i)
-  x_D = D_i / D_i.sum(); x_B = B_i / B_i.sum()
   ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
+  x_D = D_i / D_i.sum(); x_B = B_i / B_i.sum()
   P_reflux = common.UnitConv.press(bubble_press_antoine(x_D, ant_coeff, T_D), "mmHg", "psia")
   P_reflux = np.maximum(P_reflux, 30.)
   condenserType = "Total Condenser"
@@ -784,7 +784,7 @@ def multicomp_column_cond(D_i: npt.NDArray, B_i: npt.NDArray, ant_coeff: npt.NDA
   if T_decomp is not None and T_bot > decompSafeFac * T_decomp:
     P_reflux = bubble_press_antoine(x_B, decompSafeFac * T_decomp) - common.UnitConv.press(dP + 5., "psia", "mmHg")
     T_D = dew_temp_antoine(x_D, ant_coeff, P_reflux) if P_reflux >= 215. else bubble_temp_antoine(x_D, ant_coeff, P_reflux)
-    T_and_P, condenserType = multicomp_column_cond(D_i, B_i, ant_coeff, T_D, T_decomp, numplates, vacuumColumn, decompSafeFac)
+    T_and_P, condenserType = multicomp_column_cond(ant_coeff, D_i, B_i, T_D, T_decomp, numplates, vacuumColumn, decompSafeFac)
   
   return T_and_P, condenserType
 
@@ -913,7 +913,7 @@ def winn_plates(K_i: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDArray, keys: tupl
   N_min : float
     Minimum number of stages of a multi-component distillation tower.
   '''
-  K_i = np.log10(np.atleast_2d(K_i))
+  K_i = np.atleast_2d(K_i)
   D_i = np.atleast_1d(D_i); B_i = np.atleast_1d(B_i)
   x_D = D_i / D_i.sum(); x_B = B_i / B_i.sum()
   phi, logzeta = winn_coeff_est(K_i)
@@ -1103,6 +1103,14 @@ def gilliland(N_min: float, R_min: float, R: float) -> float:
     raise Exception('Gilliland correlation is not valid in this case!')
   return (N_min + Y) / (1. - Y)
 
+def kirkbride(x_F: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDArray, keys: tuple[int, int], actual_trays: float):
+  x_F = np.atleast_1d(x_F)
+  D_i = np.atleast_1d(D_i); B_i = np.atleast_1d(B_i)
+  x_D = D_i / D_i.sum(); x_B = B_i / B_i.sum()
+  chunk = ( x_F[keys[1]] * x_B[keys[0]]**2 * B_i.sum() / (x_F[keys[0]] * x_D[keys[1]]**2 * D_i.sum()) )**.206
+  trays_D = actual_trays + chunk / (1. + chunk)
+  return
+
 def column_design_full_est(F_i: npt.NDArray, MW: npt.NDArray, ant_coeff: npt.NDArray, Tc: npt.NDArray, Pc: npt.NDArray, keys: tuple[int, int], spec: tuple[float, float], Rmin_mult: float = 1.2, tray_eff: float = .85, tol: float = .001):
   x_F = F_i / F_i.sum()
   D_i, B_i = multicomp_feed_split_est(F_i, MW, keys, spec)
@@ -1111,7 +1119,7 @@ def column_design_full_est(F_i: npt.NDArray, MW: npt.NDArray, ant_coeff: npt.NDA
   while not ((np.abs(D_i - D_i_old)) < tol).all():
     while not ((np.abs(D_i - D_i_old)) < tol).all():
       D_i_old = np.copy(D_i)
-      T_and_P, condenserType = multicomp_column_cond(D_i, B_i, ant_coeff)
+      T_and_P, condenserType = multicomp_column_cond(ant_coeff, D_i, B_i)
       K_i = props.k_wilson(ant_coeff, Tc, Pc, T_and_P)
       psi = psi_solver(x_F, K_i[1], psi)
       a_i_hk = K_i / np.c_[K_i[:, keys[1]]]
