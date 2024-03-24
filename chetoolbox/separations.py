@@ -176,14 +176,14 @@ def bubble_point_stepper(x: list, K: list) -> common.SolutionObj[float, npt.NDAr
   '''
   Intended to be used with a DePriester Chart. Calculates the vapor mole fractions & associated error, then proposes a new temperature on the DePriester chart to try.
   
-  Parameters
+  Parameters:
   ----------
   x : list
     Component mole fractions of the liquid mixture (unitless). Must sum to 1.
   K : list
     Component equilibrium constants
   
-  Returns
+  Returns:
   ----------
   err : float
     associated error of the proposed bubble point temperature
@@ -200,14 +200,14 @@ def dew_point_stepper(y: list, K: list) -> common.SolutionObj[float, npt.NDArray
   '''
   Intended to be used with a DePriester Chart. Calculates the vapor mole fractions & associated error, then proposes a new temperature on the DePriester chart to try.
   
-  Parameters
+  Parameters:
   ----------
   y : list
     Component mole fractions of the vapor mixture (unitless). Must sum to 1.
   K : list
     Component equilibrium constants
   
-  Returns
+  Returns:
   ----------
   err : float
     associated error of the proposed dew point temperature
@@ -1042,7 +1042,7 @@ def underwood_type2(a_i_hk: npt.NDArray, x_F: npt.NDArray, D_i: npt.NDArray, typ
     If a component distributes across both the distillate and bottoms outflow streams (True), a distillation column is Type II if any component does not distribute (False).
   psi : float
     Vapor to liquid feed ratio (unitless).
-    
+  
   Returns:
   ----------
   D_i : NDArray
