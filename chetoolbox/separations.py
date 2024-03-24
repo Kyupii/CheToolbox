@@ -1002,7 +1002,7 @@ def underwood_type1(a_i_hk: npt.NDArray, F_i: npt.NDArray, x_D: npt.NDArray, psi
   D_i_Rmin = (lkhalf + hkhalf) * np.delete(F_liq_i, keys)
   D_i_Rmin = np.insert(D_i_Rmin, [keys[0], keys[1]-1], (spec[0], F_i[keys[1]] - spec[1]))
   typeI = np.all((D_i_Rmin / F_i > 0., D_i_Rmin / F_i < 1.) , axis=0)
-  return common.SolutionObj(typeI = typeI, R_min = R_min)
+  return common.SolutionObj(typeI = typeI, D_i_Rmin = np.minimum(np.maximum(D_i_Rmin, 0.), F_i), R_min = R_min)
 
 # I am trying to make sense of this too. Trying to figure out how to get Theta -> Flow rates
 def quanderwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeI: npt.NDArray, psi: float):
@@ -1021,7 +1021,7 @@ def quanderwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeI: npt.NDAr
       theta = np.append(theta,j)
   return np.unique(np.round(theta,3))
 
-def underwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeI: npt.NDArray, D_i: npt.NDArray, psi: float):
+def underwood_type2(a_i_hk: npt.NDArray, x_F: npt.NDArray, typeI: npt.NDArray, D_i: npt.NDArray, psi: float, keys: tuple[int, int]):
   '''
   Calculates Type II.
   
@@ -1034,22 +1034,32 @@ def underwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeI: npt.NDArra
   typeII : NDArray
     If a component failed to distribute, meaning the distilation column is Type II.
   '''
-  x_i_F = np.atleast_1d(x_i_F)
-  a_i_hk_F = np.atleast_1d(a_i_hk_F)
+  a_i_hk = np.atleast_2d(a_i_hk)
+  x_F = np.atleast_1d(x_F)
   typeI = np.atleast_1d(typeI)
-  tIa = a_i_hk_F[typeI]
+  tIa = a_i_hk[1][typeI]
   thetaranges = np.linspace(tIa[:-1] - .001, tIa[1:] + .001, 100).flatten("F")
   thetasets = np.vstack(np.lib.stride_tricks.sliding_window_view(thetaranges, 2))
   
   def err(theta):
-    return psi - np.sum(a_i_hk_F * x_i_F / (a_i_hk_F - np.c_[theta.flatten("A")]), axis=1, keepdims=True).reshape(-1, 2)
+    return psi - np.sum(a_i_hk[1] * x_F / (a_i_hk[1] - np.c_[theta.flatten("A")]), axis=1, keepdims=True).reshape(-1, 2)
   
   theta, _, _ = common.err_reduc_iterative(err, thetasets, bounds=tIa, ceil=tIa.max(), floor=tIa.min())
   thetas = np.array([np.average(thet) for thet in common.array_boundsplit(theta, tIa)])
   
-  # assuming: typeI looks like [non-distrib D only, distrib (LK and HK here), non-distrib B only]
-  nondist_D = D_i[:-len(common.array_boundsplit(typeI)[-1])]
-  return nondist_D
+  # assumes distrib organized like [typeII D only, (typeI, LK, typeI, HK, typeI), typeII B only]
+  ngroup = [len(group) for group in common.array_boundsplit(typeI)]
+  eq2 = a_i_hk[0, :ngroup[:1].sum()] / (a_i_hk[0, :ngroup[:1].sum()] - np.c_[theta])
+  ind_invar = np.append(np.arange(ngroup[0]), keys)
+  coeff = np.full((theta.size + 1, typeI.sum()), -1.)
+  coeff[:-1, :-2] = np.delete(eq2, ind_invar)
+  coeff[-1, :-2] = 1.; coeff[-1, -1] = 0.
+  consts = np.zeros(theta.size + 1)
+  consts[:-1] = eq2[ind_invar].sum(axis=1)
+  consts[-1] = D_i[ind_invar].sum()
+  variants = np.linalg.solve(coeff, consts)
+  
+  return 
 
 def gilliland(Nmin: float, Rmin: float, Rmin_mult: float = 1.3) -> float:
   '''
@@ -1093,6 +1103,6 @@ def column_design_full_est(F_i: npt.NDArray, MW: npt.NDArray, ant_coeff, Tc, Pc,
       x_D, x_B, N_min = fenske_feed_split(a_i_hk, F_i, x_D, x_B, keys, spec).unpack()
     except:
       x_D, x_B, N_min = winn_feed_split(K_i, F_i, x_D, x_B, keys, spec).unpack()
-  typeI, R_min = underwood_type1(a_i_hk, F_i, x_D, psi, keys, spec).unpack()
-  distgroups = len(common.array_boundsplit(typeI))
+  D_i_Rmin, typeI, R_min = underwood_type1(a_i_hk, F_i, x_D, psi, keys, spec).unpack()
+  
   
