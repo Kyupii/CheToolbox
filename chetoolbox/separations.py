@@ -724,8 +724,7 @@ def multicomp_feed_split_est(F_i: npt.NDArray, MW: npt.NDArray, keys: tuple[int,
   
   D_i = F_i * splitest(MW)
   B_i = F_i - D_i
-  D = D_i.sum()
-  B = B_i.sum()
+  D = D_i.sum(); B = B_i.sum()
   return D_i/D, B_i/B
 
 def multicomp_column_cond(x_D: npt.NDArray, x_B: npt.NDArray, ant_coeff: npt.NDArray, T: float = 312.15, Tdecomp: float | None = None, numplates: float | None = None, vacuumColumn: bool = False, decompSafeFac: float = .5):
@@ -838,10 +837,10 @@ def fenske_feed_split(a_i_hk: npt.NDArray, F_i: npt.NDArray, x_D: npt.NDArray, x
   
   Returns
   ----------
-  D_i : NDArray
-    Molar flowrates of all components in the distillate stream.
-  B_i : NDArray
-    Molar flowrates of all components in the bottoms stream.
+  x_D : NDArray
+    Improved liquid mole fractions of all components in the distillate stream. 
+  x_B_keys : NDArray
+    Improved liquid mole fractions of all components in the bottom stream. 
   N_min : float
     Minimum number of stages for a multi-component distillation tower.
   '''
@@ -852,15 +851,16 @@ def fenske_feed_split(a_i_hk: npt.NDArray, F_i: npt.NDArray, x_D: npt.NDArray, x
   a_i_hk_nonkey = np.delete(a_i_hk, keys)
   a_i_hk_m = np.sqrt(a_i_hk_nonkey[0] * a_i_hk_nonkey[2])
   denom = a_i_hk_m**N_min * (F_i[keys[1]] - spec[1]) / spec[1]
-  B_i = F_i / (1. + denom)
-  D_i = F_i * denom / (1. + denom)
+  B_i = np.delete(F_i, keys) / (1. + denom)
+  D_i = np.delete(F_i, keys) * denom / (1. + denom)
   tops = D_i > B_i
   D_i[tops] = F_i[tops] - B_i[tops]
   B_i[~tops] = F_i[~tops] - D_i[~tops]
   # reinsert key components from spec
   D_i = np.insert(D_i, [keys[0], keys[1]-1], (spec[0], F_i[keys[1]] - spec[1]))
   B_i = np.insert(B_i, [keys[0], keys[1]-1], (F_i[keys[0]] - spec[0], spec[1]))
-  return common.SolutionObj(D_i = D_i, B_i = B_i, N_min = N_min)
+  D = D_i.sum(); B = B_i.sum()
+  return common.SolutionObj(x_D = D_i/D, x_B = B_i/B, N_min = N_min)
 
 def winn_coeff_est(K_i: npt.NDArray) -> tuple[npt.NDArray, npt.NDArray]:
   '''
@@ -952,34 +952,28 @@ def winn_feed_split(K_i: npt.NDArray, F_i: npt.NDArray, x_D: npt.NDArray, x_B: n
   denom = (spec[1] / (F_i[keys[1]] - spec[1]))**phi * (B / D)**(1. - phi) / (10.**logzeta*N_min)
   # exclude key components
   denom_nonkey = np.delete(denom, keys)
-  D_i = F_i / (1. + denom_nonkey)
-  B_i = F_i / (1. + 1. / denom_nonkey)
+  D_i = np.delete(F_i, keys) / (1. + denom_nonkey)
+  B_i = np.delete(F_i, keys) / (1. + 1. / denom_nonkey)
   tops = D_i > B_i
   D_i[tops] = F_i[tops] - B_i[tops]
   B_i[~tops] = F_i[~tops] - D_i[~tops]
   # reinsert key components from spec
   D_i = np.insert(D_i, [keys[0], keys[1]-1], (spec[0], F_i[keys[1]] - spec[1]))
   B_i = np.insert(B_i, [keys[0], keys[1]-1], (F_i[keys[0]] - spec[0], spec[1]))
-  return common.SolutionObj(D_i = D_i, B_i = B_i, N_min = N_min)
+  D = D_i.sum(); B = B_i.sum()
+  return common.SolutionObj(x_D = D_i/D, x_B = B_i/B, N_min = N_min)
 
-def underwood_type1(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, x_lk_FD: npt.NDArray, x_hk_FD: npt.NDArray, a_lk_hk_F: float, F: float, F_liq: float, D: float) -> common.SolutionObj[npt.NDArray, npt.NDArray, float, bool]:
+def underwood_type1(a_i_hk: npt.NDArray, x_D: npt.NDArray, x_F: npt.NDArray, F: float, F_liq: float, D: float) -> common.SolutionObj[npt.NDArray, npt.NDArray, float, bool]:
   '''
   Calculates the minimum reflux ratio and accompanying outflow streams of a Type I System (full component distribution) using the Underwood equations. Can detect if a distilation column fails to meet Type I requirements and is actually Type II.
-  
   Parameters:
   -----------
-  x_i_F : NDArray
-    Liquid mole fractions of all non-key components in the feed stream.
-  a_i_hk_F : NDArray
-    Relative volatilities of all non-key components relative to the heavy key at the feed plate.
-  x_lk_FD : NDArray
-    Liquid mole fractions of the light key component in the feed and distillate streams. 
-      Ex) np.array([x_lk_F, x_lk_D])
-  x_hk_FD : NDArray
-    Liquid mole fractions of the heavy key component in the feed and distillate streams. 
-      Ex) np.array([x_hk_F, x_hk_D])
-  a_lk_hk_F : float
-    Relative volatility of the light key compound to the heavy key compound at the feed plate.
+  a_i_hk : NDArray
+    Relative volatilities of all non-key components relative to the heavy key.
+  x_D : NDArray
+    Liquid mole fractions of all components in the distillate stream.
+  x_F : NDArray
+    Liquid mole fractions of all components in the feed stream.
   F : float
     Molar flowrate of the feed stream.
   F_liq : float
@@ -998,9 +992,9 @@ def underwood_type1(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, x_lk_FD: npt.NDAr
   typeI : NDArray
     If a component successfully to distributed. If any component is false, the distilation column is Type II.
   '''
-  x_i_F = np.atleast_1d(x_i_F)
-  a_i_hk_F = np.atleast_1d(a_i_hk_F)
-  x_lk_FD = np.atleast_1d(x_lk_FD); x_hk_FD = np.atleast_1d(x_hk_FD)
+  a_i_hk = np.atleast_2d(a_i_hk)
+  x_D = np.atleast_1d(x_D); x_B = np.atleast_1d(x_B)
+  
   heavy = D * x_lk_FD[1] / (F_liq * x_lk_FD[0]) - a_lk_hk_F * (D * x_hk_FD[1] / (F_liq * x_hk_FD[0]))
   L_inf = heavy * F_liq / (a_lk_hk_F - 1.)
   R_min = L_inf / D
@@ -1090,10 +1084,17 @@ def gilliland(Nmin: float, Rmin: float, Rmin_mult: float = 1.3) -> float:
 def column_design_full_est(F_i: npt.NDArray, MW: npt.NDArray, ant_coeff, Tc, Pc, keys: tuple[int, int], spec: tuple[float, float]):
   x_F = F_i / F_i.sum()
   x_D, x_B = multicomp_feed_split_est(F_i, MW, keys, spec)
-  T_and_P, condenserType = multicomp_column_cond(x_D, x_B, ant_coeff)
-  K_i = props.k_wilson(ant_coeff, Tc, Pc, T_and_P)
-  a_i_hk = K_i / np.c_[K_i[:, keys[1]]]
-  try:
-    D_i, B_i, N_min = fenske_feed_split(a_i_hk, F_i, x_D, x_B, keys, spec).unpack()
-  except:
-    D_i, B_i, N_min = winn_feed_split(K_i, F_i, x_D, x_B, keys, spec).unpack()
+  
+  psi = .5
+  x_D_old = np.full_like(x_D, np.NaN)
+  while not ((np.abs(x_D - x_D_old)) < .001).all():
+    x_D_old = np.copy(x_D)
+    T_and_P, condenserType = multicomp_column_cond(x_D, x_B, ant_coeff)
+    K_i = props.k_wilson(ant_coeff, Tc, Pc, T_and_P)
+    psi = psi_solver(x_F, K_i[1], psi)
+    a_i_hk = K_i / np.c_[K_i[:, keys[1]]]
+    try:
+      x_D, x_B, N_min = fenske_feed_split(a_i_hk, F_i, x_D, x_B, keys, spec).unpack()
+    except:
+      x_D, x_B, N_min = winn_feed_split(K_i, F_i, x_D, x_B, keys, spec).unpack()
+  
