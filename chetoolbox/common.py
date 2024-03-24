@@ -14,7 +14,7 @@ class TESTVARS:
     <Variable Description>.
       Ex) <Optional Example of Variable Shape, Formatting, Etc.>.
   
-  Retruns:
+  Returns:
   -----------
   C : <Variable Type>
     <Variable Description> in <Unit Abbreviation/Symbols> (<Unit In Spoken English>).
@@ -236,7 +236,7 @@ class CubicEq(Equation):
 class EqualibEq(Equation):
   '''
   alpha : float
-    Equalibrium ratio (K1 / K2) between two species.
+    Equilibrium ratio (K1 / K2) between two species.
   eval : Callable
     Return the output of the function (y) when evaluated at an input (x).
   inv : Callable
@@ -636,7 +636,7 @@ def raoult_XtoY(x: list, K: list) -> tuple[npt.NDArray, float]:
   x : list
     Component mole fractions of the feed's liquid phase (unitless). Must sum to 1.
   K : list 
-    Equalibrium constant for each component at a specific temperature and pressure (units vary). Length must equal x.
+    Equilibrium constant for each component at a specific temperature and pressure (units vary). Length must equal x.
   
   Returns
   ---------
@@ -660,7 +660,7 @@ def raoult_YtoX(y: list, K: list) -> tuple[npt.NDArray, float]:
   y : list
     Component mole fractions of the feed's vapor phase (unitless). Must sum to 1.
   K : list 
-    Equalibrium constant for each component at a specific temperature and pressure (units vary). Length must equal y.
+    Equilibrium constant for each component at a specific temperature and pressure (units vary). Length must equal y.
     
   Returns
   ---------
@@ -745,7 +745,7 @@ def err_reduc(err_calc: Callable[[npt.NDArray], npt.NDArray], x: npt.NDArray, to
   Expects 2D arrays, of shape N x 2.
   '''
   x = np.atleast_2d(x).reshape(-1, 2)
-  err = np.atleast_2d(err_calc(x)) # forcing to 2D may not be necessary, but may help combat forgetfullness
+  err = np.atleast_2d(err_calc(x)) # forcing to 2D may not be necessary, but may help combat forgetfulness
   xnew = lin_estimate_error(x, err, tol)
   err = np.abs(err)
   x[(np.arange(x.shape[0]), err.argmax(axis=1))] = xnew

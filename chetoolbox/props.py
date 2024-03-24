@@ -102,7 +102,7 @@ def acentric_omega(ant_coeff: npt.NDArray, Tc: float | npt.NDArray, Pc: float | 
   Parameters:
   -----------
   ant_coeff : NDArray
-    Coefficients for the Antoine Equation of State (unitless) for all components. Shape must be N x 3.
+    Coefficients for the Antoine Equation of State for all components (unitless). Shape must be N x 3.
   Tc : float | npt.NDArray
     Critical temperature of all components in K (Kelvin). Length must be N.
   Pc : float | npt.NDArray
@@ -120,7 +120,7 @@ def acentric_omega(ant_coeff: npt.NDArray, Tc: float | npt.NDArray, Pc: float | 
 
 def k_wilson(ant_coeff: npt.NDArray, Tc: float | npt.NDArray, Pc: float | npt.NDArray, T_and_P: npt.NDArray) -> npt.NDArray:
   '''
-  Estimates the equalibrium coefficient of a compound.
+  Estimates the equilibrium coefficient of a compound.
   
   Parameters:
   -----------
@@ -148,7 +148,7 @@ def k_wilson(ant_coeff: npt.NDArray, Tc: float | npt.NDArray, Pc: float | npt.ND
 
 def k_whitson(ant_coeff: npt.NDArray, Tc: float | npt.NDArray, Pc: float | npt.NDArray, T_and_P: npt.NDArray, MWC7p: float, sgC7p: float) -> npt.NDArray:
   '''
-  Estimates the equalibrium coefficient of a compound.
+  Estimates the equilibrium coefficient of a compound.
   
   Parameters:
   -----------
@@ -181,7 +181,7 @@ def k_whitson(ant_coeff: npt.NDArray, Tc: float | npt.NDArray, Pc: float | npt.N
 
 def k_mcwilliams(coeffs: npt.NDArray, T_and_P: npt.NDArray) -> npt.NDArray:
   '''
-  Estimates the equalibrium coefficient of a compound using the McWilliams correlation equation.
+  Estimates the equilibrium coefficient of a compound using the McWilliams correlation equation.
   
   Parameters:
   -----------
@@ -203,7 +203,7 @@ def k_mcwilliams(coeffs: npt.NDArray, T_and_P: npt.NDArray) -> npt.NDArray:
 
 def k_almehaideb(coeffs: npt.NDArray, Pc: float | npt.NDArray, T_and_P: npt.NDArray, omega: float, MWC7p: float, sgC7p: float) -> npt.NDArray:
   '''
-  Estimates the equalibrium coefficient of a compound using the Almehaideb correlation equation.
+  Estimates the equilibrium coefficient of a compound using the Almehaideb correlation equation.
   
   Parameters:
   -----------
@@ -344,7 +344,7 @@ def bioconc_est(K_ow: float, c: list = None) -> tuple[float, str]:
   K_ow : float
     Octanol / water equilibrium constant.
   c : list
-    Correction factors for specific structral groups present in the compound. 
+    Correction factors for specific structural groups present in the compound. 
   
   Returns:
   --------
@@ -371,7 +371,7 @@ def water_sol_est(K_ow: float, c: list = None, T_m: float = None, MW: float = No
   K_ow : float
     Octanol / water equilibrium constant.
   c : list
-    Correction factors for specific structral groups present in the compound. 
+    Correction factors for specific structural groups present in the compound. 
   T_m : float
     Melting point temperature in K (Kelvin).
   MW : float
@@ -441,7 +441,7 @@ def soil_sorb_est(g: npt.NDArray, mole_con: npt.NDArray | float) -> float:
     First order molecular connectivity index of the compound. Must be precomputed (float) or of shape 1 x 2N.
       Ex) np.array([1, 3, 1, 3, 2, 3, 2, 1]) or 2.68
   
-  Retruns:
+  Returns:
   -----------
   K_oc : float
     Estimated soil sobrtion coefficient in ug*mL/g*mg (the mass ratio of compound to organic carbon in soil [mg/g] divided by the concentration of the compound in water [mg/mL]).
@@ -465,7 +465,7 @@ def biodegrade_est(g: npt.NDArray, MW: float) -> tuple[float, str]:
   MW: npt.NDArray | float
     Molecular weight of the compound in kg/kmol (kilograms per kilomole).
   
-  Retruns:
+  Returns:
   -----------
   I : float
     Estimated biodegradation index (unitless).

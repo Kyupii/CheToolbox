@@ -13,7 +13,7 @@ def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> common.Soluti
   x : list
     Component mole fractions of the liquid input feed (unitless). Must sum to 1.
   K : list
-    Equalibrium constant for each component at specific temperature and pressure (units vary). Length must equal x.
+    Equilibrium constant for each component at specific temperature and pressure (units vary). Length must equal x.
   psi : float
     Initial value of psi to begin iterating on (unitless). Must be 0 <= psi <= 1.
   tol : float
@@ -53,14 +53,14 @@ def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> common.Soluti
 
 def bubble_press_antoine(x: list, ant_coeff: npt.NDArray, T: float | npt.NDArray) -> common.SolutionObj[float | npt.NDArray, npt.NDArray]:
   '''
-  Calcualtes the bubble point pressure of a multi-component liquid mixture.
+  Calculates the bubble point pressure of a multi-component liquid mixture.
   
   Parameters
   ----------
   x : list
     Component mole fractions of the liquid mixture (unitless). Must sum to 1.
   ant_coeff : NDArray
-    Components' coefficients for the Antoine Equation of State (unitless). Shape must be N x 3.
+    Coefficients for the Antoine Equation of State for all components (unitless). Shape must be N x 3.
   T : float
     Ambient temperature of the liquid mixture in K (Kelvin).
   
@@ -80,14 +80,14 @@ def bubble_press_antoine(x: list, ant_coeff: npt.NDArray, T: float | npt.NDArray
 
 def dew_press_antoine(y: list, ant_coeff: npt.NDArray, T: float | npt.NDArray) -> common.SolutionObj[float | npt.NDArray, npt.NDArray]:
   '''
-  Calcualtes the dew point pressure of a multi-component vapor mixture.
+  Calculates the dew point pressure of a multi-component vapor mixture.
   
   Parameters
   ----------
   y : list
     Component mole fractions of the vapor mixture (unitless). Must sum to 1.
   ant_coeff : NDArray
-    Components' coefficients for the Antoine Equation of State (unitless). Shape must be N x 3.
+    Coefficients for the Antoine Equation of State for all components (unitless). Shape must be N x 3.
   T : float
     Ambient temperature of the liquid mixture in K (Kelvin).
   
@@ -113,7 +113,7 @@ def bubble_temp_antoine(x: list, ant_coeff: npt.NDArray, P: float) -> common.Sol
   x : list
     Component mole fractions of the liquid mixture (unitless). Must sum to 1.
   ant_coeff : NDArray
-    Components' coefficients for the Antoine Equation of State (unitless). Shape must be N x 3.
+    Coefficients for the Antoine Equation of State for all components (unitless). Shape must be N x 3.
   P : float
     Ambient pressure of the liquid mixture in mmHg (millimeters of mercury).
   
@@ -146,7 +146,7 @@ def dew_temp_antoine(y: list, ant_coeff: npt.NDArray, P: float) -> common.Soluti
   x : list
     Component mole fractions of the liquid mixture (unitless). Must sum to 1.
   ant_coeff : NDArray
-    Components' coefficients for the Antoine Equation of State (unitless). Shape must be N x 3.
+    Coefficients for the Antoine Equation of State for all components (unitless). Shape must be N x 3.
   P : float
     Ambient pressure of the liquid mixture in mmHg (millimeters of mercury).
   
@@ -1103,7 +1103,7 @@ def gilliland(N_min: float, R_min: float, R: float) -> float:
     raise Exception('Gilliland correlation is not valid in this case!')
   return (N_min + Y) / (1. - Y)
 
-def kirkbride(x_F: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDArray, keys: tuple[int, int], actual_trays: float):
+def kirkbride(x_F: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDArray, keys: tuple[int, int], actual_trays: float) -> tuple[float, float]:
   '''
   Calculates the location of the feed tray in a multicomponent distilation column using the Kirkbride equation.
   
@@ -1134,7 +1134,7 @@ def kirkbride(x_F: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDArray, keys: tuple[
   trays_D = actual_trays + chunk / (1. + chunk)
   return trays_D, actual_trays - trays_D
 
-def multicomp_heat_dut(heatvap_i: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDArray, R: float, psi: float):
+def multicomp_heat_dut(heatvap_i: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDArray, R: float, psi: float) -> tuple[float, float]:
   '''
   Calculates the heat duties of the condenser and reboiler in a multicomponent distilation column.
   
@@ -1168,15 +1168,60 @@ def multicomp_heat_dut(heatvap_i: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArra
   Q_reb = V_S * np.sum(heatvap_i * B_i / B_i.sum())
   return Q_cond, Q_reb
 
-def column_design_full_est(F_i: npt.NDArray, MW: npt.NDArray, ant_coeff: npt.NDArray, Tc: npt.NDArray, Pc: npt.NDArray, keys: tuple[int, int], spec: tuple[float, float], Rmin_mult: float = 1.2, tray_eff: float = .85, tol: float = .001):
+def column_design_full_est(ant_coeff: npt.NDArray, F_i: npt.NDArray, MW: npt.NDArray, Tc: npt.NDArray, Pc: npt.NDArray, heatvap_i: npt.NDArray, 
+                           keys: tuple[int, int], spec: tuple[float, float],
+                           Rmin_mult: float = 1.2, tray_eff: float = .85, T_D: float = 312.15, T_decomp: float | None = None, numplates: float | None = None, vacuumColumn: bool = False, decompSafeFac: float = .5, tol: float = .001):
+  '''
+  Calcualtes the pressure across a distilation column.
+  
+  Parameters:
+  -----------
+  ant_coeff : NDArray
+    Coefficients for the Antoine Equation of State for all components (unitless). Shape must be N x 3.
+  F_i : NDArray
+    Molar flowrates of all components in the feed stream. Length must be N.
+  MW : NDArray
+    Molecular weight in g/mol (grams per mole) of each input feed species. Length must be N.
+  Tc : npt.NDArray
+    Critical temperature of all components in K (Kelvin). Length must be N.
+  Pc : npt.NDArray
+    Critical pressure of all components in atm (atmospheres). Length must be N.
+  heatvap_i : NDArray
+    Heat of vaporization (or condensation) of all components.
+  keys : tuple[int, int]
+    Indexes of the Light Key species and Heavy Key species in the feed array.
+  spec : tuple[float, float]
+    Required molar flowrate of the Light Key species in the distilate and Heavy Key species in the bottoms.
+  Rmin_mult : float
+    Factor by which to excede the minimum reflux ratio, R_min (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf).
+  tray_eff : float
+    Performance efficiency of a tray relative to its theorhetical perfection. 
+  T_D : float
+    Temperature of the distillate liquid in the reflux drum in K (Kelvin). Assumes 49 C (Celcius) == 312.15 Kelvin (K) by default.
+  T_decomp : float
+    Temperature of decomposition of the bottoms product in K (Kelvin).
+  numplates : float
+    Number of plates in the distilation column, if known.
+  vacuumColumn : bool
+    If the distilation column is operating below ambient pressure.
+  decompSafeFac : float
+    Ratio of the maximum reboiler temperature to the bottom product's decompostion temperature.
+  
+  Returns:
+  -----------
+  T_and_P : NDArray
+    Temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) pairs for the top, average, and bottom of the distilation column.
+  condenserType : str
+    Type of condenser that ought to be used at the calculated distilate pressure.
+  '''
   x_F = F_i / F_i.sum()
   D_i, B_i = multicomp_feed_split_est(F_i, MW, keys, spec)
-  psi = .5
+  psi = .5; N_min = numplates
   D_i_old = np.full_like(D_i, np.NaN)
   while not ((np.abs(D_i - D_i_old)) < tol).all():
     while not ((np.abs(D_i - D_i_old)) < tol).all():
       D_i_old = np.copy(D_i)
-      T_and_P, condenserType = multicomp_column_cond(ant_coeff, D_i, B_i)
+      T_and_P, condenserType = multicomp_column_cond(ant_coeff, D_i, B_i, T_D, T_decomp, N_min, vacuumColumn, decompSafeFac)
       K_i = props.k_wilson(ant_coeff, Tc, Pc, T_and_P)
       psi = psi_solver(x_F, K_i[1], psi)
       a_i_hk = K_i / np.c_[K_i[:, keys[1]]]
@@ -1192,4 +1237,5 @@ def column_design_full_est(F_i: npt.NDArray, MW: npt.NDArray, ant_coeff: npt.NDA
   ideal_trays = ideal_stages - 1. if condenserType == "Total Condenser" else 2.
   actual_trays = ideal_trays / tray_eff
   trays_D, trays_S = kirkbride(x_F, D_i, B_i, keys, actual_trays)
+  multicomp_heat_dut(heatvap_i, F_i, D_i, B_i, R, psi)
   return common.SolutionObj(Rmin = R_min, R = R, trays_D = trays_D, trays_S = trays_S)
