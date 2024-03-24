@@ -983,12 +983,8 @@ def underwood_type1(a_i_hk: npt.NDArray, F_i: npt.NDArray, x_D: npt.NDArray, psi
   ----------
   D_i_Rmin : NDArray
     Molar flowrate of all non-key components in the distilate stream at minimum reflux.
-  B_i_Rmin : NDArray
-    Molar flowrate of all non-key components in the bottoms stream at minimum reflux.
   R_min : float
     Minimum reflux ratio of the a distilation column as a Type I System.
-  typeI : NDArray
-    If a component successfully to distributed. If any component is false, the distilation column is Type II.
   '''
   a_i_hk = np.atleast_2d(a_i_hk)
   F_i = np.atleast_1d(F_i)
@@ -1005,8 +1001,8 @@ def underwood_type1(a_i_hk: npt.NDArray, F_i: npt.NDArray, x_D: npt.NDArray, psi
   hkhalf = D * x_D[keys[1]] * (a_i_hk[1, keys[0]] - a_i_hk_nonkey[1]) / ((a_i_hk[1, keys[0]] - 1.) * F_liq_i[keys[1]])
   D_i_Rmin = (lkhalf + hkhalf) * np.delete(F_liq_i, keys)
   D_i_Rmin = np.insert(D_i_Rmin, [keys[0], keys[1]-1], (spec[0], F_i[keys[1]] - spec[1]))
-  
-  return common.SolutionObj()
+  typeI = np.all((D_i_Rmin / F_i > 0., D_i_Rmin / F_i < 1.) , axis=0)
+  return common.SolutionObj(typeI = typeI, R_min = R_min)
 
 # I am trying to make sense of this too. Trying to figure out how to get Theta -> Flow rates
 def quanderwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeI: npt.NDArray, psi: float):
@@ -1084,6 +1080,7 @@ def column_design_full_est(F_i: npt.NDArray, MW: npt.NDArray, ant_coeff, Tc, Pc,
   x_F = F_i / F_i.sum()
   x_D, x_B = multicomp_feed_split_est(F_i, MW, keys, spec)
   # double check that the x_D and x_B leaving here have the keys equal to spec
+  
   psi = .5
   x_D_old = np.full_like(x_D, np.NaN)
   while not ((np.abs(x_D - x_D_old)) < .001).all():
@@ -1096,4 +1093,6 @@ def column_design_full_est(F_i: npt.NDArray, MW: npt.NDArray, ant_coeff, Tc, Pc,
       x_D, x_B, N_min = fenske_feed_split(a_i_hk, F_i, x_D, x_B, keys, spec).unpack()
     except:
       x_D, x_B, N_min = winn_feed_split(K_i, F_i, x_D, x_B, keys, spec).unpack()
+  typeI, R_min = underwood_type1(a_i_hk, F_i, x_D, psi, keys, spec).unpack()
+  distgroups = len(common.array_boundsplit(typeI))
   
