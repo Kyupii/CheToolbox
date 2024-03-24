@@ -262,7 +262,7 @@ class PiecewiseEq(Equation):
   eqs : tuple[Equation]
     All equations that compose the piecewise function. Equations must be ordered from smallest to largest upper domain limit.
   upperdomainlims : float
-    The upper domain limit of each equation, except the last equation which has an upper domain limit of np.inf. Upperbounds must be ordered smallest to largest. Length must be len(eqs) - 1.
+    The upper domain limit of each equation, except the last equation which has an upper domain limit of np.inf. Upper bounds must be ordered smallest to largest. Length must be len(eqs) - 1.
   eval : Callable
     Return the output of the function (y) when evaluated at an input (x).
   inv : Callable

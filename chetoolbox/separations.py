@@ -267,20 +267,20 @@ def liq_frac_superheated(Cpv: float, heatvap: float, Tf: float, Td: float) -> fl
 
 def eq_curve_estim(points: npt.NDArray, alpha: float = None) -> common.EqualibEq:
   '''
-  Estimates an equalibrium curve for a binary mixture. Assumes constant equalibrium ratio (K1 / K2) between the two species.
+  Estimates an equilibrium curve for a binary mixture. Assumes constant equilibrium ratio (K1 / K2) between the two species.
 
   Parameters:
   -----------
   points : NDArray
-    Points on an equalibrium curve. Bounded (0, 1). Shape must be N x 2.
+    Points on an equilibrium curve. Bounded (0, 1). Shape must be N x 2.
       Ex) np.array([ [.2, .1], [.3, .23], [.4, .5] ])
   alpha : float (Optional)
-    Relative volatility of the two species equalibrium constants (K) (unitless). Takes priority over point-based estimation.
+    Relative volatility of the two species equilibrium constants (K) (unitless). Takes priority over point-based estimation.
 
   Returns:
   -----------
-  equalibrium_curve : EqualibEq
-    Equation for an equalibrium curve of a binary mixture.
+  equilibrium_curve : EqualibEq
+    Equation for an equilibrium curve of a binary mixture.
   '''
   points = np.atleast_1d(points).reshape((-1, 2))
   if alpha is None:
@@ -289,14 +289,14 @@ def eq_curve_estim(points: npt.NDArray, alpha: float = None) -> common.EqualibEq
 
 def mccabe_thiel_feedline(q: float, xf: float) -> common.LinearEq:
   '''
-  Calculates the feed line on a McCabe Thiel Diagram for a binary mixture distilation column. Assumes equal molar heats of vaporization.
+  Calculates the feed line on a McCabe Thiel Diagram for a binary mixture distillation column. Assumes equal molar heats of vaporization.
 
   Parameters:
   -----------
   q : float
     The liquid fraction of the incoming feed. Should be 1. when the feed is saturated liquid (vaporless / at its bubble point). Should be 0. when the feed is saturated vapor (liquidless / at its dew point).
   xf : float
-    Liquid fraction of the feed's lower boiling boint species (unitless).
+    Liquid fraction of the feed's lower boiling point species (unitless).
   
   Returns:
   -----------
@@ -312,20 +312,20 @@ def mccabe_thiel_feedline(q: float, xf: float) -> common.LinearEq:
 
 def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: float, xb: float, Rmin_mult: float = 1.2) -> common.SolutionObj[common.LinearEq, common.LinearEq, tuple[float, float], float]:
   '''
-  Calculates the rectifying and stripping operating lines of a McCabe Thiel Diagram for a binary mixture distilation column. Assumes equal molar heats of vaporization.
+  Calculates the rectifying and stripping operating lines of a McCabe Thiel Diagram for a binary mixture distillation column. Assumes equal molar heats of vaporization.
 
   Parameters:
   -----------
   feedline : LinearEq
     Feed line of a McCabe Thiel Diagram.
   eq_feedpoint : tuple
-    Point of intersection between the feed line and the equalibrium line on a McCabe Thiel Diagram (unitless, unitless). Bounded [0, 1]. Length must equal 2.
+    Point of intersection between the feed line and the equilibrium line on a McCabe Thiel Diagram (unitless, unitless). Bounded [0, 1]. Length must equal 2.
   xd : float
-    Liquid fraction of the distilate's lower boiling boint species (unitless).
+    Liquid fraction of the distillate's lower boiling point species (unitless).
   xb : float
-    Liquid fraction of the bottoms' lower boiling boint species (unitless).
+    Liquid fraction of the bottoms' lower boiling point species (unitless).
   Rmin_mult : float
-    Factor by which to excede the minimum reflux ratio, Rmin (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf).
+    Factor by which to exceed the minimum reflux ratio, Rmin (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf).
 
   Returns:
   -----------
@@ -334,16 +334,16 @@ def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: 
   stripline : LinearEq
     Stripping section operating line of a McCabe Thiel Diagram.
   feedpoint : tuple
-    Point of intersection between the feed line and the equalibrium line of a McCabe Thiel Diagram (unitless, unitless).
+    Point of intersection between the feed line and the equilibrium line of a McCabe Thiel Diagram (unitless, unitless).
   Rmin : float
     Minimum reflux ratio of the rectifying section (unitless).
   R : float
     Reflux ratio of the rectifying section (unitless).
   '''
-  # "distilate to feed at equalibrium" line
+  # "distillate to feed at equilibrium" line
   eq_rectifyline = common.point_conn(eq_feedpoint, (xd, xd))
 
-  # "distilate to feedpoint" line
+  # "distillate to feedpoint" line
   Rmin = eq_rectifyline.m / (1. - eq_rectifyline.m)
   R = Rmin_mult * Rmin
   m = R / (1. + R)
@@ -358,22 +358,22 @@ def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: 
 
 def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq, xf: float, xd: float, xb: float, Rmin_mult: float = 1.2, tol: float = .00001, PLOTTING_ENABLED = False) -> common.SolutionObj[float, float, float, float]:
   '''
-  Calculates the reflux ratio and ideal stages of a binary mixture distilation column, as well as thier ideal minimums. Uses a McCabe Thiel diagram and assumes equal molar heats of vaporization.
+  Calculates the reflux ratio and ideal stages of a binary mixture distillation column, as well as their ideal minimums. Uses a McCabe Thiel diagram and assumes equal molar heats of vaporization.
 
   Parameters:
   -----------
-  equalibrium_curve : EqualibEq
-    Equation for an equalibrium curve of a binary mixture.
+  equilibrium_curve : EqualibEq
+    Equation for an equilibrium curve of a binary mixture.
   feedline : LinearEq
     Feed line of a McCabe Thiel Diagram.
   xf : float
-    Liquid fraction of the feed's lower boiling boint species (unitless).
+    Liquid fraction of the feed's lower boiling point species (unitless).
   xd : float
-    Liquid fraction of the distilate's lower boiling boint species (unitless).
+    Liquid fraction of the distillate's lower boiling point species (unitless).
   xb : float
-    Liquid fraction of the bottoms' lower boiling boint species (unitless).
+    Liquid fraction of the bottoms' lower boiling point species (unitless).
   Rmin_mult : float
-    Factor by which to excede the minimum reflux ratio, Rmin (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf).
+    Factor by which to exceed the minimum reflux ratio, Rmin (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf).
   tol : float
     Largest error value to stop iterating and return.
 
@@ -435,18 +435,18 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
 
 def binary_feed_split(F: float, xf: float, xd: float, xb: float, R: float = None, q: float = None) -> tuple[float, float, float | None, float | None, float | None, float | None]:
   '''
-  Calculates the distilate and bottom flowrates out of a binary mixture distilation column. Optionally calculates the internal flows between the feed tray, rectifying, and stripping sections of the distilation column.
+  Calculates the distillate and bottom flowrates out of a binary mixture distillation column. Optionally calculates the internal flows between the feed tray, rectifying, and stripping sections of the distillation column.
 
   Parameters:
   -----------
   F : float
     Feed molar flowrate in kmol/hr (kilomoles per hour).
   xf : float
-    Liquid fraction of the lower boiling boint species in the feed (unitless).
+    Liquid fraction of the lower boiling point species in the feed (unitless).
   xd : float
-    Liquid fraction of the lower boiling boint species in the distilate (unitless).
+    Liquid fraction of the lower boiling point species in the distillate (unitless).
   xb : float
-    Liquid fraction of the lower boiling boint species in the bottoms (unitless).
+    Liquid fraction of the lower boiling point species in the bottoms (unitless).
   R : float (Optional)
     Reflux ratio of the rectifying section (unitless).
   q : float (Optional)
@@ -455,7 +455,7 @@ def binary_feed_split(F: float, xf: float, xd: float, xb: float, R: float = None
   Returns:
   -----------
   D : float
-    Distilate molar flowrate in kmol/hr (kilomoles per hour).
+    Distillate molar flowrate in kmol/hr (kilomoles per hour).
   B : float
     Bottoms molar flowrate in kmol/hr (kilomoles per hour).
   V : float
@@ -482,20 +482,20 @@ def binary_feed_split(F: float, xf: float, xd: float, xb: float, R: float = None
 
 def ponchon_savarit_enthalpylines(props: npt.NDArray) -> tuple[common.LinearEq, common.LinearEq]:
   '''
-  Calculates the liquid and vapor enthalpy lines on a Pochon Savarit diagram for a binary mixture distilation column.
+  Calculates the liquid and vapor enthalpy lines on a Ponchon Savarit diagram for a binary mixture distillation column.
 
   Parameters:
   -----------
   props : NDArray
     Chemical properties of the compounds being analyzed. Shape must be 2 x 3.
-      Ex) np.array([Boiling Point Temperature (K), Average Molar Heat Capactity (kJ/mol*C), Molar Heat of Vaporization (kJ/mol) ])
+      Ex) np.array([Boiling Point Temperature (K), Average Molar Heat Capacity (kJ/mol*C), Molar Heat of Vaporization (kJ/mol) ])
   
   Returns:
   -----------
   liqlineH : LinearEq
-    Enthalpy concentration line of a binary mixture in the liquid phase on a Pochon Savarit diagram.
+    Enthalpy concentration line of a binary mixture in the liquid phase on a Ponchon Savarit diagram.
   vaplineH : LinearEq
-    Enthalpy concentration line of a binary mixture in the vapor phase on a Pochon Savarit diagram.
+    Enthalpy concentration line of a binary mixture in the vapor phase on a Ponchon Savarit diagram.
   '''
   props = np.atleast_1d(props).reshape((-1, 3))
   if props[0, 0] > props[1, 0]:
@@ -507,37 +507,37 @@ def ponchon_savarit_enthalpylines(props: npt.NDArray) -> tuple[common.LinearEq, 
 
 def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq, xf: float, yf: float, xd: float, xb: float, Rmin_mult: float = 1.2) -> common.SolutionObj[common.LinearEq, float, float, float, float]:
   '''
-  Calculates the tieline and Rmin of a Pochon Savarit diagram for a binary mixture distilation column.
+  Calculates the tieline and Rmin of a Ponchon Savarit diagram for a binary mixture distillation column.
 
   Parameters:
   -----------
   liqlineH : LinearEq
-    Enthalpy concentration line of a binary mixture in the liquid phase on a Pochon Savarit diagram.
+    Enthalpy concentration line of a binary mixture in the liquid phase on a Ponchon Savarit diagram.
   vaplineH : LinearEq
-    Enthalpy concentration line of a binary mixture in the vapor phase on a Pochon Savarit diagram.
+    Enthalpy concentration line of a binary mixture in the vapor phase on a Ponchon Savarit diagram.
   x_f* : float
-    Liquid fraction of the lower boiling boint species in the feed (unitless). Corresponding x-value of yf on the equalibrium curve.
+    Liquid fraction of the lower boiling point species in the feed (unitless). Corresponding x-value of yf on the equilibrium curve.
   y_f* : float
-    Vapor fraction of the lower boiling boint species in the feed (unitless). Corresponding y-value of xf on the equalibrium curve.
+    Vapor fraction of the lower boiling point species in the feed (unitless). Corresponding y-value of xf on the equilibrium curve.
   xd : float
-    Liquid fraction of the lower boiling boint species in the distilate (unitless).
+    Liquid fraction of the lower boiling point species in the distillate (unitless).
   xb : float
-    Liquid fraction of the lower boiling boint species in the bottoms (unitless).
+    Liquid fraction of the lower boiling point species in the bottoms (unitless).
   Rmin_mult : float
-    Factor by which to excede the minimum reflux ratio, Rmin (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf).
+    Factor by which to exceed the minimum reflux ratio, Rmin (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf).
 
   Returns:
   -----------
   tieline : LinearEq
-    Tie line of a Pochon Savarit diagram, which connects the feedpoint, x_f*, y_f*, P', and B' points.
+    Tie line of a Ponchon Savarit diagram, which connects the feedpoint, x_f*, y_f*, P', and B' points.
   Rmin : float
     Minimum reflux ratio of the rectifying section (unitless).
   R : float
     Reflux ratio of the rectifying section (unitless).
   Hd : float
-    Total enthalpy of the lower boiling point species at dew point plus the condenser's heat duty divided by the distilate flowrate 
+    Total enthalpy of the lower boiling point species at dew point plus the condenser's heat duty divided by the distillate flowrate 
   Hb : float
-    Total enthalpy of the higher boiling point species at dew point plus the condenser's heat duty divided by the distilate flowrate 
+    Total enthalpy of the higher boiling point species at dew point plus the condenser's heat duty divided by the distillate flowrate 
   '''
   eq_tieline = common.point_conn((xf, liqlineH.eval(xf)), (yf, vaplineH.eval(yf))) # tieline for Rmin
   hd = liqlineH.eval(xd)
@@ -553,26 +553,26 @@ def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq
 
 def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.LinearEq, vaplineH: common.LinearEq, Fpoint: tuple[float, float], q: bool | float, xd: float, xb: float, Rmin_mult: float, tol: float = .00001, PLOTTING_ENABLED = False) -> common.SolutionObj[common.LinearEq, float, float, float, float]:
   '''
-  Calculates the liquid and vapor enthalpy lines on a Pochon Savarit diagram for a binary mixture distilation column.
+  Calculates the liquid and vapor enthalpy lines on a Ponchon Savarit diagram for a binary mixture distillation column.
 
   Parameters:
   -----------
   eq_curve : EqualibEq
-    Equation for an equalibrium curve of a binary mixture.
+    Equation for an equilibrium curve of a binary mixture.
   liqlineH : LinearEq
-    Enthalpy concentration line of a binary mixture in the liquid phase on a Pochon Savarit diagram.
+    Enthalpy concentration line of a binary mixture in the liquid phase on a Ponchon Savarit diagram.
   vaplineH : LinearEq
-    Enthalpy concentration line of a binary mixture in the vapor phase on a Pochon Savarit diagram.
+    Enthalpy concentration line of a binary mixture in the vapor phase on a Ponchon Savarit diagram.
   Fpoint : tuple[float, float]
-    Cooridinates of the feed point on the Pochon Savarit diagram in (mol fraction (unitless), enthalpy (J/mol)) (unitless, Joules per mole).
+    Coordinates of the feed point on the Ponchon Savarit diagram in (mol fraction (unitless), enthalpy (J/mol)) (unitless, Joules per mole).
   q : bool | float
     The liquid fraction of the incoming feed. Should be True or 1. when the feed is saturated liquid (vaporless / at its bubble point). Should be False or 0. when the feed is saturated vapor (liquidless / at its dew point).
   xd : float
-    Liquid fraction of the lower boiling boint species in the distilate (unitless).
+    Liquid fraction of the lower boiling point species in the distillate (unitless).
   xb : float
-    Liquid fraction of the lower boiling boint species in the bottoms (unitless).
+    Liquid fraction of the lower boiling point species in the bottoms (unitless).
   Rmin_mult : float
-    Factor by which to excede the minimum reflux ratio, Rmin (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf).
+    Factor by which to exceed the minimum reflux ratio, Rmin (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf).
   tol : float
     Largest error value to stop iterating and return.
 
@@ -639,7 +639,7 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
   ideal_stages = common.curve_bouncer(vaplineH, liqlineH, xd, xb, eq_curve.inv, y_transform)
 
   if PLOTTING_ENABLED:
-    fig, ax = plt.subplots(); ax.set_title("Pochon Savarit Diagram")
+    fig, ax = plt.subplots(); ax.set_title("Ponchon Savarit Diagram")
     plt.xlim(0, 1); plt.ylim(Hb * 1.1, Hp * 1.1)
     x = np.linspace(0., 1., 200)
     ax.plot([xf]*200, np.linspace(Hb * 1.1, Hp * 1.1, 200), "k")
@@ -691,7 +691,7 @@ def lost_work(inlet: npt.NDArray, outlet: npt.NDArray, Q: npt.NDArray, T_s: npt.
 
 def multicomp_feed_split_est(F_i: npt.NDArray, MW: npt.NDArray, keys: tuple[int, int], spec: tuple[float, float]) -> tuple[npt.NDArray, npt.NDArray]:
   '''
-  Estimates the distilate and bottoms outflowrates of a multi-component distilation column.
+  Estimates the distillate and bottoms outflowrates of a multi-component distillation column.
   
   Parameters:
   -----------
@@ -704,12 +704,12 @@ def multicomp_feed_split_est(F_i: npt.NDArray, MW: npt.NDArray, keys: tuple[int,
   keys : tuple[int, int]
     Indexes of the Light Key species and Heavy Key species in the feed array.
   spec : tuple[float, float]
-    Required molar flowrate of the Light Key species in the distilate and Heavy Key species in the bottoms.
+    Required molar flowrate of the Light Key species in the distillate and Heavy Key species in the bottoms.
   
   Returns:
   -----------
   D_i : NDArray
-    Molar flowrates of all components in the distilate stream.
+    Molar flowrates of all components in the distillate stream.
   B_i : NDArray
     Molar flowrates of all components in the bottoms stream.
   '''
@@ -728,33 +728,33 @@ def multicomp_feed_split_est(F_i: npt.NDArray, MW: npt.NDArray, keys: tuple[int,
 
 def multicomp_column_cond(ant_coeff: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDArray, T_D: float = 312.15, T_decomp: float | None = None, numplates: float | None = None, vacuumColumn: bool = False, decompSafeFac: float = .5) -> tuple[npt.NDArray, str]:
   '''
-  Calcualtes the pressure across a distilation column.
+  Calculates the pressure across a distillation column.
   
   Parameters:
   -----------
   ant_coeff : NDArray
     Components' coefficients for the Antoine Equation of State (unitless). Shape must be N x 3.
   D_i : NDArray
-    Molar flowrates of all components in the distilate stream.
+    Molar flowrates of all components in the distillate stream.
   B_i : NDArray
     Molar flowrates of all components in the bottoms stream.
   T_D : float
-    Temperature of the distillate liquid in the reflux drum in K (Kelvin). Assumes 49 C (Celcius) == 312.15 Kelvin (K) by default.
+    Temperature of the distillate liquid in the reflux drum in K (Kelvin). Assumes 49 C (Celsius) == 312.15 Kelvin (K) by default.
   T_decomp : float
     Temperature of decomposition of the bottoms product in K (Kelvin).
   numplates : float
-    Number of plates in the distilation column, if known.
+    Number of plates in the distillation column, if known.
   vacuumColumn : bool
-    If the distilation column is operating below ambient pressure.
+    If the distillation column is operating below ambient pressure.
   decompSafeFac : float
-    Ratio of the maximum reboiler temperature to the bottom product's decompostion temperature.
+    Ratio of the maximum reboiler temperature to the bottom product's decomposition temperature.
   
   Returns:
   -----------
   T_and_P : NDArray
-    Temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) pairs for the top, average, and bottom of the distilation column.
+    Temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) pairs for the top, average, and bottom of the distillation column.
   condenserType : str
-    Type of condenser that ought to be used at the calculated distilate pressure.
+    Type of condenser that ought to be used at the calculated distillate pressure.
   '''
   D_i = np.atleast_1d(D_i); B_i = np.atleast_1d(B_i)
   ant_coeff = np.atleast_1d(ant_coeff).reshape(-1, 3)
@@ -795,9 +795,9 @@ def fenske_plates(a_i_hk: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDArray, keys:
   Parameters:
   -----------
   a_i_hk : NDArray
-    Relative volatility of each compound to the heavy key compound at the final distilate plate, average column conditions, and final reboiler plate (unitless).
+    Relative volatility of each compound to the heavy key compound at the final distillate plate, average column conditions, and final reboiler plate (unitless).
   D_i : NDArray
-    Molar flowrates of all components in the distilate stream.
+    Molar flowrates of all components in the distillate stream.
   B_i : NDArray
     Molar flowrates of all components in the bottoms stream.
   keys : tuple[int, int]
@@ -824,23 +824,23 @@ def fenske_feed_split(a_i_hk: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, B
   Parameters:
   -----------
   a_i_hk : NDArray
-    Relative volatility of each compound to the heavy key compound at the final distilate plate, average column conditions, and final reboiler plate (unitless).
+    Relative volatility of each compound to the heavy key compound at the final distillate plate, average column conditions, and final reboiler plate (unitless).
   F_i : NDArray
     Molar flowrates of all components in the feed stream.
   D_i : NDArray
-    Molar flowrates of all components in the distilate stream.
+    Molar flowrates of all components in the distillate stream.
   B_i : NDArray
     Molar flowrates of all components in the bottoms stream. 
   keys : tuple[int, int]
     Indexes of the Light Key species and Heavy Key species in the feed array.
   spec : tuple[float, float]
-    Required molar flowrate of the Light Key species in the distilate and Heavy Key species in the bottoms.
+    Required molar flowrate of the Light Key species in the distillate and Heavy Key species in the bottoms.
   
   
   Returns:
   ----------
   D_i : NDArray
-    Improved molar flowrates of all components in the distilate stream.
+    Improved molar flowrates of all components in the distillate stream.
   B_i : NDArray
     Improved molar flowrates of all components in the bottoms stream. 
   N_min : float
@@ -866,7 +866,7 @@ def fenske_feed_split(a_i_hk: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, B
 
 def winn_coeff_est(K_i: npt.NDArray) -> tuple[npt.NDArray, npt.NDArray]:
   '''
-  Estimates the zeta coefficient and iota power of binary equalibrium pairs for use in the Winn equation.
+  Estimates the zeta coefficient and iota power of binary equilibrium pairs for use in the Winn equation.
   
   Parameters:
   -----------
@@ -898,7 +898,7 @@ def winn_plates(K_i: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDArray, keys: tupl
     Equilibrium constants of all components at two or more points in the distillation column. Shape must be M x N, M >= 2.
       ex) np.array([[K_1_D, K_2_D, K_3_D], [K_1_F, K_2_F, K_3_F], [K_1_B, K_2_B, K_3_B]])
   D_i : NDArray
-    Molar flowrates of all components in the distilate stream.
+    Molar flowrates of all components in the distillate stream.
   B_i : NDArray
     Molar flowrates of all components in the bottoms stream. 
   keys : tuple[int, int]
@@ -932,18 +932,18 @@ def winn_feed_split(K_i: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, B_i: n
   F_i : NDArray
     Molar flowrates of all components in the feed stream.
   D_i : NDArray
-    Molar flowrates of all components in the distilate stream.
+    Molar flowrates of all components in the distillate stream.
   B_i : NDArray
     Molar flowrates of all components in the bottoms stream.
   keys : tuple[int, int]
     Indexes of the Light Key species and Heavy Key species in the feed array.
   spec : tuple[float, float]
-    Required molar flowrate of the Light Key species in the distilate and Heavy Key species in the bottoms.
+    Required molar flowrate of the Light Key species in the distillate and Heavy Key species in the bottoms.
   
   Returns:
   ----------
   D_i : NDArray
-    Improved molar flowrates of all components in the distilate stream.
+    Improved molar flowrates of all components in the distillate stream.
   B_i : NDArray
     Improved molar flowrates of all components in the bottoms stream. 
   N_min : float
@@ -968,31 +968,31 @@ def winn_feed_split(K_i: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, B_i: n
 
 def underwood_type1(a_i_hk: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, keys: tuple[int, int], spec: tuple[float, float], psi: float) -> common.SolutionObj[npt.NDArray, npt.NDArray, float]:
   '''
-  Calculates the minimum reflux ratio and component distilate streams of a Type I distilation column (full component distribution) using the Underwood equations.
+  Calculates the minimum reflux ratio and component distillate streams of a Type I distillation column (full component distribution) using the Underwood equations.
   
   Parameters:
   -----------
   a_i_hk : NDArray
-    Relative volatility of each compound to the heavy key compound at the final distilate plate, average column conditions, and final reboiler plate (unitless).
+    Relative volatility of each compound to the heavy key compound at the final distillate plate, average column conditions, and final reboiler plate (unitless).
   F_i : NDArray
     Molar flowrates of all components in the feed stream.
   D_i : NDArray
-    Molar flowrates of all components in the distilate stream.
+    Molar flowrates of all components in the distillate stream.
   keys : tuple[int, int]
     Indexes of the Light Key species and Heavy Key species in the feed array.
   spec : tuple[float, float]
-    Required molar flowrate of the Light Key species in the distilate and Heavy Key species in the bottoms.
+    Required molar flowrate of the Light Key species in the distillate and Heavy Key species in the bottoms.
   psi : float
     Vapor to liquid feed ratio (unitless).
   
   Returns:
   ----------
   D_i : NDArray
-    Improved molar flowrates of all components in the distilate stream.
+    Improved molar flowrates of all components in the distillate stream.
   typeI : NDArray
-    If a component distributes across both the distilate and bottoms outflow streams (True), a distilation column is Type II if any component does not distribute (False).
+    If a component distributes across both the distillate and bottoms outflow streams (True), a distillation column is Type II if any component does not distribute (False).
   R_min : float
-    Minimum reflux ratio of the a distilation column as a Type I System.
+    Minimum reflux ratio of the a distillation column as a Type I System.
   '''
   a_i_hk = np.atleast_2d(a_i_hk)
   F_i = np.atleast_1d(F_i); D_i = np.atleast_1d(D_i)
@@ -1028,27 +1028,27 @@ def quanderwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeI: npt.NDAr
 
 def underwood_type2(a_i_hk: npt.NDArray, x_F: npt.NDArray, D_i: npt.NDArray, typeI: npt.NDArray, keys: tuple[int, int], psi: float) -> common.SolutionObj[npt.NDArray, float]:
   '''
-  Calculates the minimum reflux ratio and component distilate streams of a Type II distilation column (incomplete component distribution) using the Underwood equations.
+  Calculates the minimum reflux ratio and component distillate streams of a Type II distillation column (incomplete component distribution) using the Underwood equations.
   
   Parameters:
   -----------
   a_i_hk : NDArray
-    Relative volatility of each compound to the heavy key compound at the final distilate plate, average column conditions, and final reboiler plate (unitless).
+    Relative volatility of each compound to the heavy key compound at the final distillate plate, average column conditions, and final reboiler plate (unitless).
   x_F : NDArray
     Component mole fractions of the liquid mixture in the feed stream (unitless). Must sum to 1.
   D_i : NDArray
-    Molar flowrates of all components in the distilate stream.
+    Molar flowrates of all components in the distillate stream.
   typeI : NDArray
-    If a component distributes across both the distilate and bottoms outflow streams (True), a distilation column is Type II if any component does not distribute (False).
+    If a component distributes across both the distillate and bottoms outflow streams (True), a distillation column is Type II if any component does not distribute (False).
   psi : float
     Vapor to liquid feed ratio (unitless).
     
   Returns:
   ----------
   D_i : NDArray
-    Improved molar flowrates of all components in the distilate stream.
+    Improved molar flowrates of all components in the distillate stream.
   R_min : float
-    Minimum reflux ratio of the a distilation column as a Type I System.
+    Minimum reflux ratio of the a distillation column as a Type I System.
   '''
   a_i_hk = np.atleast_2d(a_i_hk)
   x_F = np.atleast_1d(x_F); D_i = np.atleast_1d(D_i)
@@ -1080,16 +1080,16 @@ def underwood_type2(a_i_hk: npt.NDArray, x_F: npt.NDArray, D_i: npt.NDArray, typ
 
 def gilliland(N_min: float, R_min: float, R: float) -> float:
   '''
-  Calculates the number of real trays required to operate a multicomponent distilation column.
+  Calculates the number of real trays required to operate a multicomponent distillation column.
   
   Parameters
   ----------
   N_min : float
-    Minimum number of trays required to operate the multicomponent distilation column. Usually calculated from the Fenske equation .
+    Minimum number of trays required to operate the multicomponent distillation column. Usually calculated from the Fenske equation .
   R_min : float
-    Minimum reflux ratio required to operate the multicomponent distilation column.
+    Minimum reflux ratio required to operate the multicomponent distillation column.
   R : float
-    Reflux ratio of the multicomponent distilation column.
+    Reflux ratio of the multicomponent distillation column.
   
   Returns:
   ----------
@@ -1105,27 +1105,27 @@ def gilliland(N_min: float, R_min: float, R: float) -> float:
 
 def kirkbride(x_F: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDArray, keys: tuple[int, int], actual_trays: float) -> tuple[float, float]:
   '''
-  Calculates the location of the feed tray in a multicomponent distilation column using the Kirkbride equation.
+  Calculates the location of the feed tray in a multicomponent distillation column using the Kirkbride equation.
   
   Parameters:
   -----------
   x_F : NDArray
     Component mole fractions of the liquid mixture in the feed stream (unitless). Must sum to 1.
   D_i : NDArray
-    Molar flowrates of all components in the distilate stream.
+    Molar flowrates of all components in the distillate stream.
   B_i : NDArray
     Molar flowrates of all components in the bottoms stream.
   keys : tuple[int, int]
     Indexes of the Light Key species and Heavy Key species in the feed array.
   actual_trays : float
-    Number of actual trays in a multicomponent distilation column, having already accounted for the reboiler, consenser, and expected plate efficiency.
+    Number of actual trays in a multicomponent distillation column, having already accounted for the reboiler, condenser, and expected plate efficiency.
     
   Returns:
   ----------
   trays_D : float
-    Number of rectifying trays in a multicomponent distilation column.
+    Number of rectifying trays in a multicomponent distillation column.
   trays_S : float
-    Number of stripping trays in a multicomponent distilation column, where the first tray is the feed tray.
+    Number of stripping trays in a multicomponent distillation column, where the first tray is the feed tray.
   '''
   x_F = np.atleast_1d(x_F)
   D_i = np.atleast_1d(D_i); B_i = np.atleast_1d(B_i)
@@ -1136,7 +1136,7 @@ def kirkbride(x_F: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDArray, keys: tuple[
 
 def multicomp_heat_dut(heatvap_i: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDArray, R: float, psi: float) -> tuple[float, float]:
   '''
-  Calculates the heat duties of the condenser and reboiler in a multicomponent distilation column.
+  Calculates the heat duties of the condenser and reboiler in a multicomponent distillation column.
   
   Parameters:
   -----------
@@ -1145,13 +1145,13 @@ def multicomp_heat_dut(heatvap_i: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArra
   F_i : NDArray
     Molar flowrates of all components in the feed stream.
   D_i : NDArray
-    Molar flowrates of all components in the distilate stream.
+    Molar flowrates of all components in the distillate stream.
   B_i : NDArray
     Molar flowrates of all components in the bottoms stream.
   keys : tuple[int, int]
     Indexes of the Light Key species and Heavy Key species in the feed array.
   actual_trays : float
-    Number of actual trays in a multicomponent distilation column, having already accounted for the reboiler, consenser, and expected plate efficiency.
+    Number of actual trays in a multicomponent distillation column, having already accounted for the reboiler, condenser, and expected plate efficiency.
     
   Returns:
   ----------
@@ -1172,7 +1172,7 @@ def column_design_full_est(ant_coeff: npt.NDArray, F_i: npt.NDArray, MW: npt.NDA
                            keys: tuple[int, int], spec: tuple[float, float],
                            Rmin_mult: float = 1.2, tray_eff: float = .85, T_D: float = 312.15, T_decomp: float | None = None, numplates: float | None = None, vacuumColumn: bool = False, decompSafeFac: float = .5, tol: float = .001):
   '''
-  Calcualtes the pressure across a distilation column.
+  Calculates the pressure across a distillation column.
   
   Parameters:
   -----------
@@ -1191,28 +1191,28 @@ def column_design_full_est(ant_coeff: npt.NDArray, F_i: npt.NDArray, MW: npt.NDA
   keys : tuple[int, int]
     Indexes of the Light Key species and Heavy Key species in the feed array.
   spec : tuple[float, float]
-    Required molar flowrate of the Light Key species in the distilate and Heavy Key species in the bottoms.
+    Required molar flowrate of the Light Key species in the distillate and Heavy Key species in the bottoms.
   Rmin_mult : float
-    Factor by which to excede the minimum reflux ratio, R_min (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf).
+    Factor by which to exceed the minimum reflux ratio, R_min (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf).
   tray_eff : float
-    Performance efficiency of a tray relative to its theorhetical perfection. 
+    Performance efficiency of a tray relative to its theoretical perfection. 
   T_D : float
-    Temperature of the distillate liquid in the reflux drum in K (Kelvin). Assumes 49 C (Celcius) == 312.15 Kelvin (K) by default.
+    Temperature of the distillate liquid in the reflux drum in K (Kelvin). Assumes 49 C (Celsius) == 312.15 Kelvin (K) by default.
   T_decomp : float
     Temperature of decomposition of the bottoms product in K (Kelvin).
   numplates : float
-    Number of plates in the distilation column, if known.
+    Number of plates in the distillation column, if known.
   vacuumColumn : bool
-    If the distilation column is operating below ambient pressure.
+    If the distillation column is operating below ambient pressure.
   decompSafeFac : float
-    Ratio of the maximum reboiler temperature to the bottom product's decompostion temperature.
+    Ratio of the maximum reboiler temperature to the bottom product's decomposition temperature.
   
   Returns:
   -----------
   T_and_P : NDArray
-    Temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) pairs for the top, average, and bottom of the distilation column.
+    Temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) pairs for the top, average, and bottom of the distillation column.
   condenserType : str
-    Type of condenser that ought to be used at the calculated distilate pressure.
+    Type of condenser that ought to be used at the calculated distillate pressure.
   '''
   x_F = F_i / F_i.sum()
   D_i, B_i = multicomp_feed_split_est(F_i, MW, keys, spec)

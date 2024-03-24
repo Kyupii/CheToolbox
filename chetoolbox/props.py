@@ -505,7 +505,7 @@ def cp_est(const: list, T: float) -> float:
 
 def hess(prod: npt.NDArray, reac: npt.NDArray):
   '''
-  Estimates change in enthalpy, entropy, or Gibb's free energy based on formation values for delta H, delta S or delta G.
+  Estimates change in enthalpy, entropy, or Gibbs free energy based on formation values for delta H, delta S or delta G.
   
   Parameters:
   -----------
@@ -518,7 +518,7 @@ def hess(prod: npt.NDArray, reac: npt.NDArray):
   Returns:
   -----------
   delta : float
-    change in enthalpy, entropy, or Gibb's free energy for the reaction in J/mol (Joules per mole).
+    change in enthalpy, entropy, or Gibbs free energy for the reaction in J/mol (Joules per mole).
   '''
   prod = np.atleast_1d(prod).reshape(-1, 2)
   reac = np.atleast_1d(reac).reshape(-1, 2)
@@ -542,7 +542,7 @@ def deltaH_est(prod: npt.NDArray, reac: npt.NDArray, T: float, deltaH_0: float, 
   deltaH_0 : float
     Standard heat of reaction in J/mol (Joules per mole).
   T_0 : float
-    Standard reference temperature in K (Kelvin). Most standard heat of formation tables are calcualted at 298 K (Kelvin).
+    Standard reference temperature in K (Kelvin). Most standard heat of formation tables are calculated at 298 K (Kelvin).
 
   Returns:
   -----------
@@ -573,7 +573,7 @@ def deltaS_est(prod: npt.NDArray, reac: npt.NDArray, T: float, deltaS_0: float, 
   deltaS_0 : float
     Standard entropy of reaction in J/mol*K (Joules per mole Kelvin).
   T_0 : float
-    Standard reference temperature in K (Kelvin). Most standard heat of formation tables are calcualted at 298 K (Kelvin).
+    Standard reference temperature in K (Kelvin). Most standard heat of formation tables are calculated at 298 K (Kelvin).
 
   Returns:
   -----------
@@ -625,7 +625,7 @@ def gibbs_est(prod: npt.NDArray, reac: npt.NDArray, T: float, deltaH_0: float, d
   deltaG_0 : float
     Standard Gibbs free energy in J/mol (Joules per mole).
   T_0 : float
-    Standard reference temperature in K (Kelvin). Most standard heat of formation tables are calcualted at 298 K (Kelvin).
+    Standard reference temperature in K (Kelvin). Most standard heat of formation tables are calculated at 298 K (Kelvin).
 
   Returns:
   -----------
@@ -657,7 +657,7 @@ def gibbs_est_HandS(prod: npt.NDArray, reac: npt.NDArray, T: float, deltaH_0: fl
   deltaS_0 : float
     Standard entropy of reaction in J/mol*K (Joules per mole Kelvin).
   T_0 : float
-    Standard reference temperature in K (Kelvin). Most standard heat of formation tables are calcualted at 298 K (Kelvin).
+    Standard reference temperature in K (Kelvin). Most standard heat of formation tables are calculated at 298 K (Kelvin).
 
   Returns:
   -----------
