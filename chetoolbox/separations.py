@@ -934,7 +934,7 @@ def winn_feed_split(K_i: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, B_i: n
   D_i : NDArray
     Molar flowrates of all components in the distilate stream.
   B_i : NDArray
-    Molar flowrates of all components in the bottoms stream. 
+    Molar flowrates of all components in the bottoms stream.
   keys : tuple[int, int]
     Indexes of the Light Key species and Heavy Key species in the feed array.
   spec : tuple[float, float]
@@ -1080,16 +1080,16 @@ def underwood_type2(a_i_hk: npt.NDArray, x_F: npt.NDArray, D_i: npt.NDArray, typ
 
 def gilliland(N_min: float, R_min: float, R: float) -> float:
   '''
-  Solves for the number of real trays required to operate a distillation column.
+  Calculates the number of real trays required to operate a multicomponent distilation column.
   
   Parameters
   ----------
   N_min : float
-    Minimum number of trays required to operate a column. Usually calculated from the Fenske equation .
+    Minimum number of trays required to operate the multicomponent distilation column. Usually calculated from the Fenske equation .
   R_min : float
-    Multiplcation factor for which the actual reflux ratio is found.
+    Minimum reflux ratio required to operate the multicomponent distilation column.
   R : float
-    Minimum reflux ratio required to operate a column.
+    Reflux ratio of the multicomponent distilation column.
   
   Returns
   ----------
@@ -1104,12 +1104,67 @@ def gilliland(N_min: float, R_min: float, R: float) -> float:
   return (N_min + Y) / (1. - Y)
 
 def kirkbride(x_F: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDArray, keys: tuple[int, int], actual_trays: float):
+  '''
+  Calculates the location of the feed tray in a multicomponent distilation column using the Kirkbride equation.
+  
+  Parameters:
+  -----------
+  x_F : NDArray
+    Component mole fractions of the liquid mixture in the feed stream (unitless). Must sum to 1.
+  D_i : NDArray
+    Molar flowrates of all components in the distilate stream.
+  B_i : NDArray
+    Molar flowrates of all components in the bottoms stream.
+  keys : tuple[int, int]
+    Indexes of the Light Key species and Heavy Key species in the feed array.
+  actual_trays : float
+    Number of actual trays in a multicomponent distilation column, having already accounted for the reboiler, consenser, and expected plate efficiency.
+    
+  Returns
+  ----------
+  trays_D : float
+    Number of rectifying trays in a multicomponent distilation column.
+  trays_S : float
+    Number of stripping trays in a multicomponent distilation column, where the first tray is the feed tray.
+  '''
   x_F = np.atleast_1d(x_F)
   D_i = np.atleast_1d(D_i); B_i = np.atleast_1d(B_i)
   x_D = D_i / D_i.sum(); x_B = B_i / B_i.sum()
   chunk = ( x_F[keys[1]] * x_B[keys[0]]**2 * B_i.sum() / (x_F[keys[0]] * x_D[keys[1]]**2 * D_i.sum()) )**.206
   trays_D = actual_trays + chunk / (1. + chunk)
-  return
+  return trays_D, actual_trays - trays_D
+
+def multicomp_heat_dut(heatvap_i: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDArray, R: float, psi: float):
+  '''
+  Calculates the heat duties of the condenser and reboiler in a multicomponent distilation column.
+  
+  Parameters:
+  -----------
+  heatvap_i : NDArray
+    Heat of vaporization (or condensation) of all components.
+  F_i : NDArray
+    Molar flowrates of all components in the feed stream.
+  D_i : NDArray
+    Molar flowrates of all components in the distilate stream.
+  B_i : NDArray
+    Molar flowrates of all components in the bottoms stream.
+  keys : tuple[int, int]
+    Indexes of the Light Key species and Heavy Key species in the feed array.
+  actual_trays : float
+    Number of actual trays in a multicomponent distilation column, having already accounted for the reboiler, consenser, and expected plate efficiency.
+    
+  Returns
+  ----------
+  Q_cond : float
+    Heat duty of the condenser.
+  Q_reb : float
+    Heat duty of the reboiler.
+  '''
+  V_D = D_i.sum() * (1. + R)
+  V_S = V_D - F_i.sum() * psi
+  Q_cond = V_D * np.sum(heatvap_i * D_i / D_i.sum())
+  Q_reb = V_S * np.sum(heatvap_i * B_i / B_i.sum())
+  return Q_cond, Q_reb
 
 def column_design_full_est(F_i: npt.NDArray, MW: npt.NDArray, ant_coeff: npt.NDArray, Tc: npt.NDArray, Pc: npt.NDArray, keys: tuple[int, int], spec: tuple[float, float], Rmin_mult: float = 1.2, tray_eff: float = .85, tol: float = .001):
   x_F = F_i / F_i.sum()
@@ -1134,3 +1189,5 @@ def column_design_full_est(F_i: npt.NDArray, MW: npt.NDArray, ant_coeff: npt.NDA
   ideal_stages = gilliland(N_min, R_min, R)
   ideal_trays = ideal_stages - 1. if condenserType == "Total Condenser" else 2.
   actual_trays = ideal_trays / tray_eff
+  trays_D, trays_S = kirkbride(x_F, D_i, B_i, keys, actual_trays)
+  return common.SolutionObj(Rmin = R_min, R = R, trays_D = trays_D, trays_S = trays_S)
