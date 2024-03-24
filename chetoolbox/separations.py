@@ -803,7 +803,7 @@ def fenske_plates(a_i_hk: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDArray, keys:
   keys : tuple[int, int]
     Indexes of the Light Key species and Heavy Key species in the feed array.
   
-  Returns
+  Returns:
   ----------
   N_min : float
     Minimum number of stages for a multi-component distillation tower.
@@ -837,7 +837,7 @@ def fenske_feed_split(a_i_hk: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, B
     Required molar flowrate of the Light Key species in the distilate and Heavy Key species in the bottoms.
   
   
-  Returns
+  Returns:
   ----------
   D_i : NDArray
     Improved molar flowrates of all components in the distilate stream.
@@ -874,7 +874,7 @@ def winn_coeff_est(K_i: npt.NDArray) -> tuple[npt.NDArray, npt.NDArray]:
     Equilibrium constants of all components at two or more points in the distillation column. Shape must be M x N, M >= 2.
       ex) np.array([[K_1_D, K_2_D, K_3_D], [K_1_F, K_2_F, K_3_F], [K_1_B, K_2_B, K_3_B]])
   
-  Returns
+  Returns:
   ----------
   phi : npt.NDArray
     Exponent of the Winn K-transform function.
@@ -904,7 +904,7 @@ def winn_plates(K_i: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDArray, keys: tupl
   keys : tuple[int, int]
     Indexes of the Light Key species and Heavy Key species in the feed array.
   
-  Returns
+  Returns:
   ----------
   phi : npt.NDArray
     Exponent of the Winn K-transform function.
@@ -940,7 +940,7 @@ def winn_feed_split(K_i: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, B_i: n
   spec : tuple[float, float]
     Required molar flowrate of the Light Key species in the distilate and Heavy Key species in the bottoms.
   
-  Returns
+  Returns:
   ----------
   D_i : NDArray
     Improved molar flowrates of all components in the distilate stream.
@@ -985,7 +985,7 @@ def underwood_type1(a_i_hk: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, key
   psi : float
     Vapor to liquid feed ratio (unitless).
   
-  Returns
+  Returns:
   ----------
   D_i : NDArray
     Improved molar flowrates of all components in the distilate stream.
@@ -1043,7 +1043,7 @@ def underwood_type2(a_i_hk: npt.NDArray, x_F: npt.NDArray, D_i: npt.NDArray, typ
   psi : float
     Vapor to liquid feed ratio (unitless).
     
-  Returns
+  Returns:
   ----------
   D_i : NDArray
     Improved molar flowrates of all components in the distilate stream.
@@ -1091,7 +1091,7 @@ def gilliland(N_min: float, R_min: float, R: float) -> float:
   R : float
     Reflux ratio of the multicomponent distilation column.
   
-  Returns
+  Returns:
   ----------
   ideal_stages : float
     Ideal number of stages required to operate the column.
@@ -1120,7 +1120,7 @@ def kirkbride(x_F: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDArray, keys: tuple[
   actual_trays : float
     Number of actual trays in a multicomponent distilation column, having already accounted for the reboiler, consenser, and expected plate efficiency.
     
-  Returns
+  Returns:
   ----------
   trays_D : float
     Number of rectifying trays in a multicomponent distilation column.
@@ -1153,13 +1153,15 @@ def multicomp_heat_dut(heatvap_i: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArra
   actual_trays : float
     Number of actual trays in a multicomponent distilation column, having already accounted for the reboiler, consenser, and expected plate efficiency.
     
-  Returns
+  Returns:
   ----------
   Q_cond : float
     Heat duty of the condenser.
   Q_reb : float
     Heat duty of the reboiler.
   '''
+  heatvap_i = np.atleast_1d(heatvap_i)
+  F_i = np.atleast_1d(F_i); D_i = np.atleast_1d(D_i); B_i = np.atleast_1d(B_i)
   V_D = D_i.sum() * (1. + R)
   V_S = V_D - F_i.sum() * psi
   Q_cond = V_D * np.sum(heatvap_i * D_i / D_i.sum())
