@@ -963,23 +963,21 @@ def winn_feed_split(K_i: npt.NDArray, F_i: npt.NDArray, x_D: npt.NDArray, x_B: n
   D = D_i.sum(); B = B_i.sum()
   return common.SolutionObj(x_D = D_i/D, x_B = B_i/B, N_min = N_min)
 
-def underwood_type1(a_i_hk: npt.NDArray, x_D: npt.NDArray, x_F: npt.NDArray, F: float, F_liq: float, D: float) -> common.SolutionObj[npt.NDArray, npt.NDArray, float, bool]:
+def underwood_type1(a_i_hk: npt.NDArray, F_i: npt.NDArray, x_D: npt.NDArray, psi: float, keys: tuple[int, int], spec: tuple[float, float]) -> common.SolutionObj[npt.NDArray, npt.NDArray, float, bool]:
   '''
   Calculates the minimum reflux ratio and accompanying outflow streams of a Type I System (full component distribution) using the Underwood equations. Can detect if a distilation column fails to meet Type I requirements and is actually Type II.
   Parameters:
   -----------
   a_i_hk : NDArray
     Relative volatilities of all non-key components relative to the heavy key.
+  F_i : NDArray
+    Molar flowrates of all components in the feed stream.
   x_D : NDArray
     Liquid mole fractions of all components in the distillate stream.
-  x_F : NDArray
-    Liquid mole fractions of all components in the feed stream.
-  F : float
-    Molar flowrate of the feed stream.
-  F_liq : float
-    Molar flowrate of the liquid portion of feed stream.
-  D : float
-    Molar flowrate of the distilate stream.
+  psi : float
+    Vapor to liquid feed ratio (unitless).
+  keys : tuple[int, int]
+    Indexes of the Light Key species and Heavy Key species in the feed array.
   
   Returns
   ----------
@@ -993,21 +991,22 @@ def underwood_type1(a_i_hk: npt.NDArray, x_D: npt.NDArray, x_F: npt.NDArray, F: 
     If a component successfully to distributed. If any component is false, the distilation column is Type II.
   '''
   a_i_hk = np.atleast_2d(a_i_hk)
-  x_D = np.atleast_1d(x_D); x_B = np.atleast_1d(x_B)
-  
-  heavy = D * x_lk_FD[1] / (F_liq * x_lk_FD[0]) - a_lk_hk_F * (D * x_hk_FD[1] / (F_liq * x_hk_FD[0]))
-  L_inf = heavy * F_liq / (a_lk_hk_F - 1.)
+  F_i = np.atleast_1d(F_i)
+  x_D = np.atleast_1d(x_D)
+  F_liq = (1. - psi) * F_i.sum(); F_liq_i = (1. - psi) * F_i
+  D = spec[0] / x_D[keys[0]]
+  brack = spec[0] / (F_liq_i[keys[0]]) - a_i_hk[1, keys[0]] * D * x_D[keys[1]] / (F_liq_i[keys[1]])
+  L_inf = brack * F_liq / (a_i_hk[1, keys[0]] - 1.)
   R_min = L_inf / D
   
   # distribution at R_min
-  lkgalf = D * x_lk_FD[1] * (a_i_hk_F - 1.) / ((a_lk_hk_F - 1.) * F_liq * x_lk_FD[0])
-  hkhlaf = (a_lk_hk_F - a_i_hk_F) * D * x_hk_FD[1] / ((a_lk_hk_F - 1.) * F_liq * x_hk_FD[0])
-  D_i_Rmin = (lkgalf + hkhlaf) * F_liq * x_i_F # TODO check if this is actually what you are supposed to do here
-  B_i_Rmin = F * x_i_F - D_i_Rmin 
+  a_i_hk_nonkey = np.delete(a_i_hk, keys)
+  lkhalf = spec[0] * (a_i_hk_nonkey[1] - 1.) / ((a_i_hk[1, keys[0]] - 1.) * F_liq_i[keys[0]])
+  hkhalf = D * x_D[keys[1]] * (a_i_hk[1, keys[0]] - a_i_hk_nonkey[1]) / ((a_i_hk[1, keys[0]] - 1.) * F_liq_i[keys[1]])
+  D_i_Rmin = (lkhalf + hkhalf) * np.delete(F_liq_i, keys)
+  D_i_Rmin = np.insert(D_i_Rmin, [keys[0], keys[1]-1], (spec[0], F_i[keys[1]] - spec[1]))
   
-  cond = (lkgalf + hkhlaf) * F_liq / F # TODO check if this is actually what you are supposed to do here
-  typeI = ~np.any((cond < 0, cond > 1) , axis=1)
-  return common.SolutionObj(D_i_Rmin = D_i_Rmin, B_i_Rmin = B_i_Rmin, R_min = R_min, typeI = typeI)
+  return common.SolutionObj()
 
 # I am trying to make sense of this too. Trying to figure out how to get Theta -> Flow rates
 def quanderwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeI: npt.NDArray, psi: float):
@@ -1084,7 +1083,7 @@ def gilliland(Nmin: float, Rmin: float, Rmin_mult: float = 1.3) -> float:
 def column_design_full_est(F_i: npt.NDArray, MW: npt.NDArray, ant_coeff, Tc, Pc, keys: tuple[int, int], spec: tuple[float, float]):
   x_F = F_i / F_i.sum()
   x_D, x_B = multicomp_feed_split_est(F_i, MW, keys, spec)
-  
+  # double check that the x_D and x_B leaving here have the keys equal to spec
   psi = .5
   x_D_old = np.full_like(x_D, np.NaN)
   while not ((np.abs(x_D - x_D_old)) < .001).all():
