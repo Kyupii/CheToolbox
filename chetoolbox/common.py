@@ -501,6 +501,12 @@ def point_separsort(*points: list | tuple | npt.NDArray) -> tuple[npt.NDArray, n
   return points[:, 0], points[:, 1]
 # endregion
 
+# region Mathematics
+def geomean(a: npt.NDArray):
+  a = np.atleast_2d(a)
+  return np.exp(np.log(a).mean(axis=1))
+# endregion
+
 # region Geometry
 def vertical_line(x) -> LinearEq:
   return LinearEq(np.NaN, np.NaN, x)

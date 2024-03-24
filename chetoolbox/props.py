@@ -131,12 +131,12 @@ def k_wilson(ant_coeff: npt.NDArray, Tc: float | npt.NDArray, Pc: float | npt.ND
   Pc : float | npt.NDArray
     Critical pressure of all components in atm (atmospheres). Length must be N.
   T_and_P : npt.NDArray
-    Pairs of temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) at which to calculate K_eq. Shape must be N x 2.
+    Pairs of temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) at which to calculate K_eq. Shape must be M x 2.
   
   Returns:
   -----------
   K : NDArray
-    Equilibrium Constant (units vary).
+    Equilibrium constant of shape M x N (units vary).
   '''
   ant_coeff = np.atleast_2d(ant_coeff).reshape(-1, 3)
   Tc = np.atleast_1d(Tc); Pc = np.atleast_1d(Pc)
@@ -159,7 +159,7 @@ def k_whitson(ant_coeff: npt.NDArray, Tc: float | npt.NDArray, Pc: float | npt.N
   Pc : float | npt.NDArray
     Critical pressure of all components in atm (atmospheres). Length must be N.
   T_and_P : npt.NDArray
-    Pairs of temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) at which to calculate K_eq.  Shape must be N x 2.
+    Pairs of temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) at which to calculate K_eq. Shape must be M x 2.
   MWC7p : float
     Molecular weight of the C7+ components in g/mol (grams per mole).
   MWC7p : float
@@ -168,7 +168,7 @@ def k_whitson(ant_coeff: npt.NDArray, Tc: float | npt.NDArray, Pc: float | npt.N
   Returns:
   -----------
   K : NDArray
-    Equilibrium Constant (units vary).
+    Equilibrium constant of shape M x N (units vary).
   '''
   ant_coeff = np.atleast_2d(ant_coeff).reshape(-1, 3)
   Tc = np.atleast_1d(Tc); Pc = np.atleast_1d(Pc)
@@ -188,12 +188,12 @@ def k_mcwilliams(coeffs: npt.NDArray, T_and_P: npt.NDArray) -> npt.NDArray:
   coeffs : NDArray
     Coefficients for the McWilliams / Almehaideb K_eq relation for all components. Shape must be N x 7.
   T_and_P : npt.NDArray
-    Pairs of temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) at which to calculate K_eq.  Shape must be N x 2.
+    Pairs of temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) at which to calculate K_eq. Shape must be M x 2.
   
   Returns:
   -----------
   K : NDArray
-    Equilibrium Constant (units vary).
+    Equilibrium constant of shape M x N (units vary).
   '''
   coeffs = np.atleast_2d(coeffs).reshape(-1, 7)
   T_and_P = np.atleast_1d(T_and_P).reshape(-1, 2)
@@ -212,7 +212,7 @@ def k_almehaideb(coeffs: npt.NDArray, Pc: float | npt.NDArray, T_and_P: npt.NDAr
   Pc : float | npt.NDArray
     Critical pressure of all components in atm (atmospheres). Length must be N.
   T_and_P : npt.NDArray
-    Pairs of temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) at which to calculate K_eq.  Shape must be N x 2.
+    Pairs of temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) at which to calculate K_eq. Shape must be M x 2.
   omega : float
     Acentric factor of the C7+ components (unitless). Describes the non-sphericity of a molecule.
   MWC7p : float
@@ -223,7 +223,7 @@ def k_almehaideb(coeffs: npt.NDArray, Pc: float | npt.NDArray, T_and_P: npt.NDAr
   Returns:
   -----------
   K : NDArray
-    Equilibrium Constant (units vary).
+    Equilibrium constant of shape M x N (units vary).
   '''
   coeffs = np.atleast_2d(coeffs)
   Pc = np.atleast_1d(Pc)
@@ -763,13 +763,3 @@ def atom_economy(atoms: npt.NDArray) -> float:
 
   atoms = np.atleast_1d(atoms).reshape(-1, 3)
   return np.sum(atoms[:,0] * atoms[:,1]) / np.sum(atoms[:,0] * atoms[:,2])
-
-def k_est_regression(P: float, T: float, query: str | npt.NDArray):
-  df = pd.read_csv('datasets/k_hydrocarbons.csv')
-  coeff = np.array([])
-  if type(query) == str:
-    coeff = df.loc[df.loc[:,'Hydrocarbon'] == query].iloc[:,3:14].to_numpy()
-  else:
-    for i, item in enumerate(query):
-      coeff = np.append(coeff,df.loc[df.loc[:,'Hydrocarbon'] == item].iloc[:,3:14].to_numpy()).reshape((-1,11))
-  return np.exp(coeff) # OK so we do not have a correct equation (or coefficients for all we know...) 
