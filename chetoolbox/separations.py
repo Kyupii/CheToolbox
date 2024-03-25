@@ -824,7 +824,7 @@ def fenske_feed_split(a_i_hk: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, B
   Parameters:
   -----------
   a_i_hk : NDArray
-    Relative volatility of each compound to the heavy key compound at the final distillate plate, average column conditions, and final reboiler plate (unitless).
+    Relative volatility of each compound to the heavy key compound at the final distillate plate, average column conditions, and final reboiler plate (unitless) Size must be N x 3.
   F_i : NDArray
     Molar flowrates of all components in the feed stream.
   D_i : NDArray
