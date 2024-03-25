@@ -862,7 +862,7 @@ def fenske_feed_split(a_i_hk: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, B
   # reinsert key components from spec
   D_i = np.insert(D_i_nonkey, [keys[0], keys[1]-1], (spec[0], F_i[keys[1]] - spec[1]))
   B_i = np.insert(B_i_nonkey, [keys[0], keys[1]-1], (F_i[keys[0]] - spec[0], spec[1]))
-  return common.SolutionObj(D_i = D_i, D_i = B_i, N_min = N_min)
+  return common.SolutionObj(D_i = D_i, B_i = B_i, N_min = N_min)
 
 def winn_coeff_est(K_i: npt.NDArray) -> tuple[npt.NDArray, npt.NDArray]:
   '''
