@@ -770,9 +770,7 @@ def multicomp_column_cond(ant_coeff: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDA
     condenserType = "Partial Condenser with Refridgerant"
   
   P_top = P_reflux + 5.
-  # TODO how to calculate temperature at the top of the column!? dew or bubble?
-  # T_top = dew_temp_antoine(x_D, ant_coeff, common.UnitConv.press(P_top, "psia", "mmHg"))
-  T_top = bubble_temp_antoine(x_D, ant_coeff, common.UnitConv.press(P_top, "psia", "mmHg"))
+  T_top = dew_temp_antoine(x_D, ant_coeff, common.UnitConv.press(P_top, "psia", "mmHg"))
   if numplates is None:
     dP = 5.
   else:
