@@ -1230,7 +1230,8 @@ def multicomp_column_full_est(ant_coeff: npt.NDArray, F_i: npt.NDArray, MW: npt.
       except:
         D_i, B_i, N_min = winn_feed_split(K_i, F_i, D_i, B_i, keys, spec).unpack()
     D_i, typeI, R_min = underwood_type1(a_i_hk, F_i, D_i, keys, spec, psi).unpack()
-    D_i, R_min = underwood_type2(a_i_hk, x_F, D_i, typeI, keys, psi).unpack()
+    if not typeI.all():
+      D_i, R_min = underwood_type2(a_i_hk, x_F, D_i, typeI, keys, psi).unpack()
   
   R = R_min * Rmin_mult
   ideal_stages = gilliland(N_min, R_min, R)
