@@ -1266,3 +1266,10 @@ def multicomp_column_full_est(ant_coeff: npt.NDArray, F_i: npt.NDArray, MW: npt.
   trays_D, trays_S = kirkbride(x_F, D_i, B_i, keys, actual_trays)
   Q_cond, Q_reb = multicomp_heat_dut(heatvap_i, F_i, D_i, B_i, R, psi)
   return common.SolutionObj(Rmin = R_min, R = R, trays_D = trays_D, trays_S = trays_S, Q_cond = Q_cond, Q_reb = Q_reb)
+
+def multicomp_column_mass_bal(F, D, x_F, x_D, R):
+  D_i_max = x_F * F / x_D
+  V_i_max_rect = D * (R + 1.)
+  L_i_max_rect = D * R
+  B_i_max = F - D_i_max
+  return

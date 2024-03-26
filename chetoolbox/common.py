@@ -674,6 +674,9 @@ def raoult_YtoX(y: list, K: list) -> tuple[npt.NDArray, float]:
   x = np.c_[y] / K
   error = np.sum(x) - 1
   return x, error
+
+def wt_frac_to_mol_frac(x_mass, MW):
+  return x_mass * (x_mass / MW).sum() / MW
 # endregion
 
 # region Iterative Tools
