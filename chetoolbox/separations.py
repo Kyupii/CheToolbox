@@ -964,6 +964,35 @@ def winn_feed_split(K_i: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, B_i: n
   B_i = np.insert(B_i_nonkey, [keys[0], keys[1]-1], (F_i[keys[0]] - spec[0], spec[1]))
   return common.SolutionObj(D_i = D_i, B_i = B_i, N_min = N_min)
 
+def underwood_type1_Rmin(a_i_hk: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, keys: tuple[int, int], psi: float) -> float:
+  '''
+  Calculates the minimum reflux ratio of a Type I distillation column (full component distribution) using the Underwood equations.
+  
+  Parameters:
+  -----------
+  a_i_hk : NDArray
+    Relative volatility of each compound to the heavy key compound at the final distillate plate, average column conditions, and final reboiler plate (unitless).
+  F_i : NDArray
+    Molar flowrates of all components in the feed stream.
+  D_i : NDArray
+    Molar flowrates of all components in the distillate stream.
+  keys : tuple[int, int]
+    Indexes of the Light Key species and Heavy Key species in the feed array.
+  psi : float
+    Vapor to liquid feed ratio (unitless).
+  
+  Returns:
+  ----------
+  R_min : float
+    Minimum reflux ratio of the a distillation column as a Type I System.
+  '''
+  a_i_hk = np.atleast_2d(a_i_hk)
+  F_i = np.atleast_1d(F_i); D_i = np.atleast_1d(D_i)
+  F_liq_i = (1. - psi) * F_i
+  brack = D_i[keys[0]] / F_liq_i[keys[0]] - a_i_hk[1, keys[0]] * D_i[keys[1]] / F_liq_i[keys[1]]
+  L_inf = brack * F_liq_i.sum() / (a_i_hk[1, keys[0]] - 1.)
+  return L_inf / D_i.sum()
+
 def underwood_type1(a_i_hk: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, keys: tuple[int, int], spec: tuple[float, float], psi: float) -> common.SolutionObj[npt.NDArray, npt.NDArray, float]:
   '''
   Calculates the minimum reflux ratio and component distillate streams of a Type I distillation column (full component distribution) using the Underwood equations.
@@ -994,15 +1023,12 @@ def underwood_type1(a_i_hk: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, key
   '''
   a_i_hk = np.atleast_2d(a_i_hk)
   F_i = np.atleast_1d(F_i); D_i = np.atleast_1d(D_i)
-  F_liq_i = (1. - psi) * F_i
-  brack = D_i[keys[0]] / F_liq_i[keys[0]] - a_i_hk[1, keys[0]] * D_i[keys[1]] / F_liq_i[keys[1]]
-  L_inf = brack * F_liq_i.sum() / (a_i_hk[1, keys[0]] - 1.)
-  R_min = L_inf / D_i.sum()
+  R_min = underwood_type1_Rmin(a_i_hk, F_i, D_i, keys, psi)
   # distribution
   a_i_hk_nonkey = np.delete(a_i_hk, keys, axis=1)
-  lkhalf = spec[0] * (a_i_hk_nonkey[1] - 1.) / ((a_i_hk[1, keys[0]] - 1.) * F_liq_i[keys[0]])
-  hkhalf = D_i[keys[1]] * (a_i_hk[1, keys[0]] - a_i_hk_nonkey[1]) / ((a_i_hk[1, keys[0]] - 1.) * F_liq_i[keys[1]])
-  D_i_nonkey = (lkhalf + hkhalf) * np.delete(F_liq_i, keys)
+  lkhalf = spec[0] * (a_i_hk_nonkey[1] - 1.) / ((a_i_hk[1, keys[0]] - 1.) * (1. - psi) * F_i[keys[0]])
+  hkhalf = D_i[keys[1]] * (a_i_hk[1, keys[0]] - a_i_hk_nonkey[1]) / ((a_i_hk[1, keys[0]] - 1.) * (1. - psi) * F_i[keys[1]])
+  D_i_nonkey = (lkhalf + hkhalf) * (1. - psi) * np.delete(F_i, keys)
   D_i = np.insert(D_i_nonkey, [keys[0], keys[1]-1], (spec[0], F_i[keys[1]] - spec[1]))
   typeI = np.all((D_i / F_i > 0., D_i / F_i < 1.) , axis=0)
   return common.SolutionObj(D_i = np.minimum(np.maximum(D_i, 0.), F_i), typeI = typeI, R_min = R_min)
