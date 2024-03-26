@@ -1033,31 +1033,6 @@ def underwood_type1(a_i_hk: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, key
   typeI = np.all((D_i / F_i > 0., D_i / F_i < 1.) , axis=0)
   return common.SolutionObj(D_i = np.minimum(np.maximum(D_i, 0.), F_i), typeI = typeI, R_min = R_min)
 
-def underwood_type1_rr(a_F_hk: npt.NDArray, F: npt.NDArray, D: npt.NDArray, keys: tuple[int, int]):
-  '''
-  Calculates the minimum reflux ratio from full knowledge of distillation column flows using the Underwood type I equations.
-  
-  Parameters:
-  -----------
-  a_F_hk : NDArray
-    Relative volatility of each compound to the heavy key compound at the feed plate (unitless).
-  F_i : NDArray
-    Molar flowrates of all components in the feed stream.
-  D_i : NDArray
-    Molar flowrates of all components in the distillate stream.
-  keys : tuple[int, int]
-    Indexes of the Light Key species and Heavy Key species in the feed array.
-  
-  Returns:
-  ----------
-  R_min : float
-    Minimum reflux ratio of the a distillation column as a Type I System.
-  '''
-  a_F_hk = np.atleast_1d(a_F_hk)
-  F = np.atleast_1d(F)
-  D = np.atleast_1d(D)
-  return ((D[keys[0]] / F[keys[0]]) - (a_F_hk[keys[0]]) * (D[keys[1]] / F[keys[1]])) / (a_F_hk[keys[0]] - 1) * (np.sum(F) / np.sum(D))
-
 # I am trying to make sense of this too. Trying to figure out how to get Theta -> Flow rates
 def quanderwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeI: npt.NDArray, psi: float):
   x_i_F = np.atleast_1d(x_i_F)
