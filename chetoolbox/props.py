@@ -764,7 +764,7 @@ def atom_economy(atoms: npt.NDArray) -> float:
   atoms = np.atleast_1d(atoms).reshape(-1, 3)
   return np.sum(atoms[:,0] * atoms[:,1]) / np.sum(atoms[:,0] * atoms[:,2])
 
-def emissions_est(N):
+def emissions_est(N) -> common.SolutionObj[npt.NDArray, npt.NDArray, npt.NDArray, npt.NDArray, npt.NDArray ]:
   '''
   Estimates chemical emissions based on number of processes and their types
   
@@ -780,7 +780,16 @@ def emissions_est(N):
   Returns
   -----------
   Carbon dioxide : float
-    Atomic economy of the desired product.
+    CO2 emission in grams per kilogram of product (g/kg)
+  Sulfur Oxide : float
+    SOX emission in milligrams per kilogram of product (mg/kg)
+  Nitrogen Oxide : float
+    NOX emission in milligrams per kilogram of product (mg/kg)
+  Biological Oxygen Demand
+    BOD emission in milligrams per kilogram of product (mg/kg)
+  Chemical Oxygen Demand
+    COD emission in milligrams per kilogram of product (mg/kg)
+
   '''
   N = np.atleast_1d(N)
   CO2 = 10 ** (2.4991 + 0.09059 * N[0] + 0.008053 * N[1] + 0.04881 * N[2] - 0.09414 * N[3] + 0.02255 * N[4])
