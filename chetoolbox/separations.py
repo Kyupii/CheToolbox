@@ -726,9 +726,9 @@ def multicomp_feed_split_est(F_i: npt.NDArray, MW: npt.NDArray, keys: tuple[int,
   B_i = F_i - D_i
   return D_i, B_i
 
-def multicomp_column_cond(ant_coeff: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDArray, T_D: float = 312.15, T_decomp: float | None = None, numplates: float | None = None, vacuumColumn: bool = False, decompSafeFac: float = .5) -> tuple[npt.NDArray, str]:
+def multicomp_column_conds_est(ant_coeff: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDArray, T_D: float = 312.15, T_decomp: float | None = None, numplates: float | None = None, vacuumColumn: bool = False, decompSafeFac: float = .5) -> tuple[npt.NDArray, str]:
   '''
-  Calculates the pressure across a distillation column.
+  Calculates the temperature and pressure across a distillation column.
   
   Parameters:
   -----------
@@ -770,9 +770,7 @@ def multicomp_column_cond(ant_coeff: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDA
     condenserType = "Partial Condenser with Refridgerant"
   
   P_top = P_reflux + 5.
-  # TODO how to calculate temperature at the top of the column!? dew or bubble?
-  # T_top = dew_temp_antoine(x_D, ant_coeff, common.UnitConv.press(P_top, "psia", "mmHg"))
-  T_top = bubble_temp_antoine(x_D, ant_coeff, common.UnitConv.press(P_top, "psia", "mmHg"))
+  T_top = dew_temp_antoine(x_D, ant_coeff, common.UnitConv.press(P_top, "psia", "mmHg"))
   if numplates is None:
     dP = 5.
   else:
@@ -784,7 +782,7 @@ def multicomp_column_cond(ant_coeff: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDA
   if T_decomp is not None and T_bot > decompSafeFac * T_decomp:
     P_reflux = bubble_press_antoine(x_B, decompSafeFac * T_decomp) - common.UnitConv.press(dP + 5., "psia", "mmHg")
     T_D = dew_temp_antoine(x_D, ant_coeff, P_reflux) if P_reflux >= 215. else bubble_temp_antoine(x_D, ant_coeff, P_reflux)
-    T_and_P, condenserType = multicomp_column_cond(ant_coeff, D_i, B_i, T_D, T_decomp, numplates, vacuumColumn, decompSafeFac)
+    T_and_P, condenserType = multicomp_column_conds_est(ant_coeff, D_i, B_i, T_D, T_decomp, numplates, vacuumColumn, decompSafeFac)
   
   return T_and_P, condenserType
 
@@ -1193,9 +1191,11 @@ def multicomp_heat_dut(heatvap_i: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArra
   Q_reb = V_S * np.sum(heatvap_i * B_i / B_i.sum())
   return Q_cond, Q_reb
 
-def column_design_full_est(ant_coeff: npt.NDArray, F_i: npt.NDArray, MW: npt.NDArray, Tc: npt.NDArray, Pc: npt.NDArray, heatvap_i: npt.NDArray, 
-                           keys: tuple[int, int], spec: tuple[float, float],
-                           Rmin_mult: float = 1.2, tray_eff: float = .85, T_D: float = 312.15, T_decomp: float | None = None, numplates: float | None = None, vacuumColumn: bool = False, decompSafeFac: float = .5, tol: float = .001):
+def multicomp_column_full_est(ant_coeff: npt.NDArray, F_i: npt.NDArray, MW: npt.NDArray,
+                                     Tc: npt.NDArray, Pc: npt.NDArray, heatvap_i: npt.NDArray, 
+                                     keys: tuple[int, int], spec: tuple[float, float],
+                                     Rmin_mult: float = 1.2, tray_eff: float = .85, T_D: float = 312.15, T_decomp: float | None = None,
+                                     numplates: float | None = None, vacuumColumn: bool = False, decompSafeFac: float = .5, tol: float = .001):
   '''
   Calculates the pressure across a distillation column.
   
@@ -1246,7 +1246,7 @@ def column_design_full_est(ant_coeff: npt.NDArray, F_i: npt.NDArray, MW: npt.NDA
   while not ((np.abs(D_i - D_i_old)) < tol).all():
     while not ((np.abs(D_i - D_i_old)) < tol).all():
       D_i_old = np.copy(D_i)
-      T_and_P, condenserType = multicomp_column_cond(ant_coeff, D_i, B_i, T_D, T_decomp, N_min, vacuumColumn, decompSafeFac)
+      T_and_P, condenserType = multicomp_column_conds_est(ant_coeff, D_i, B_i, T_D, T_decomp, N_min, vacuumColumn, decompSafeFac)
       K_i = props.k_wilson(ant_coeff, Tc, Pc, T_and_P)
       psi = psi_solver(x_F, K_i[1], psi)
       a_i_hk = K_i / np.c_[K_i[:, keys[1]]]
@@ -1255,12 +1255,13 @@ def column_design_full_est(ant_coeff: npt.NDArray, F_i: npt.NDArray, MW: npt.NDA
       except:
         D_i, B_i, N_min = winn_feed_split(K_i, F_i, D_i, B_i, keys, spec).unpack()
     D_i, typeI, R_min = underwood_type1(a_i_hk, F_i, D_i, keys, spec, psi).unpack()
-    D_i, R_min = underwood_type2(a_i_hk, x_F, D_i, typeI, keys, psi).unpack()
+    if not typeI.all():
+      D_i, R_min = underwood_type2(a_i_hk, x_F, D_i, typeI, keys, psi).unpack()
   
   R = R_min * Rmin_mult
   ideal_stages = gilliland(N_min, R_min, R)
   ideal_trays = ideal_stages - 1. if condenserType == "Total Condenser" else 2.
   actual_trays = ideal_trays / tray_eff
   trays_D, trays_S = kirkbride(x_F, D_i, B_i, keys, actual_trays)
-  multicomp_heat_dut(heatvap_i, F_i, D_i, B_i, R, psi)
-  return common.SolutionObj(Rmin = R_min, R = R, trays_D = trays_D, trays_S = trays_S)
+  Q_cond, Q_reb = multicomp_heat_dut(heatvap_i, F_i, D_i, B_i, R, psi)
+  return common.SolutionObj(Rmin = R_min, R = R, trays_D = trays_D, trays_S = trays_S, Q_cond = Q_cond, Q_reb = Q_reb)
