@@ -1,7 +1,7 @@
 import numpy as np
 from numpy import typing as npt
 import pandas as pd
-import common
+from chetoolbox import common
 
 def antoine_coeff_query(query: str | npt.NDArray) -> npt.NDArray:
   '''
@@ -763,3 +763,30 @@ def atom_economy(atoms: npt.NDArray) -> float:
 
   atoms = np.atleast_1d(atoms).reshape(-1, 3)
   return np.sum(atoms[:,0] * atoms[:,1]) / np.sum(atoms[:,0] * atoms[:,2])
+
+def emissions_est(N):
+  '''
+  Estimates chemical emissions based on number of processes and their types
+  
+  Parameters:
+  -----------
+  N : NDArray
+    An array of the number of N1 through N5 processes
+      N1 : Reaction
+      N2 : Fluid Separation
+      N3 : Solid Processes
+      N4 : High Temperature Process 
+      N5 : Others
+  Returns
+  -----------
+  Carbon dioxide : float
+    Atomic economy of the desired product.
+  '''
+  N = np.atleast_1d(N)
+  CO2 = 10 ** (2.4991 + 0.09059 * N[0] + 0.008053 * N[1] + 0.04881 * N[2] - 0.09414 * N[3] + 0.02255 * N[4])
+  SOX = 2.3448 - 0.1075 * N[0] - 0.06997 * N[1] - 0.1611 * N[2] + 0.3605 * N[3] + 0.1025 * N[4]
+  NOX = 2.7111 - 0.05977 * N[0] + 0.1033 * N[1] + 0.0281 * N[2] + 0.3330 * N[3] - 0.1960 * N[4]
+  BOD = -0.4565 - 0.9950 * N[0] + 0.3567 * N[1] + 0.2181 * N[2] + 0.4418 * N[3] - 0.7874 * N[4] 
+  COD = 1.3842 + 0.02326 * N[0] - 0.01926 * N[1] - 0.0261 * N[2] + 0.1679 * N[3] + 0.3671 * N[4]
+  return common.sol(CO2 = CO2, SOX = SOX, NOX = NOX, BOD = BOD, COD = COD)
+ 

@@ -2,7 +2,7 @@ import numpy as np
 import numpy.typing as npt
 from typing import Callable
 from matplotlib import pyplot as plt
-import common, props
+from chetoolbox import common, props
 
 def psi_solver(x: list, K: list, psi: float, tol: float = 0.01) -> common.SolutionObj[float, npt.NDArray, npt.NDArray, float, int]:
   '''
