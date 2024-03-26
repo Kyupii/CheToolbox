@@ -990,8 +990,8 @@ def underwood_type1_Rmin(a_i_hk: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray
   F_i = np.atleast_1d(F_i); D_i = np.atleast_1d(D_i)
   F_liq_i = (1. - psi) * F_i
   brack = D_i[keys[0]] / F_liq_i[keys[0]] - a_i_hk[1, keys[0]] * D_i[keys[1]] / F_liq_i[keys[1]]
-  L_inf = brack * F_liq_i.sum() / (a_i_hk[1, keys[0]] - 1.)
-  return L_inf / D_i.sum()
+  L_inf_min = brack * F_liq_i.sum() / (a_i_hk[1, keys[0]] - 1.)
+  return L_inf_min / D_i.sum()
 
 def underwood_type1(a_i_hk: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, keys: tuple[int, int], spec: tuple[float, float], psi: float) -> common.SolutionObj[npt.NDArray, npt.NDArray, float]:
   '''
