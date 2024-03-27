@@ -800,7 +800,7 @@ def emissions_est(N: npt.NDArray) -> common.SolutionObj[npt.NDArray, npt.NDArray
  
 def greenhouse_emissions_est(n: npt.NDArray) -> npt.NDArray:
   '''
-  Estimates chemical emissions based on number of processes and their types
+  Estimates greenhouse weighting factor based on number of groups in a compound
 
   Parameters:
   -----------
@@ -820,3 +820,26 @@ def greenhouse_emissions_est(n: npt.NDArray) -> npt.NDArray:
   '''
   n = np.atleast_1d(n).reshape(-1,7)
   return common.SolutionObj(WF = 10 ** (2.0662 * n[:,0] + 1.7118 * n[:,1] + 1.6604 * n[:,2] + 1.2266 * n[:,3] - 1.7208 * n[:,4] - 3.231 * n[:,5] - 3.991 * n[:,6])) 
+
+def ozone_WF(n: npt.NDArray) -> npt.NDArray:
+  '''
+  Estimates ozone weighting factor based on number of groups in a compound
+
+  Parameters:
+  -----------
+  N : NDArray
+    An array of the number of N1 through N5 processes
+    n1 : F
+    n2 : Cl
+    n3 : Br
+    n4 : CH3 
+    n5 : CH2
+    n6 : CH
+    n7 : C
+  Returns
+  -----------
+  WF : NDArray
+    Weighting factor per kilogram of waste chemical
+  '''
+  n = np.atleast_1d(n).reshape(-1,7)
+  return common.SolutionObj(WF = 10**(1.7072 * n[:,0] + 1.6676 * n[:,1] + 2.14 * n[:,2] + 0.6055 * n[:,3] + 0.09317 * n[:,4] - 3.0942 * n[:,5] - 3.6860 * n[:,6]))
