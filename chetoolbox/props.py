@@ -764,7 +764,7 @@ def atom_economy(atoms: npt.NDArray) -> float:
   atoms = np.atleast_1d(atoms).reshape(-1, 3)
   return np.sum(atoms[:,0] * atoms[:,1]) / np.sum(atoms[:,0] * atoms[:,2])
 
-def emissions_est(N) -> common.SolutionObj[npt.NDArray, npt.NDArray, npt.NDArray, npt.NDArray, npt.NDArray ]:
+def emissions_est(N: npt.NDArray) -> common.SolutionObj[npt.NDArray, npt.NDArray, npt.NDArray, npt.NDArray, npt.NDArray ]:
   '''
   Estimates chemical emissions based on number of processes and their types
   
@@ -789,7 +789,6 @@ def emissions_est(N) -> common.SolutionObj[npt.NDArray, npt.NDArray, npt.NDArray
     BOD emission in milligrams per kilogram of product (mg/kg)
   Chemical Oxygen Demand
     COD emission in milligrams per kilogram of product (mg/kg)
-
   '''
   N = np.atleast_1d(N)
   CO2 = 10 ** (2.4991 + 0.09059 * N[0] + 0.008053 * N[1] + 0.04881 * N[2] - 0.09414 * N[3] + 0.02255 * N[4])
@@ -799,3 +798,25 @@ def emissions_est(N) -> common.SolutionObj[npt.NDArray, npt.NDArray, npt.NDArray
   COD = 10 ** (1.3842 + 0.02326 * N[0] - 0.01926 * N[1] - 0.0261 * N[2] + 0.1679 * N[3] + 0.3671 * N[4])
   return common.SolutionObj(CO2 = CO2, SOX = SOX, NOX = NOX, BOD = BOD, COD = COD)
  
+def greenhouse_emissions_est(n: npt.NDArray) -> npt.NDArray:
+  '''
+  Estimates chemical emissions based on number of processes and their types
+
+  Parameters:
+  -----------
+  N : NDArray
+    An array of the number of N1 through N5 processes
+    n1 : F
+    n2 : Cl
+    n3 : Br
+    n4 : CH3 
+    n5 : CH2
+    n6 : CH
+    n7 : C
+  Returns
+  -----------
+  WF : NDArray
+    Weighting factor per kilogram of waste chemical
+  '''
+  n = np.atleast_1d(n)
+  return 10 ** (2.0662 * n[0] + 1.7118 * n[1] + 1.6604 * n[2] + 1.2266 * n[3] - 1.7208 * n[4] - 3.231 * n[5] - 3.991 * n[6]) 
