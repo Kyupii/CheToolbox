@@ -847,7 +847,7 @@ def ozone_WF(n: npt.NDArray) -> npt.NDArray:
   n = np.atleast_1d(n).reshape(-1,7)
   return common.SolutionObj(WF = 10**(1.7072 * n[:,0] + 1.6676 * n[:,1] + 2.14 * n[:,2] + 0.6055 * n[:,3] + 0.09317 * n[:,4] - 3.0942 * n[:,5] - 3.6860 * n[:,6]))
 
-def summer_smog_WF(n: npt.NDArray) -> npt.NDArray:
+def summer_smog_WF(m: npt.NDArray) -> npt.NDArray:
   '''
   Estimates summer smog weighting factor based on number of groups in a compound
 
@@ -874,11 +874,11 @@ def summer_smog_WF(n: npt.NDArray) -> npt.NDArray:
       '' represents a double bond
       \''' represents a triple bond
       ~ represents an aromatic bond
-      
+
   Returns
   -----------
   WF : NDArray
     Weighting factor per kilogram of waste chemical
   '''
-  m = np.atleast_1d(m).reshape(1,16)
+  m = np.atleast_1d(m).reshape(-1,16)
   return common.SolutionObj(WF = 10**(1.0301*m[:,0] + 0.0755 * m[:,1] - 0.9544 * m[:,2] - 1.239 * m[:,3] + 1.5 * m[:,4] - 0.1352 * m[:,5] - 0.2965 * m[:,6] + 1.1127 * m[:,7] + 0.4994 * m[:,8] + 0.3927 * m[:,9] - 0.3358 * m[:,10] - 0.1178 * m[:,11] + 0.2673 * m[:,12] + 1.383 * m[:,13]) + 1.0752 * m[:,14] + 0.5846 * m[:,15])
