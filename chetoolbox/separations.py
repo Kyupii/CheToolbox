@@ -1172,11 +1172,11 @@ def multicomp_heat_dut(heatvap_i: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArra
     Molar flowrates of all components in the distillate stream.
   B_i : NDArray
     Molar flowrates of all components in the bottoms stream.
-  keys : tuple[int, int]
-    Indexes of the Light Key species and Heavy Key species in the feed array.
-  actual_trays : float
-    Number of actual trays in a multicomponent distillation column, having already accounted for the reboiler, condenser, and expected plate efficiency.
-    
+  R : float
+    Reflux ratio of the multicomponent distillation column.
+  psi : float
+    Vapor to liquid feed ratio (unitless).
+  
   Returns:
   ----------
   Q_cond : float
@@ -1198,7 +1198,7 @@ def multicomp_column_full_est(ant_coeff: npt.NDArray, F_i: npt.NDArray, MW: npt.
                                      Rmin_mult: float = 1.2, tray_eff: float = .85, T_D: float = 312.15, T_decomp: float | None = None,
                                      numplates: float | None = None, vacuumColumn: bool = False, decompSafeFac: float = .5, tol: float = .001):
   '''
-  Calculates the pressure across a distillation column.
+  Estimates the full design of a multicomponent distillation column based on the feed stream's composition and component properties.
   
   Parameters:
   -----------
@@ -1235,12 +1235,22 @@ def multicomp_column_full_est(ant_coeff: npt.NDArray, F_i: npt.NDArray, MW: npt.
   
   Returns:
   -----------
+  condenserType : str
+    Type of condenser that ought to be used at the calculated distillate pressure.
+  psi : float
+    Vapor to liquid feed ratio (unitless).
   R_min : float
     Minimum reflux ratio of the distillation column.
   R : float
     Operating reflux ratio of the distillation column.
-  condenserType : str
-    Type of condenser that ought to be used at the calculated distillate pressure.
+  trays_D : float
+    Number of rectifying trays in a multicomponent distillation column.
+  trays_S : float
+    Number of stripping trays in a multicomponent distillation column, where the first tray is the feed tray.
+  Q_cond : float
+    Heat duty of the condenser.
+  Q_reb : float
+    Heat duty of the reboiler.
   '''
   x_F = F_i / F_i.sum()
   D_i, B_i = multicomp_feed_split_est(F_i, MW, keys, spec)
@@ -1267,7 +1277,7 @@ def multicomp_column_full_est(ant_coeff: npt.NDArray, F_i: npt.NDArray, MW: npt.
   actual_trays = ideal_trays / tray_eff
   trays_D, trays_S = kirkbride(x_F, D_i, B_i, keys, actual_trays)
   Q_cond, Q_reb = multicomp_heat_dut(heatvap_i, F_i, D_i, B_i, R, psi)
-  return common.SolutionObj(Rmin = R_min, R = R, trays_D = trays_D, trays_S = trays_S, Q_cond = Q_cond, Q_reb = Q_reb)
+  return common.SolutionObj(condenserType = condenserType, psi = psi, Rmin = R_min, R = R, trays_D = trays_D, trays_S = trays_S, Q_cond = Q_cond, Q_reb = Q_reb)
 
 def multicomp_column_mass_bal(F, D, x_F, x_D, R):
   D_max = x_F * F / x_D
