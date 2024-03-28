@@ -1089,16 +1089,17 @@ def underwood_type2(a_i_hk: npt.NDArray, x_F: npt.NDArray, D_i: npt.NDArray, typ
   
   # assumes distrib organized like [typeII D only, (typeI, LK, typeI, HK, typeI), typeII B only]
   ngroup = np.array([len(group) for group in common.array_boundsplit(typeI)])
-  eq2 = a_i_hk[0, :ngroup[:1].sum()] / (a_i_hk[0, :ngroup[:1].sum()] - np.c_[theta])
+  # use alphas @ feed here
+  eq2 = a_i_hk[1, :ngroup[:2].sum()] / (a_i_hk[1, :ngroup[:2].sum()] - np.c_[theta])
   ind_invar = np.append(np.arange(ngroup[0]), keys)
   coeff = np.full((theta.size + 1, typeI.sum()), -1.)
-  coeff[:-1, :-2] = np.delete(eq2, ind_invar)
+  coeff[:-1, :-2] = np.delete(eq2, ind_invar, axis=1)
   coeff[-1, :-2] = 1.; coeff[-1, -1] = 0.
   consts = np.zeros(theta.size + 1)
-  consts[:-1] = eq2[ind_invar].sum(axis=1)
+  consts[:-1] = eq2[:, ind_invar].sum(axis=1)
   consts[-1] = D_i[ind_invar].sum()
   variants = np.linalg.solve(coeff, consts) # please work :3
-  D_i[ngroup[0]:ngroup[:1].sum()] = variants[:-2]
+  D_i[ngroup[0]:ngroup[:2].sum()] = variants[:-2]
   R_min = variants[-1] / variants[-2]
   return common.SolutionObj(D_i = D_i, R_min = R_min)
 
