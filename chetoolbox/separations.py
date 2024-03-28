@@ -1033,23 +1033,6 @@ def underwood_type1(a_i_hk: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, key
   typeI = np.all((D_i / F_i > 0., D_i / F_i < 1.) , axis=0)
   return common.SolutionObj(D_i = np.minimum(np.maximum(D_i, 0.), F_i), typeI = typeI, R_min = R_min)
 
-# I am trying to make sense of this too. Trying to figure out how to get Theta -> Flow rates
-def quanderwood_type2(x_i_F: npt.NDArray, a_i_hk_F: npt.NDArray, typeI: npt.NDArray, psi: float):
-  x_i_F = np.atleast_1d(x_i_F)
-  a_i_hk_F = np.atleast_1d(a_i_hk_F)
-  typeI = np.atleast_1d(typeI)
-  theta_range = (np.min(a_i_hk_F[typeI]), np.max(a_i_hk_F[typeI]))
-  theta = np.array([])
-  
-  def err(theta):
-    return psi - np.sum(a_i_hk_F * x_i_F / (a_i_hk_F - theta))
-  
-  for i in np.linspace(theta_range[0], theta_range[1], 1000):
-    j = common.root_newton(err, i) 
-    if j < theta_range[1] and j > theta_range[0]:
-      theta = np.append(theta,j)
-  return np.unique(np.round(theta,3))
-
 def underwood_type2(a_i_hk: npt.NDArray, x_F: npt.NDArray, D_i: npt.NDArray, typeI: npt.NDArray, keys: tuple[int, int], psi: float) -> common.SolutionObj[npt.NDArray, float]:
   '''
   Calculates the minimum reflux ratio and component distillate streams of a Type II distillation column (incomplete component distribution) using the Underwood equations.
@@ -1193,10 +1176,10 @@ def multicomp_heat_dut(heatvap_i: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArra
   return Q_cond, Q_reb
 
 def multicomp_column_full_est(ant_coeff: npt.NDArray, F_i: npt.NDArray, MW: npt.NDArray,
-                                     Tc: npt.NDArray, Pc: npt.NDArray, heatvap_i: npt.NDArray, 
-                                     keys: tuple[int, int], spec: tuple[float, float],
-                                     Rmin_mult: float = 1.2, tray_eff: float = .85, T_D: float = 312.15, T_decomp: float | None = None,
-                                     numplates: float | None = None, vacuumColumn: bool = False, decompSafeFac: float = .5, tol: float = .001):
+                              Tc: npt.NDArray, Pc: npt.NDArray, heatvap_i: npt.NDArray, 
+                              keys: tuple[int, int], spec: tuple[float, float],
+                              Rmin_mult: float = 1.2, tray_eff: float = .85, T_D: float = 312.15, T_decomp: float | None = None,
+                              numplates: float | None = None, vacuumColumn: bool = False, decompSafeFac: float = .5, tol: float = .001):
   '''
   Estimates the full design of a multicomponent distillation column based on the feed stream's composition and component properties.
   
