@@ -984,7 +984,7 @@ def underwood_type1_Rmin(a_i_hk: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray
   Returns:
   ----------
   R_min : float
-    Minimum reflux ratio of the a distillation column as a Type I System.
+    Minimum reflux ratio of a distillation column as a Type I System.
   '''
   a_i_hk = np.atleast_2d(a_i_hk)
   F_i = np.atleast_1d(F_i); D_i = np.atleast_1d(D_i)
@@ -1019,7 +1019,7 @@ def underwood_type1(a_i_hk: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, key
   typeI : NDArray
     If a component distributes across both the distillate and bottoms outflow streams (True), a distillation column is Type II if any component does not distribute (False).
   R_min : float
-    Minimum reflux ratio of the a distillation column as a Type I System.
+    Minimum reflux ratio of a distillation column as a Type I System.
   '''
   a_i_hk = np.atleast_2d(a_i_hk)
   F_i = np.atleast_1d(F_i); D_i = np.atleast_1d(D_i)
@@ -1072,7 +1072,7 @@ def underwood_type2(a_i_hk: npt.NDArray, x_F: npt.NDArray, D_i: npt.NDArray, typ
   D_i : NDArray
     Improved molar flowrates of all components in the distillate stream.
   R_min : float
-    Minimum reflux ratio of the a distillation column as a Type I System.
+    Minimum reflux ratio of a distillation column as a Type I System.
   '''
   a_i_hk = np.atleast_2d(a_i_hk)
   x_F = np.atleast_1d(x_F); D_i = np.atleast_1d(D_i)
@@ -1100,8 +1100,7 @@ def underwood_type2(a_i_hk: npt.NDArray, x_F: npt.NDArray, D_i: npt.NDArray, typ
   consts[-1] = D_i[ind_invar].sum()
   variants = np.linalg.solve(coeff, consts) # please work :3
   D_i[np.delete(np.arange(ngroup[:2].sum()), ind_invar)] = variants[:-2]
-  R_min = variants[-1] / variants[-2]
-  return common.SolutionObj(D_i = D_i, R_min = R_min)
+  return common.SolutionObj(D_i = D_i, R_min = variants[-1] / variants[-2])
 
 def gilliland(N_min: float, R_min: float, R: float) -> float:
   '''
@@ -1236,8 +1235,10 @@ def multicomp_column_full_est(ant_coeff: npt.NDArray, F_i: npt.NDArray, MW: npt.
   
   Returns:
   -----------
-  T_and_P : NDArray
-    Temperature in K (Kelvin) and pressure in psia (absolute pounds per square inch) pairs for the top, average, and bottom of the distillation column.
+  R_min : float
+    Minimum reflux ratio of the distillation column.
+  R : float
+    Operating reflux ratio of the distillation column.
   condenserType : str
     Type of condenser that ought to be used at the calculated distillate pressure.
   '''
