@@ -799,7 +799,7 @@ def emissions_est(N: npt.NDArray) -> common.SolutionObj[npt.NDArray, npt.NDArray
   COD = 10 ** (1.3842 + 0.02326 * N[0] - 0.01926 * N[1] - 0.0261 * N[2] + 0.1679 * N[3] + 0.3671 * N[4])
   return common.SolutionObj(CO2 = CO2, SOX = SOX, NOX = NOX, BOD = BOD, COD = COD)
  
-def greenhouse_emissions_est(n: npt.NDArray) -> npt.NDArray:
+def greenhouse_WF(n: npt.NDArray) -> npt.NDArray:
   '''
   Estimates greenhouse weighting factor based on number of groups in a compound
 
@@ -821,7 +821,7 @@ def greenhouse_emissions_est(n: npt.NDArray) -> npt.NDArray:
     Weighting factor per kilogram of waste chemical
   '''
   n = np.atleast_1d(n).reshape(-1,7)
-  return common.SolutionObj(WF = 10 ** (2.0662 * n[:,0] + 1.7118 * n[:,1] + 1.6604 * n[:,2] + 1.2266 * n[:,3] - 1.7208 * n[:,4] - 3.231 * n[:,5] - 3.991 * n[:,6])) 
+  return common.SolutionObj(WF = 10 ** (2.0662 * n[:,0] + 1.7118 * n[:,1] + 1.6604 * n[:,2] + 1.2266 * n[:,3] - 1.7208 * n[:,4] - 3.231 * n[:,5] - 3.9916 * n[:,6])) 
 
 def ozone_WF(n: npt.NDArray) -> npt.NDArray:
   '''
@@ -881,4 +881,5 @@ def summer_smog_WF(m: npt.NDArray) -> npt.NDArray:
     Weighting factor per kilogram of waste chemical
   '''
   m = np.atleast_1d(m).reshape(-1,16)
-  return common.SolutionObj(WF = 10**(1.0301*m[:,0] + 0.08755 * m[:,1] - 0.9544 * m[:,2] - 1.239 * m[:,3] + 1.5 * m[:,4] - 0.1352 * m[:,5] - 0.2965 * m[:,6] + 1.1127 * m[:,7] + 0.4994 * m[:,8] + 0.3927 * m[:,9] - 0.3358 * m[:,10] - 0.1176 * m[:,11] + 0.2673 * m[:,12] + 1.383 * m[:,13]) + 1.0752 * m[:,14] + 0.5846 * m[:,15])
+  print(m)
+  return common.SolutionObj(WF = 10**(1.0301*m[:,0] + 0.08755 * m[:,1] - 0.9544 * m[:,2] - 1.239 * m[:,3] + 1.5 * m[:,4] - 0.1352 * m[:,5] - 0.2965 * m[:,6] + 1.1127 * m[:,7] + 0.4994 * m[:,8] + 0.3927 * m[:,9] - 0.3358 * m[:,10] - 0.1176 * m[:,11] + 0.2673 * m[:,12] + 1.383 * m[:,13] + 1.0752 * m[:,14] + 0.5846 * m[:,15]))
