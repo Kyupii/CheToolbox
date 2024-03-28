@@ -1,7 +1,7 @@
 import numpy as np
 from numpy import typing as npt
 import pandas as pd
-from chetoolbox import common
+import common
 
 def antoine_coeff_query(query: str | npt.NDArray) -> npt.NDArray:
   '''
