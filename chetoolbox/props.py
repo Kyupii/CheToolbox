@@ -772,10 +772,10 @@ def emissions_est(N: npt.NDArray) -> common.SolutionObj[npt.NDArray, npt.NDArray
   -----------
   N : NDArray
     An array of the number of N1 through N5 processes
-      N1 : Reaction
-      N2 : Fluid Separation
-      N3 : Solid Processes
-      N4 : High Temperature Process 
+      N1 : Reaction\t
+      N2 : Fluid Separation\t
+      N3 : Solid Processes\t
+      N4 : High Temperature Process\t 
       N5 : Others
 
   Returns
