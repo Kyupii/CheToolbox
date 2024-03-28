@@ -34,6 +34,9 @@ class Equation:
   def __init__(self):
     return
   
+  def unpack(self) -> tuple:
+    return tuple(self.__dict__.values())
+  
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray:
     return x
   
@@ -83,6 +86,9 @@ class LinearEq(Equation):
         else:
           self.x_int = -b/m
   
+  def unpack(self) -> tuple:
+    return tuple(self.__dict__.values())
+  
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     return self.m * x + self.b
   
@@ -130,6 +136,9 @@ class QuadraticEq(Equation):
     self.c = a * s1**2. - b * s2 + c
     self.determ = self.b**2 - 4.*self.a*self.c
     self.roots = quadratic_formula([self.a, self.b, self.c])
+  
+  def unpack(self) -> tuple:
+    return tuple(self.__dict__.values())
   
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     return self.a*x**2 + self.b*x + self.c
@@ -195,6 +204,9 @@ class CubicEq(Equation):
     self.determ = 18.*self.a*self.b*self.c*self.d - 4.*self.d*self.b**3 + self.c**2*self.b**2 - 4.*self.a*self.c - 27.*self.a**2*self.d**2
     self.roots = cubic_formula([self.a, self.b, self.c, self.d])
   
+  def unpack(self) -> tuple:
+    return tuple(self.__dict__.values())
+  
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     return self.a*x**3 + self.b*x**2 + self.c*x + self.d
   
@@ -245,6 +257,9 @@ class EqualibEq(Equation):
   def __init__(self, alpha: float) -> None:
     self.alpha = alpha
   
+  def unpack(self) -> tuple:
+    return tuple(self.__dict__.values())
+  
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     # breaks if x = -1. / (1. - self.alpha)
     x = np.minimum(np.ones_like(x), np.maximum(np.zeros_like(x), x))
@@ -279,7 +294,10 @@ class PiecewiseEq(Equation):
     self.eqs = np.array(eqs)
     self.boundeqs = dict(zip(self.bounds.astype(str), eqs))
     self.posSlope = eqs[0].eval(self.bounds[0] - .05) < eqs[0].eval(self.bounds[0])
-
+  
+  def unpack(self) -> tuple:
+      return tuple(self.__dict__.values())
+  
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     xfloat = type(x) not in {list, np.ndarray}; x = np.c_[np.atleast_1d(x)]
     eq_index = (x > self.bounds).sum(axis=1)
@@ -288,7 +306,7 @@ class PiecewiseEq(Equation):
     xs_per_eq = np.split(ind_eq_x, np.where(ind_eq_x[:, 1][:-1] != ind_eq_x[:, 1][1:])[0] + 1)
     res = np.vstack([np.hstack([np.c_[xset[:, 0]], np.c_[self.eqs[xset[0, 1].astype(int)].eval(xset[:, 2])]]) for xset in xs_per_eq])
     return res[0, 1] if xfloat else res[res[:, 0].argsort()][:, 1]
-
+  
   def inv(self, y: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     yfloat = type(y) not in {list, np.ndarray}; y = np.c_[np.atleast_1d(y)]
     boundval = np.array([eq.eval(self.bounds[i]) for i, eq in enumerate(self.eqs)])
@@ -298,7 +316,7 @@ class PiecewiseEq(Equation):
     ys_per_eq = np.split(ind_eq_y, np.where(ind_eq_y[:, 1][:-1] != ind_eq_y[:, 1][1:])[0] + 1)
     res = np.vstack([np.hstack([np.c_[yset[:, 0]], np.c_[self.eqs[yset[0, 1].astype(int)].inv(yset[:, 2])]]) for yset in ys_per_eq])
     return res[0, 1] if yfloat else res[res[:, 0].argsort()][:, 1]
-
+  
   def deriv(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     xfloat = type(x) not in {list, np.ndarray}; x = np.c_[np.atleast_1d(x)]
     eq_index = (x > self.bounds).sum(axis=1)
@@ -307,7 +325,7 @@ class PiecewiseEq(Equation):
     xs_per_eq = np.split(ind_eq_x, np.where(ind_eq_x[:, 1][:-1] != ind_eq_x[:, 1][1:])[0] + 1)
     res = np.vstack([np.hstack([np.c_[xset[:, 0]], np.c_[self.eqs[xset[0, 1].astype(int)].deriv(xset[:, 2])]]) for xset in xs_per_eq])
     return res[0, 1] if xfloat else res[res[:, 0].argsort()][:, 1]
-
+  
   def integ(self, x1: float | npt.NDArray, x2: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     dualfloat = (type(x1) not in {list, np.ndarray}) & (type(x2) not in {list, np.ndarray})
     typemix = type(x1) != type(x2)
@@ -318,14 +336,14 @@ class PiecewiseEq(Equation):
       else:
         x1 = np.full_like(x2, x1)
     eq_index = ((x1 > self.bounds) ^ (x2 > self.bounds)) # XOR both bounds
-
+  
     # within one equation piece
     singles_index = np.arange(len(x1))[eq_index.sum(axis=1) == 0]
     singles = np.zeros((1,4))
     if len(singles_index) != 0:
       singles_eq_ind = (np.c_[x1[eq_index.sum(axis=1) == 0]] > self.bounds).sum(axis=1)
       singles = np.hstack([np.c_[singles_index], np.c_[singles_eq_ind], np.c_[x1[singles_index]], np.c_[x2[singles_index]]])
-
+  
     # split across multiple equation pieces
     splits_index = np.arange(len(x1))[eq_index.sum(axis=1) != 0]
     splits = np.zeros((1,4))
@@ -334,7 +352,7 @@ class PiecewiseEq(Equation):
       regions = [np.concatenate([x1[splits_index[i]], self.bounds[ind][:-1], x2[splits_index[i]]]) for i, ind in enumerate(eq_index[eq_index.sum(axis=1) != 0])]
       boundpairs = np.vstack([np.lib.stride_tricks.sliding_window_view(reg, 2) for reg in regions])
       splits = np.hstack( (np.transpose(np.where(eq_index == True)), boundpairs))
-
+  
     callstack = np.vstack((singles, splits))
     callstack = callstack[callstack[:, 1].argsort()]
     xs_per_eq = np.split(callstack, np.where(callstack[:, 1][:-1] != callstack[:, 1][1:])[0] + 1)
@@ -533,9 +551,9 @@ def point_conn(point1: npt.NDArray, point2: npt.NDArray, avgmode = False) -> Lin
     return LinearEq(np.average([li.m for li in lines]), np.average([li.b for li in lines]))
   return lines[0] if len(lines) == 1 else lines
 
-def point_slope(point: npt.NDArray, slope: npt.NDArray ) -> LinearEq | npt.NDArray: #numpy compatible
+def point_slope(point: npt.NDArray, slope: npt.NDArray) -> LinearEq | npt.NDArray: #numpy compatible
   '''
-  Calculates equation of a line from a point and its slope.
+  Calculates equation of a line from a point and its slope. All slopes calculated for all points.
   '''
   point = np.atleast_2d(point).reshape(-1, 2)
   slope = np.atleast_1d(slope)
@@ -680,7 +698,6 @@ def wt_frac_to_mol_frac(x_mass, MW):
 # endregion
 
 # region Iterative Tools
-
 def approx_deriv(f: Callable, i: npt.NDArray, step: float = 0.0001):
   '''
   Finite approximation of a derivative
