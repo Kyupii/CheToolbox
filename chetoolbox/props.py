@@ -799,7 +799,7 @@ def emissions_est(N: npt.NDArray) -> common.SolutionObj[npt.NDArray, npt.NDArray
   COD = 10 ** (1.3842 + 0.02326 * N[0] - 0.01926 * N[1] - 0.0261 * N[2] + 0.1679 * N[3] + 0.3671 * N[4])
   return common.SolutionObj(CO2 = CO2, SOX = SOX, NOX = NOX, BOD = BOD, COD = COD)
  
-def greenhouse_emissions_est(n: npt.NDArray) -> npt.NDArray:
+def greenhouse_WF(n: npt.NDArray) -> npt.NDArray:
   '''
   Estimates greenhouse weighting factor based on number of groups in a compound
 
