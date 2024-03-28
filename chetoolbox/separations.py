@@ -1088,7 +1088,7 @@ def underwood_type2(a_i_hk: npt.NDArray, x_F: npt.NDArray, D_i: npt.NDArray, typ
   theta = np.array([np.average(thet) for thet in common.array_boundsplit(theta, tIa)])
   
   # assumes distrib organized like [typeII D only, (typeI, LK, typeI, HK, typeI), typeII B only]
-  ngroup = [len(group) for group in common.array_boundsplit(typeI)]
+  ngroup = np.array([len(group) for group in common.array_boundsplit(typeI)])
   eq2 = a_i_hk[0, :ngroup[:1].sum()] / (a_i_hk[0, :ngroup[:1].sum()] - np.c_[theta])
   ind_invar = np.append(np.arange(ngroup[0]), keys)
   coeff = np.full((theta.size + 1, typeI.sum()), -1.)
