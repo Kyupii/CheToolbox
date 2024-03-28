@@ -821,7 +821,7 @@ def greenhouse_WF(n: npt.NDArray) -> npt.NDArray:
     Weighting factor per kilogram of waste chemical
   '''
   n = np.atleast_1d(n).reshape(-1,7)
-  return common.SolutionObj(WF = 10 ** (2.0662 * n[:,0] + 1.7118 * n[:,1] + 1.6604 * n[:,2] + 1.2266 * n[:,3] - 1.7208 * n[:,4] - 3.231 * n[:,5] - 3.991 * n[:,6])) 
+  return common.SolutionObj(WF = 10 ** (2.0662 * n[:,0] + 1.7118 * n[:,1] + 1.6604 * n[:,2] + 1.2266 * n[:,3] - 1.7208 * n[:,4] - 3.231 * n[:,5] - 3.9916 * n[:,6])) 
 
 def ozone_WF(n: npt.NDArray) -> npt.NDArray:
   '''
