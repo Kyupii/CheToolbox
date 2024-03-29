@@ -572,15 +572,15 @@ def linear_intersect(line1: npt.NDArray, line2: LinearEq) -> npt.NDArray | None:
   line1 = np.atleast_1d(line1)
   sects = np.full((line1.size, 2), np.NaN)
   linecoeff = np.vstack([line.unpack() for line in line1]).astype(float)
+  parallel = line2.m == linecoeff[:, 0]
   if np.isnan(line2.m):
-    sects[:, 0] = line2.x_int
-    sects[:, 1] = [line.eval(line2.x_int) for line in line1]
+    sects[~parallel, 0] = line2.x_int
+    sects[~parallel, 1] = [line.eval(line2.x_int) for line in line1[~parallel]]
     return sects
-  isvert = np.isnan(linecoeff[:, 0])
-  sects[isvert] = np.hstack((np.c_[linecoeff[isvert][:, 2]], np.c_[line2.eval(linecoeff[isvert][:, 2])]))
-  parallel = line2.m == linecoeff[~isvert][:, 0]
-  x = (linecoeff[~parallel][:, 1] - line2.b)/(line2.m - linecoeff[~parallel][:, 0])
+  x = (linecoeff[~parallel, 1] - line2.b)/(line2.m - linecoeff[~parallel, 0])
   sects[~parallel] = np.hstack((np.c_[x], np.c_[line2.eval(x)]))
+  vert = np.isnan(linecoeff[:, 0])
+  sects[vert] = np.hstack((np.c_[linecoeff[vert, 2]], np.c_[line2.eval(linecoeff[vert, 2])]))
   return sects[0] if len(sects) == 1 else sects
 
 def quadratic_formula(coeff: npt.NDArray) -> npt.NDArray: #numpy compatible
