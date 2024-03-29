@@ -621,14 +621,14 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
   linestograph = []
   def y_transform(y):
     x = liqlineH.inv(y)
-    if x > Fpoint[0]:
+    if x > xf:
       connectpoint = (xd, Hp)
     else:
       connectpoint = (xb, Hb)
     line = common.point_conn( (x, y), connectpoint)
     xnext, ynext = common.linear_intersect(line, vaplineH)
     if PLOTTING_ENABLED:
-      if x > Fpoint[0]:
+      if x > xf:
         plot1 = common.point_separsort((x, line.eval(x)), connectpoint)
       else:
         plot1 = common.point_separsort((xnext, line.eval(xnext)), connectpoint)
@@ -650,7 +650,7 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
     ax.plot(np.linspace(xb, xd, 200), tieline.eval(np.linspace(xb, xd, 200)), "y")
     for i, domsvals in enumerate(linestograph):
       ax.plot(*domsvals, "rb"[i%2])
-    
+  
   return common.SolutionObj(tieline = tieline, Rmin = Rmin, R = R, min_stages = min_stages, ideal_stages = ideal_stages)
 
 def lost_work(inlet: npt.NDArray, outlet: npt.NDArray, Q: npt.NDArray, T_s: npt.NDArray, T_0: float,  W_s: float = 0) -> float:
