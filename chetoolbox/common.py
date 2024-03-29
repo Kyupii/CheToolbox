@@ -557,13 +557,13 @@ def point_slope(point: npt.NDArray, slope: npt.NDArray) -> LinearEq | npt.NDArra
   '''
   point = np.atleast_2d(point).reshape(-1, 2)
   slope = np.atleast_1d(slope)
-  lines = np.zeros_like(slope).astype(np.object_)
-  lines[np.isnan(slope)] = [vertical_line(x) for x in point[:, 0][np.isnan(slope)]]
-  lines[slope == 0.] = [horizontal_line(y) for y in point[:, 1][slope == 0.]]
+  lines = np.zeros((len(point), slope.size)).astype(np.object_)
+  lines[:, np.isnan(slope)] = [vertical_line(x) for x in point[:, 0]]
+  lines[:, slope == 0.] = [horizontal_line(y) for y in point[:, 1]]
   runcalcs = ~np.logical_or(np.isnan(slope), slope == 0.)
-  b = -slope[runcalcs] * point[:, 0][runcalcs] + point[:, 1][runcalcs]
-  lines[runcalcs] = [LinearEq(slope[runcalcs][i], b[i]) for i in np.arange(len([runcalcs]))]
-  return lines[0] if len(lines) == 1 else lines
+  bs = -slope[runcalcs] * np.c_[point[:, 0]] + np.c_[point[:, 1]]
+  lines[:, runcalcs] = [LinearEq(slope[runcalcs][i%slope[runcalcs].size], b) for i, b in enumerate(bs.flatten("A"))]
+  return lines[0, 0] if lines.size == 1 and slope.size == 1 else lines
 
 def linear_intersect(line1: npt.NDArray, line2: LinearEq) -> npt.NDArray | None: #numpy compatible
   '''
@@ -581,7 +581,7 @@ def linear_intersect(line1: npt.NDArray, line2: LinearEq) -> npt.NDArray | None:
   sects[~parallel] = np.hstack((np.c_[x], np.c_[line2.eval(x)]))
   vert = np.isnan(linecoeff[:, 0])
   sects[vert] = np.hstack((np.c_[linecoeff[vert, 2]], np.c_[line2.eval(linecoeff[vert, 2])]))
-  return sects[0] if len(sects) == 1 else sects
+  return sects[0] if sects.size == 2 else sects
 
 def quadratic_formula(coeff: npt.NDArray) -> npt.NDArray: #numpy compatible
   '''

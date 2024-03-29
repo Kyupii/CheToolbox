@@ -588,7 +588,7 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
     Number of ideal stages (includes reboiler and partial condenser if applicable).
   '''
   if type(q) == bool or q == 0. or q == 1.: # saturated liq / vap feed
-    if q or q == 1.:
+    if q:
       xf = Fpoint[0]
       yf = eq_curve.eval(xf)
     else:
@@ -596,26 +596,32 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
       xf = eq_curve.inv(yf)
   else: # iteratively solve for x_f* and y_f* of the feed
     # take q as good estimate for the feedline's slope
-    xf, _ = common.linear_intersect(common.point_slope(Fpoint, q), liqlineH)
+    # TODO fix this, idk why its not working
+    feedline_est = common.point_slope(Fpoint, q)
+    print(feedline_est.unpack())
+    xf, _ = common.linear_intersect(feedline_est, liqlineH)
     yf = eq_curve.eval(xf)
+    print(xf, yf)
     q_alt = common.point_conn(Fpoint, (yf, vaplineH.eval(yf))).m
     tieslopes = np.array([q, q_alt])
     
     def error(q):
-      est_feedlines = common.point_slope(np.vstack((Fpoint, Fpoint)), q[0])
+      est_feedlines = common.point_slope(Fpoint, q[0])[0]
       xf, _ = common.linear_intersect(est_feedlines, liqlineH)
-      return 1. - (xf + eq_curve.eval(xf))
+      err = xf + eq_curve.eval(xf) - 1.
+      print(q[0], xf, eq_curve.eval(xf), err)
+      return err
     
-    tieslope, _, _ = common.err_reduc_iterative(error, tieslopes, tol)
+    tieslope, _, _ = common.err_reduc_iterative(error, tieslopes)
     xf, _ = common.linear_intersect(common.point_slope(Fpoint, tieslope), liqlineH)
     xf = xf[0]
     yf = eq_curve.eval(xf)
   
   tieline, Rmin, R, Hp, Hb = ponchon_savarit_tieline(liqlineH, vaplineH, xf, yf, xd, xb, Rmin_mult).unpack()
-
+  
   def y_transform(y):
     return vaplineH.eval(liqlineH.inv(y))
-
+  
   min_stages = common.curve_bouncer(vaplineH, liqlineH, xd, xb, eq_curve.inv, y_transform)
   
   global linestograph
@@ -638,7 +644,7 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
     return ynext
   
   ideal_stages = common.curve_bouncer(vaplineH, liqlineH, xd, xb, eq_curve.inv, y_transform)
-
+  
   if PLOTTING_ENABLED:
     fig, ax = plt.subplots(); ax.set_title("Ponchon Savarit Diagram")
     plt.xlim(0, 1); plt.ylim(Hb * 1.1, Hp * 1.1)
