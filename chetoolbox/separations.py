@@ -595,26 +595,23 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
       yf = Fpoint[0]
       xf = eq_curve.inv(yf)
   else: # iteratively solve for x_f* and y_f* of the feed
-    # take q as good estimate for the feedline's slope
-    # TODO fix this, idk why its not working
-    feedline_est = common.point_slope(Fpoint, q)
-    print(feedline_est.unpack())
-    xf, _ = common.linear_intersect(feedline_est, liqlineH)
+    tieslopes = np.zeros(2)
+    # take q as good estimate for the feedline's relative slope
+    tieslopes[0] = q * (vaplineH.eval(Fpoint[0]) - liqlineH.eval(Fpoint[0])) / (1. - q) 
+    xf, _ = common.linear_intersect(common.point_slope(Fpoint, tieslopes[0]), liqlineH)
     yf = eq_curve.eval(xf)
-    print(xf, yf)
-    q_alt = common.point_conn(Fpoint, (yf, vaplineH.eval(yf))).m
-    tieslopes = np.array([q, q_alt])
+    tieslopes[1] = common.point_conn(Fpoint, (yf, vaplineH.eval(yf))).m
     
-    def error(q):
-      est_feedlines = common.point_slope(Fpoint, q[0])[0]
+    def error(tieslope):
+      est_feedlines = common.point_slope(Fpoint, tieslope[0])[0]
       xf, _ = common.linear_intersect(est_feedlines, liqlineH)
-      err = xf + eq_curve.eval(xf) - 1.
-      print(q[0], xf, eq_curve.eval(xf), err)
+      yf, _ = common.linear_intersect(est_feedlines, vaplineH)
+      err = eq_curve.eval(xf) - yf
+      print(tieslopes, xf, yf, err)
       return err
     
     tieslope, _, _ = common.err_reduc_iterative(error, tieslopes)
-    xf, _ = common.linear_intersect(common.point_slope(Fpoint, tieslope), liqlineH)
-    xf = xf[0]
+    xf, _ = common.linear_intersect(common.point_slope(Fpoint, tieslope[0]), liqlineH)
     yf = eq_curve.eval(xf)
   
   tieline, Rmin, R, Hp, Hb = ponchon_savarit_tieline(liqlineH, vaplineH, xf, yf, xd, xb, Rmin_mult).unpack()
