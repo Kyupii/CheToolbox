@@ -604,13 +604,12 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
     
     def error(tieslope):
       est_feedlines = common.point_slope(Fpoint, tieslope[0])[0]
-      xf, _ = common.linear_intersect(est_feedlines, liqlineH)
-      yf, _ = common.linear_intersect(est_feedlines, vaplineH)
+      xf = common.linear_intersect(est_feedlines, liqlineH)[:, 0]
+      yf = common.linear_intersect(est_feedlines, vaplineH)[:, 0]
       err = eq_curve.eval(xf) - yf
-      print(tieslopes, xf, yf, err)
       return err
     
-    tieslope, _, _ = common.err_reduc_iterative(error, tieslopes)
+    tieslope, _, _ = common.err_reduc_iterative(error, tieslopes, tol)
     xf, _ = common.linear_intersect(common.point_slope(Fpoint, tieslope[0]), liqlineH)
     yf = eq_curve.eval(xf)
   
