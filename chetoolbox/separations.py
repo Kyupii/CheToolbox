@@ -602,7 +602,8 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
     tieslopes = np.array([q, q_alt])
     
     def error(q):
-      xf, _ = common.linear_intersect(common.point_slope(np.vstack((Fpoint, Fpoint)), q[0]), liqlineH)
+      est_feedlines = common.point_slope(np.vstack((Fpoint, Fpoint)), q[0])
+      xf, _ = common.linear_intersect(est_feedlines, liqlineH)
       return 1. - (xf + eq_curve.eval(xf))
     
     tieslope, _, _ = common.err_reduc_iterative(error, tieslopes, tol)

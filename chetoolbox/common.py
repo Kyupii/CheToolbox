@@ -34,8 +34,8 @@ class Equation:
   def __init__(self):
     return
   
-  def unpack(self) -> tuple:
-    return tuple(self.__dict__.values())
+  def unpack(self) -> npt.NDArray:
+    return np.array(list(self.__dict__.values()))
   
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray:
     return x
@@ -86,8 +86,8 @@ class LinearEq(Equation):
         else:
           self.x_int = -b/m
   
-  def unpack(self) -> tuple:
-    return tuple(self.__dict__.values())
+  def unpack(self) -> npt.NDArray:
+    return np.array(list(self.__dict__.values()))
   
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     return self.m * x + self.b
@@ -137,8 +137,8 @@ class QuadraticEq(Equation):
     self.determ = self.b**2 - 4.*self.a*self.c
     self.roots = quadratic_formula([self.a, self.b, self.c])
   
-  def unpack(self) -> tuple:
-    return tuple(self.__dict__.values())
+  def unpack(self) -> npt.NDArray:
+    return np.array(list(self.__dict__.values()))
   
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     return self.a*x**2 + self.b*x + self.c
@@ -204,8 +204,8 @@ class CubicEq(Equation):
     self.determ = 18.*self.a*self.b*self.c*self.d - 4.*self.d*self.b**3 + self.c**2*self.b**2 - 4.*self.a*self.c - 27.*self.a**2*self.d**2
     self.roots = cubic_formula([self.a, self.b, self.c, self.d])
   
-  def unpack(self) -> tuple:
-    return tuple(self.__dict__.values())
+  def unpack(self) -> npt.NDArray:
+    return np.array(list(self.__dict__.values()))
   
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     return self.a*x**3 + self.b*x**2 + self.c*x + self.d
@@ -257,8 +257,8 @@ class EqualibEq(Equation):
   def __init__(self, alpha: float) -> None:
     self.alpha = alpha
   
-  def unpack(self) -> tuple:
-    return tuple(self.__dict__.values())
+  def unpack(self) -> npt.NDArray:
+    return np.array(list(self.__dict__.values()))
   
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     # breaks if x = -1. / (1. - self.alpha)
@@ -295,8 +295,8 @@ class PiecewiseEq(Equation):
     self.boundeqs = dict(zip(self.bounds.astype(str), eqs))
     self.posSlope = eqs[0].eval(self.bounds[0] - .05) < eqs[0].eval(self.bounds[0])
   
-  def unpack(self) -> tuple:
-      return tuple(self.__dict__.values())
+  def unpack(self) -> npt.NDArray:
+    return np.array(list(self.__dict__.values()))
   
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     xfloat = type(x) not in {list, np.ndarray}; x = np.c_[np.atleast_1d(x)]
@@ -565,20 +565,23 @@ def point_slope(point: npt.NDArray, slope: npt.NDArray) -> LinearEq | npt.NDArra
   lines[runcalcs] = [LinearEq(slope[runcalcs][i], b[i]) for i in np.arange(len([runcalcs]))]
   return lines[0] if len(lines) == 1 else lines
 
-def linear_intersect(line1: LinearEq, line2: LinearEq) -> tuple[float, float] | None:
+def linear_intersect(line1: npt.NDArray, line2: LinearEq) -> npt.NDArray | None: #numpy compatible
   '''
-  Calculates the intersection points of two straight lines or returns None if no intersect exists. Uses LinearEq objects.
+  Calculates the intersection points of between an arbitrary number of straight lines and a second straight line, returning np.NaN if no intersect exists. Uses LinearEq objects.
   '''
-  if line2.m == line1.m and line1.b != line2.b:
-    return None
-  if np.isnan(line1.m) or np.isnan(line2.m):
-    if np.isnan(line1.m):
-      return line1.x_int, line2.eval(line1.x_int)
-    else:
-      return line2.x_int, line1.eval(line2.x_int)
-  else:
-    x = (line1.b - line2.b)/(line2.m - line1.m)
-  return x, line1.eval(x)
+  line1 = np.atleast_1d(line1)
+  sects = np.full((line1.size, 2), np.NaN)
+  linecoeff = np.vstack([line.unpack() for line in line1]).astype(float)
+  if np.isnan(line2.m):
+    sects[:, 0] = line2.x_int
+    sects[:, 1] = [line.eval(line2.x_int) for line in line1]
+    return sects
+  isvert = np.isnan(linecoeff[:, 0])
+  sects[isvert] = np.hstack((np.c_[linecoeff[isvert][:, 2]], np.c_[line2.eval(linecoeff[isvert][:, 2])]))
+  parallel = line2.m == linecoeff[~isvert][:, 0]
+  x = (linecoeff[~parallel][:, 1] - line2.b)/(line2.m - linecoeff[~parallel][:, 0])
+  sects[~parallel] = np.hstack((np.c_[x], np.c_[line2.eval(x)]))
+  return sects[0] if len(sects) == 1 else sects
 
 def quadratic_formula(coeff: npt.NDArray) -> npt.NDArray: #numpy compatible
   '''
@@ -672,7 +675,7 @@ def raoult_XtoY(x: list, K: list) -> tuple[npt.NDArray, float]:
 def raoult_YtoX(y: list, K: list) -> tuple[npt.NDArray, float]:
   '''
   Calculates the liquid mole fraction of a multi-component mixed phase feed (assuming liquid and gas ideality).
-
+  
   Parameters
   ---------
   y : list
