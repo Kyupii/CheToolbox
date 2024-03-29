@@ -549,7 +549,7 @@ def point_conn(point1: npt.NDArray, point2: npt.NDArray, avgmode = False) -> Lin
   if avgmode:
     # any vertical lines (m = np.NaN) will poison this
     return LinearEq(np.average([li.m for li in lines]), np.average([li.b for li in lines]))
-  return lines[0] if len(lines) == 1 else lines
+  return lines[0] if lines.size == 1 else lines
 
 def point_slope(point: npt.NDArray, slope: npt.NDArray) -> LinearEq | npt.NDArray: #numpy compatible
   '''
@@ -563,7 +563,7 @@ def point_slope(point: npt.NDArray, slope: npt.NDArray) -> LinearEq | npt.NDArra
   runcalcs = ~np.logical_or(np.isnan(slope), slope == 0.)
   bs = -slope[runcalcs] * np.c_[point[:, 0]] + np.c_[point[:, 1]]
   lines[:, runcalcs] = [LinearEq(slope[runcalcs][i%slope[runcalcs].size], b) for i, b in enumerate(bs.flatten("A"))]
-  return lines[0, 0] if lines.size == 1 and slope.size == 1 else lines
+  return lines[0, 0] if lines.size == 1 else lines
 
 def linear_intersect(line1: npt.NDArray, line2: LinearEq) -> npt.NDArray | None: #numpy compatible
   '''
