@@ -336,14 +336,14 @@ class PiecewiseEq(Equation):
       else:
         x1 = np.full_like(x2, x1)
     eq_index = ((x1 > self.bounds) ^ (x2 > self.bounds)) # XOR both bounds
-  
+    
     # within one equation piece
     singles_index = np.arange(len(x1))[eq_index.sum(axis=1) == 0]
     singles = np.zeros((1,4))
     if len(singles_index) != 0:
       singles_eq_ind = (np.c_[x1[eq_index.sum(axis=1) == 0]] > self.bounds).sum(axis=1)
       singles = np.hstack([np.c_[singles_index], np.c_[singles_eq_ind], np.c_[x1[singles_index]], np.c_[x2[singles_index]]])
-  
+    
     # split across multiple equation pieces
     splits_index = np.arange(len(x1))[eq_index.sum(axis=1) != 0]
     splits = np.zeros((1,4))
@@ -352,7 +352,7 @@ class PiecewiseEq(Equation):
       regions = [np.concatenate([x1[splits_index[i]], self.bounds[ind][:-1], x2[splits_index[i]]]) for i, ind in enumerate(eq_index[eq_index.sum(axis=1) != 0])]
       boundpairs = np.vstack([np.lib.stride_tricks.sliding_window_view(reg, 2) for reg in regions])
       splits = np.hstack( (np.transpose(np.where(eq_index == True)), boundpairs))
-  
+    
     callstack = np.vstack((singles, splits))
     callstack = callstack[callstack[:, 1].argsort()]
     xs_per_eq = np.split(callstack, np.where(callstack[:, 1][:-1] != callstack[:, 1][1:])[0] + 1)
