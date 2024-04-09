@@ -766,18 +766,18 @@ def atom_economy(atoms: npt.NDArray) -> float:
 
 def emissions_est(N: npt.NDArray) -> common.SolutionObj[npt.NDArray, npt.NDArray, npt.NDArray, npt.NDArray, npt.NDArray ]:
   '''
-  Estimates chemical emissions based on number of processes and their types
+  Estimates chemical emissions based on number of unit operations.
   
   Parameters:
   -----------
   N : NDArray
-    An array of the number of N1 through N5 processes
+    Number of N1 through N5 unit operations in a process.
       N1 : Reaction\t
       N2 : Fluid Separation\t
       N3 : Solid Processes\t
       N4 : High Temperature Process\t 
       N5 : Others
-
+  
   Returns
   -----------
   Carbon dioxide : float
@@ -798,15 +798,15 @@ def emissions_est(N: npt.NDArray) -> common.SolutionObj[npt.NDArray, npt.NDArray
   BOD = 10 ** (-0.4565 - 0.9950 * N[0] + 0.3567 * N[1] + 0.2181 * N[2] + 0.4418 * N[3] - 0.7874 * N[4]) 
   COD = 10 ** (1.3842 + 0.02326 * N[0] - 0.01926 * N[1] - 0.0261 * N[2] + 0.1679 * N[3] + 0.3671 * N[4])
   return common.SolutionObj(CO2 = CO2, SOX = SOX, NOX = NOX, BOD = BOD, COD = COD)
- 
+
 def greenhouse_WF(n: npt.NDArray) -> npt.NDArray:
   '''
-  Estimates greenhouse weighting factor based on number of groups in a compound
+  Estimates greenhouse weighting factor based on number of groups in a compound.
 
   Parameters:
   -----------
   N : NDArray
-    an array of the number of n1 through n7 groups
+    Number of n1 through n7 groups in a compound.
     n1 : F
     n2 : Cl
     n3 : Br
@@ -825,12 +825,12 @@ def greenhouse_WF(n: npt.NDArray) -> npt.NDArray:
 
 def ozone_WF(n: npt.NDArray) -> npt.NDArray:
   '''
-  Estimates ozone weighting factor based on number of groups in a compound
+  Estimates ozone weighting factor based on number of groups in a compound.
 
   Parameters:
   -----------
   n : NDArray
-    an array of n1 through n7 groups
+    Number of n1 through n7 groups in a compound.
     n1 : F
     n2 : Cl
     n3 : Br
@@ -849,12 +849,12 @@ def ozone_WF(n: npt.NDArray) -> npt.NDArray:
 
 def summer_smog_WF(m: npt.NDArray) -> npt.NDArray:
   '''
-  Estimates summer smog weighting factor based on number of groups in a compound
-
+  Estimates summer smog weighting factor based on number of groups in a compound.
+  
   Parameters:
   -----------
   m : NDArray
-    An array of the number of m1 through m16 groups
+    Number of m1 through m16 groups in a compound.
     m1 : CH3'
     m2 : CH2'
     m3 : CH'
@@ -874,11 +874,11 @@ def summer_smog_WF(m: npt.NDArray) -> npt.NDArray:
       '' represents a double bond
       \''' represents a triple bond
       ~ represents an aromatic bond
-
+  
   Returns
   -----------
   WF : NDArray
-    Weighting factor per kilogram of waste chemical
+    Weighting factor per kilogram of waste chemical.
   '''
   m = np.atleast_1d(m).reshape(-1,16)
   print(m)
