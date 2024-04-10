@@ -64,4 +64,4 @@ Returns:
   min_stages: 5.447199278007249
 ideal_stages: 10.779371485763459
 ```
-![Ponchon Savarit Diagram that Displays All Equilibrium Tielines and Both Enthalpy Lines](readme_imgs/ponchon_savarit.png "Ponchon Savarit Diagram")
+![Ponchon Savarit Diagram that Displays All Equilibrium Tielines and Both Enthalpy Lines](README_IMGS/ponchon_savarit.png "Ponchon Savarit Diagram")
