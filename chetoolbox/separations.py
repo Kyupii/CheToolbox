@@ -1141,40 +1141,6 @@ def kirkbride(x_F: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDArray, keys: tuple[
   trays_D = actual_trays + chunk / (1. + chunk)
   return trays_D, actual_trays - trays_D
 
-def multicomp_heat_dut(heatvap_i: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDArray, R: float, psi: float) -> tuple[float, float]:
-  '''
-  Calculates the heat duties of the condenser and reboiler in a multicomponent distillation column.
-  
-  Parameters:
-  -----------
-  heatvap_i : NDArray
-    Heat of vaporization (or condensation) of all components.
-  F_i : NDArray
-    Molar flowrates of all components in the feed stream.
-  D_i : NDArray
-    Molar flowrates of all components in the distillate stream.
-  B_i : NDArray
-    Molar flowrates of all components in the bottoms stream.
-  R : float
-    Reflux ratio of the multicomponent distillation column.
-  psi : float
-    Vapor to liquid feed ratio (unitless).
-  
-  Returns:
-  ----------
-  Q_cond : float
-    Heat duty of the condenser.
-  Q_reb : float
-    Heat duty of the reboiler.
-  '''
-  heatvap_i = np.atleast_1d(heatvap_i)
-  F_i = np.atleast_1d(F_i); D_i = np.atleast_1d(D_i); B_i = np.atleast_1d(B_i)
-  V_D = D_i.sum() * (1. + R)
-  V_S = V_D - F_i.sum() * psi
-  Q_cond = V_D * np.sum(heatvap_i * D_i / D_i.sum())
-  Q_reb = V_S * np.sum(heatvap_i * B_i / B_i.sum())
-  return Q_cond, Q_reb
-
 def multicomp_column_full_est(ant_coeff: npt.NDArray, F_i: npt.NDArray, MW: npt.NDArray,
                               Tc: npt.NDArray, Pc: npt.NDArray, 
                               keys: tuple[int, int], spec: tuple[float, float],
@@ -1259,9 +1225,36 @@ def multicomp_column_full_est(ant_coeff: npt.NDArray, F_i: npt.NDArray, MW: npt.
   trays_D, trays_S = kirkbride(x_F, D_i, B_i, keys, actual_trays)
   return common.SolutionObj(D_i = D_i, B_i = B_i, Rmin = R_min, R = R, trays_D = trays_D, trays_S = trays_S, psi = psi, condenserType = condenserType)
 
-def multicomp_column_mass_bal(F, D, x_F, x_D, R):
-  D_max = x_F * F / x_D
-  V_max_rect = D * (R + 1.)
-  L_max_rect = D * R
-  B_max = F - D_max
-  return
+def multicomp_heat_dut(heatvap_i: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArray, B_i: npt.NDArray, R: float, psi: float) -> tuple[float, float]:
+  '''
+  Calculates the heat duties of the condenser and reboiler in a multicomponent distillation column.
+  
+  Parameters:
+  -----------
+  heatvap_i : NDArray
+    Heat of vaporization (or condensation) of all components.
+  F_i : NDArray
+    Molar flowrates of all components in the feed stream.
+  D_i : NDArray
+    Molar flowrates of all components in the distillate stream.
+  B_i : NDArray
+    Molar flowrates of all components in the bottoms stream.
+  R : float
+    Reflux ratio of the multicomponent distillation column.
+  psi : float
+    Vapor to liquid feed ratio (unitless).
+  
+  Returns:
+  ----------
+  Q_cond : float
+    Heat duty of the condenser.
+  Q_reb : float
+    Heat duty of the reboiler.
+  '''
+  heatvap_i = np.atleast_1d(heatvap_i)
+  F_i = np.atleast_1d(F_i); D_i = np.atleast_1d(D_i); B_i = np.atleast_1d(B_i)
+  V_D = D_i.sum() * (1. + R)
+  V_S = V_D - F_i.sum() * psi
+  Q_cond = V_D * np.sum(heatvap_i * D_i / D_i.sum())
+  Q_reb = V_S * np.sum(heatvap_i * B_i / B_i.sum())
+  return Q_cond, Q_reb
