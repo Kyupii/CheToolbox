@@ -30,12 +30,12 @@ def antoine_coeff_query(query: str | npt.NDArray) -> npt.NDArray:
   else: # assume ID
     col = headers[0]
   
-  antoine = pd.read_csv('datasets/antoine.csv')
+  data = pd.read_csv('datasets/antoine.csv')
   coeff = np.zeros((query.shape[0], 3))
   for i, item in enumerate(query):
-    line = antoine[antoine.loc[:, col] == item]
+    line = data[data.loc[:, col] == item]
     if line.empty: raise KeyError(f"Invalid Compound Query: {item}")
-    coeff[i] = line.iloc[:, 3:6].to_numpy()
+    coeff[i] = line.iloc[0, 3:6].to_numpy()
   return coeff
 
 def k_coeff_query(query: str | npt.NDArray) -> npt.NDArray:
@@ -61,10 +61,43 @@ def k_coeff_query(query: str | npt.NDArray) -> npt.NDArray:
   query = np.atleast_1d(query)
   headers = ["Compound Name", "aT1", "aT2", "aT3", "aP1", "aP2", "aP3", "aw"]
   col = headers[0]
-  antoine = pd.read_csv('datasets/k_almehaideb.csv')
+  data = pd.read_csv('datasets/k_almehaideb.csv')
   coeff = np.zeros((query.shape[-1], 7))
   for i, item in enumerate(query):
-    coeff[i] = antoine[antoine.loc[:, col] == item].iloc[:, 1:].to_numpy()
+    line = data[data.loc[:, col] == item]
+    if line.empty: raise KeyError(f"Invalid Compound Query: {item}")
+    coeff[i] = line.iloc[0, 1:].to_numpy()
+  return coeff
+
+def critical_props_query(query: str | npt.NDArray) -> npt.NDArray:
+  '''
+  Obtains critical point properties for components based on a query. 
+  
+  Parameters:
+  -----------
+  Query: Float | NDArray
+    A single string query or an array of string values.
+  
+  Returns:
+  -----------
+  props : NDArray
+    Critical point properties of each queried compound: temperature in K (Kelvin), pressure in atm (atmospheres), acentric factor (omega), and volume in cm^3/mol (cubic centimeters per mole). Shape is N x 4, where np.NaN represents an unknown property.
+  
+  Example Usage:
+  -----------
+  ```py
+  props.critical_props_query(['ethane', 'oxygen', 'methane'])
+  ```
+  '''
+  query = np.atleast_1d(query)
+  headers = ["Name", "Tc (K)", "Pc (atm)", "omega", "Vc (cm^3/mol)"]
+  col = headers[0]
+  data = pd.read_csv('datasets/CritTempPressOmega.csv')
+  coeff = np.zeros((query.shape[-1], 4))
+  for i, item in enumerate(query):
+    line = data[data.loc[:, col] == item]
+    if line.empty: raise KeyError(f"Invalid Compound Query: {item}")
+    coeff[i] = line.iloc[0, 1:].to_numpy()
   return coeff
 
 def convergence_P(T_and_P: npt.NDArray, MWC7p: float, sgC7p: float) -> npt.NDArray:
