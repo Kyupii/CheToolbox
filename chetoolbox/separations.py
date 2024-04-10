@@ -642,7 +642,7 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
     fig, ax = plt.subplots(); ax.set_title("Ponchon Savarit Diagram")
     plt.xlim(0, 1); plt.ylim(Hb * 1.1, Hp * 1.1)
     x = np.linspace(0., 1., 200)
-    ax.plot([xf]*200, np.linspace(Hb * 1.1, Hp * 1.1, 200), "k")
+    ax.plot([Fpoint[0]]*200, np.linspace(Hb * 1.1, Hp * 1.1, 200), "k")
     ax.plot([xb]*200, np.linspace(Hb * 1.1, Hp * 1.1, 200), "k")
     ax.plot([xd]*200, np.linspace(Hb * 1.1, Hp * 1.1, 200), "k")
     ax.plot(x, liqlineH.eval(x), "g")
