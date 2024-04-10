@@ -14,6 +14,7 @@ setup(
     packages = find_packages(),
     install_requires = ['numpy',
                         'scipy',
+                        'pandas',
                         ],
 
     keywords = ["python", "chemical engineering"],

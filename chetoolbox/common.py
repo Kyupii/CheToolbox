@@ -414,15 +414,18 @@ class UnitConv:
       return Pa * 0.0040146307866177
     def inwa2atm(inwa):
       return inwa * 0.0024583163911506
-    def bar2Pa(bar):
+    def bar2Pa(bar): 
       return bar * 100000.
+    def psig2psia(psig):
+      return psig + 14.695948803581
     unitdict = {
       "atm": (atm2psia, "psia"),
       "psia": (psia2mmHg, "mmhg"),
       "mmhg": (mmHg2Pa, "pa"),
       "pa": (Pa2inwa, "inwa"),
       "inwa": (inwa2atm, "atm"),
-      "bar": (bar2Pa, "pa"),
+      "bar": (bar2Pa, "pa"), # one-way
+      "psig": (psig2psia, "psia"), # one-way
     }
     unit = unit.lower(); des = des.lower()
     if unit not in unitdict.keys() or des not in unitdict.keys():
@@ -431,6 +434,14 @@ class UnitConv:
       val = unitdict[unit][0](val)
       unit = unitdict[unit][1]
     return val
+  
+  def acfm2scfm(acfm: float | npt.NDArray, T: float, P: float):
+    '''
+    T in R (Rankine), P in psia (absolute pounds per square inch)
+    '''
+    R = 10.73 # ft**3 psia / lbmole R
+    n = P * acfm / (R * T)
+    return n * 359.03 # ft**3 / lbmole
   
   def ft2meters(ft):
     ft = np.atleast_1d(ft)
@@ -588,14 +599,13 @@ def linear_intersect(line1: npt.NDArray, line2: LinearEq) -> npt.NDArray | None:
 
 def quadratic_formula(coeff: npt.NDArray) -> npt.NDArray: #numpy compatible
   '''
-  Calculates the roots of a quadratic equation. Ignores imaginary roots.
+  Calculates the roots of a quadratic equation. Ignores imaginary roots. Shape must be N x 3.
   '''
-  coeff = np.atleast_2d(coeff)
+  coeff = np.atleast_2d(coeff).astype(float)
   descrim = coeff[:, 1]**2 - 4.*coeff[:, 0]*coeff[:, 2]
-  roots = np.zeros_like(coeff[:, :-1])
-  roots[descrim < 0.] = np.NaN
+  roots = np.full_like(coeff[:, :-1], np.NaN)
   rad = np.c_[np.sqrt(descrim[descrim >= 0.])] * np.array([1., -1.])
-  roots[descrim >= 0., :] = (np.c_[-coeff[:, 1][descrim >= 0.]] + rad) / (2. * np.c_[coeff[:, 0][descrim >= 0.]])
+  roots[descrim >= 0.] = (np.c_[-coeff[:, 1][descrim >= 0.]] + rad) / (2. * np.c_[coeff[:, 0][descrim >= 0.]])
   return roots[0] if len(roots) == 1 else roots
 
 def cubic_formula(coeff: npt.NDArray) -> npt.NDArray:

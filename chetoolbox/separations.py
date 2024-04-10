@@ -1259,5 +1259,46 @@ def multicomp_heat_dut(heatvap_i: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArra
   Q_reb = V_S * np.sum(heatvap_i * B_i / B_i.sum())
   return Q_cond, Q_reb
 
-def membrane_permeate(x0: float, x_rej: float, increm: int = 101):
-  bounds = np.linspace(x0, x_rej, increm)
+def dense_membrane_area(x_F: float, x_rej: float, F: float, P_F: float, P_perm: float, selec: float, permea: float, increm: int = 100):
+  '''
+  Calculates the surface area of a dense membrane separating a compound from a carrying gas using a finite element technique.
+  
+  Parameters:
+  -----------
+  x_F : NDArray
+    Initial mole fraction of the compound entering the membrane (unitless).
+  x_rej : NDArray
+    Final mole fraction of the compound leaving the membrane in the reject stream (unitless).
+  F : NDArray
+    Volumetric flowrate of the feed stream.
+  P_F : NDArray
+    Pressure at the feed side of the membrane.
+  P_perm : float
+    Pressure at the permeate side of the membrane.
+  selec : float
+    Ratio of selectivity between the compound and the carrying gas.
+  permea : float
+    Permeability of compound through membrane.
+  increm : int
+    Number of finite elements to calculate area over, bounded [1, inf). Treat the entire membrane as a single element when == 1.
+  
+  Returns:
+  ----------
+  SA : float
+    Surface area of the dense membrane.
+  '''
+  x = np.linspace(x_F, x_rej, increm + 1)
+  R_press = P_perm / P_F
+  coeffs = np.full((increm + 1, 3), selec - 1.)
+  coeffs[:, 1] = 1. - selec - (1. + x * (selec - 1.)) / R_press
+  coeffs[:, 2] = selec * x / R_press
+  roots = common.quadratic_formula(coeffs)
+  if np.isnan(roots).sum() > 0:
+    raise ValueError(f"Invalid permeate mole fraction: {x[np.isnan(roots).sum(axis=1) > 0]}")
+  y = roots[roots < 1.] # should be 1D here, error check to catch?
+  if y.size != x.size:
+    raise ValueError(f"Invalid permeate mole fractions: {y.size - x.size} extra boundaries calculated")
+  y_avg = (y[:-1] + y[1:]) / 2.
+  dV = F * (x_F - x_rej) / (y_avg - x_rej)
+  dP = ((P_F * x[:-1] - P_perm * y[:-1]) + (P_F * x[1:] - P_perm * y[1:])) / 2.
+  return np.sum(dV * y_avg / (permea * dP))
