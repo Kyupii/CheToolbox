@@ -414,12 +414,15 @@ class UnitConv:
       return Pa * 0.0040146307866177
     def inwa2atm(inwa):
       return inwa * 0.0024583163911506
+    def bar2Pa(bar):
+      return bar * 100000.
     unitdict = {
       "atm": (atm2psia, "psia"),
       "psia": (psia2mmHg, "mmhg"),
       "mmhg": (mmHg2Pa, "pa"),
       "pa": (Pa2inwa, "inwa"),
       "inwa": (inwa2atm, "atm"),
+      "bar": (bar2Pa, "pa"),
     }
     unit = unit.lower(); des = des.lower()
     if unit not in unitdict.keys() or des not in unitdict.keys():

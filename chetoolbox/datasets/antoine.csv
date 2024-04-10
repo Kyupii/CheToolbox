@@ -1,4 +1,4 @@
-ID,Formula,Compound Name,A,B,C,TMIN,TMAX
+ID,Formula,Compound Name,A,B,C,TMIN (K),TMAX (K)
 999,H20,water,8.07131,1730.63,-39.724,274.15,373.15
 998,H20,water,8.14019,1810.94,-28.665,372.15,647.15
 1,CCL4,carbon-tetrachloride,6.8941,1219.58,-45.98,253.15,374.15

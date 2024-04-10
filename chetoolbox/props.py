@@ -24,7 +24,7 @@ def antoine_coeff_query(query: str | npt.NDArray) -> npt.NDArray:
   ```
   '''
   query = np.atleast_1d(query)
-  headers = ["ID", "Formula", "Compound Name", "A", "B", "C", "TMIN", "TMAX"]
+  headers = ["ID", "Formula", "Compound Name", "A", "B", "C", "TMIN (K)", "TMAX (K)"]
   if type(query[0]) == np.str_: #assume name
     col = headers[2]
   else: # assume ID
