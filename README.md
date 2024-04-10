@@ -1,7 +1,7 @@
 # CheToolbox
 Co-Written by Quan Phan & Ethan Molnar
 ## About
-CheToolbox or Chemical Engineering Toolbox is a python package designed to formalize calculations learned throughout university and professional experience in code. Functions are written to be clear, concise, easy to use, and save time compared to starting from scratch. This code is written in a semi-functional programming style, with a focus on internal consistency.
+CheToolbox (Chemical Engineering Toolbox) is a Python package designed to formalize calculations learned throughout university and professional experience in code. Functions are written to be clear, concise, easy to use, and save time compared to starting from scratch. This code is written in a semi-functional programming style, with a focus on internal consistency.
 ## License
 CheToolbox is distributed under GPL License version 3 (GPLv3)
 ## Dependencies
