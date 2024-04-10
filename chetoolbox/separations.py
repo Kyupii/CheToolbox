@@ -1258,3 +1258,6 @@ def multicomp_heat_dut(heatvap_i: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArra
   Q_cond = V_D * np.sum(heatvap_i * D_i / D_i.sum())
   Q_reb = V_S * np.sum(heatvap_i * B_i / B_i.sum())
   return Q_cond, Q_reb
+
+def membrane_permeate(x0: float, x_rej: float, increm: int = 101):
+  bounds = np.linspace(x0, x_rej, increm)
