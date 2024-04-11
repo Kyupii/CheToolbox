@@ -2,7 +2,7 @@ import numpy as np
 import numpy.typing as npt
 from typing import Callable
 from matplotlib import pyplot as plt
-import common, props
+from . import common, props
 
 from scipy.optimize import root
 def PressureDrop(Q: float, mu: float, D: float, rho: float, epsilon: float = 0.10e-3) -> float: 
