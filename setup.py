@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-VERSION = '0.0.10'
+VERSION = '0.0.11'
 DESCRIPTION = 'A library of common chemical engineering calculations'
 LONG_DESCRIPTION = 'A personal project cataloging common chemical engineering calculations employing numerical methods'
 
