@@ -1301,4 +1301,5 @@ def dense_membrane_area(x_F: float, x_rej: float, F: float, P_F: float, P_perm: 
   y_avg = (y[:-1] + y[1:]) / 2.
   dV = F * (x_F - x_rej) / (y_avg - x_rej)
   dP = ((P_F * x[:-1] - P_perm * y[:-1]) + (P_F * x[1:] - P_perm * y[1:])) / 2.
-  return np.sum(dV * y_avg / (permea * dP))
+  SA = np.sum(dV * y_avg / (permea * dP))
+  return SA
