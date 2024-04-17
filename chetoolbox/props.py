@@ -479,11 +479,12 @@ def soil_sorb_est(g: npt.NDArray, mole_con: npt.NDArray | float) -> float:
   K_oc : float
     Estimated soil sobrtion coefficient in ug*mL/g*mg (the mass ratio of compound to organic carbon in soil [mg/g] divided by the concentration of the compound in water [mg/mL]).
   '''
-  if type(mole_con) == npt.NDArray:
+  if type(mole_con) == npt.NDArray or type(mole_con) == list :
     mole_con = np.atleast_1d(mole_con).reshape(-1, 2)
     mole_con = np.sum( (1. / (mole_con[:,0]*mole_con[:,1]) )**.5 )
   
   g = np.atleast_1d(g).reshape(-1, 2)
+
   return 10**(.53 * mole_con + .62 + np.sum( g[:,0] * g[:,1] ))
 
 def biodegrade_est(g: npt.NDArray, MW: float) -> tuple[float, str]:
