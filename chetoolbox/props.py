@@ -1,7 +1,7 @@
 import numpy as np
 from numpy import typing as npt
 import pandas as pd
-from . import common
+import common
 
 def antoine_coeff_query(query: str | npt.NDArray) -> npt.NDArray:
   '''
@@ -470,7 +470,7 @@ def soil_sorb_est(g: npt.NDArray, mole_con: npt.NDArray | float) -> float:
   g : NDArray
     The frequency of a group's appearance and the group's correction factor. Shape must be N x 2.
       Ex) For a molecule containing 4 groups: np.array([[3, 1.233], [1, 23.5], [2, 44.6], [7, 103.6]])
-  mole_con: npt.NDArray | float
+  mole_con : npt.NDArray | float
     First order molecular connectivity index of the compound. Must be precomputed (float) or of shape 1 x 2N.
       Ex) np.array([1, 3, 1, 3, 2, 3, 2, 1]) or 2.68
   
