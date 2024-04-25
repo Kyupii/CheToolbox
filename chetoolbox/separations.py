@@ -1259,9 +1259,9 @@ def multicomp_heat_dut(heatvap_i: npt.NDArray, F_i: npt.NDArray, D_i: npt.NDArra
   Q_reb = V_S * np.sum(heatvap_i * B_i / B_i.sum())
   return Q_cond, Q_reb
 
-def dense_membrane_area(x_F: float, x_rej: float, F: float, P_F: float, P_perm: float, selec: float, permea: float, increm: int = 100):
+def dense_membrane_area(x_F: float, x_rej: float, F: float, P_F: float, P_perm: float, selec: float, permea: float, increm: int = 30):
   '''
-  Calculates the surface area of a dense membrane separating a compound from a carrying gas using a finite element technique.
+  Calculates the surface area of a countercurrent dense membrane separating a compound from a carrying gas using a finite element technique.
   
   Parameters:
   -----------
@@ -1284,6 +1284,10 @@ def dense_membrane_area(x_F: float, x_rej: float, F: float, P_F: float, P_perm: 
   
   Returns:
   ----------
+  y : float | NDArray
+    Concentration of the compound in the permeate stream at the borders of finite elements.
+  V : float
+    Total volumetric flowrate of the permeate stream.
   SA : float
     Surface area of the dense membrane.
   '''
@@ -1299,7 +1303,14 @@ def dense_membrane_area(x_F: float, x_rej: float, F: float, P_F: float, P_perm: 
   if y.size != x.size:
     raise ValueError(f"Invalid permeate mole fractions: {y.size - x.size} extra boundaries calculated")
   y_avg = (y[:-1] + y[1:]) / 2.
-  dV = F * (x_F - x_rej) / (y_avg - x_rej)
+  
+  dV = np.zeros_like(y_avg)
+  Fin = F
+  # TODO make this not a for loop??? but each calc requires the previous so idk if its optimizable
+  for i, ya in enumerate(y_avg):
+    dV[i] = Fin * (x[i] - x[i+1]) / (ya - x[i+1])
+    Fin -= dV[i]
+  
   dP = ((P_F * x[:-1] - P_perm * y[:-1]) + (P_F * x[1:] - P_perm * y[1:])) / 2.
   SA = np.sum(dV * y_avg / (permea * dP))
-  return SA
+  return common.SolutionObj(y = y, V = dV.sum(), SA = SA, )
