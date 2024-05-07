@@ -39,7 +39,7 @@ def PressureDrop(Q: float, mu: float, D: float, rho: float, epsilon: float = 0.1
     f = root(ColebrookWhite,[0.03]).x[0]
   return -(f * (rho / 2) * (v**2 /D))
 
-def free_mean_path(T_and_P: npt.NDArray, d_molecule: npt.NDArray | float) -> npt.NDArray | float:
+def mean_free_path(T_and_P: npt.NDArray, d_molecule: npt.NDArray | float) -> npt.NDArray | float:
   '''
   Calculates the mean free path of molecules in unrestricted diffusion.  
   
@@ -52,12 +52,34 @@ def free_mean_path(T_and_P: npt.NDArray, d_molecule: npt.NDArray | float) -> npt
   
   Returns
   ----------
-  mfp : NDArray | float
+  lamda : NDArray | float
     Mean free path of the molecule in m (meters).
   '''
   T_and_P = np.atleast_2d(T_and_P)
   kB = 1.380649e-23 # J/K*mol
   return kB * T_and_P[:, 0] / (np.sqrt(2.) * T_and_P[:, 1] * np.pi * d_molecule**2)
+
+def mean_free_speed(T: npt.NDArray | float, MW: npt.NDArray | float,) -> npt.NDArray | float:
+  '''
+  Calculates the mean free speed of molecules in unrestricted diffusion. If multiple temperatures (T) and molecular weights (MW) are input, the resulting array will be of size T x MW.
+  
+  Parameters
+  ----------
+  T : NDArray ] float
+    Temperature in K (Kelvin).
+  MW : NDArray | float
+    Molecular weight of the compound.
+  
+  Returns
+  ----------
+  mfs : NDArray | float
+    Mean free speed of the molecule in m/s (meters per second).
+  '''
+  T = np.atleast_1d(T).reshape(-1, 1)
+  kB = 1.380649e-23 # J/K*mol
+  NA = 6.02214076e23 # particles/mol
+  mfs = 8 * kB * T * NA / (np.pi * MW)
+  return mfs[0] if mfs.size == 1 else mfs
 
 def diffuse_knudsen(MW: npt.NDArray, r_pore: float, T: float, porous: float | None = None, tort: float | None = None) -> npt.NDArray | float:
   '''
