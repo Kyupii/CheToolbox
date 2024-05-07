@@ -81,33 +81,6 @@ def mean_free_speed(T: npt.NDArray | float, MW: npt.NDArray | float,) -> npt.NDA
   mfs = 8 * kB * T * NA / (np.pi * MW)
   return mfs[0] if mfs.size == 1 else mfs
 
-def diffuse_knudsen(MW: npt.NDArray, r_pore: float, T: float, porous: float | None = None, tort: float | None = None) -> npt.NDArray | float:
-  '''
-  Calculates the knudsen diffusivity of molecules in through porous membranes.  
-  
-  Parameters
-  ----------
-  MW : NDArray | float
-    Molecular weight in g/mol (grams per mole) of each molecule.
-  r_pore : float
-    Average pore radius in cm (centimeters).
-  T : float
-    Environment temperature in K (Kelvin).
-  porous : float | None
-    Membrane porosity, bounded [0., 1.].
-  tort : float | None
-    Membrane porosity, bounded [1., inf).
-  
-  Returns
-  ----------
-  D_eff : NDArray | float
-    Effective knudsen diffusivity in cm**2/s (squared centimeters per second).
-  '''
-  D = 9700. * r_pore * (T / MW)**.5
-  if porous is not None and tort is not None:
-    return D * porous / tort
-  return .25 * D
-
 def reynolds(L: npt.NDArray | float, flowspeed: npt.NDArray | float, rho: float, mu: float) -> npt.NDArray | float:
   '''
   Calculates the Reynolds number of a dynamic fluid. If multiple characteristic lengths (L) and flow speeds (FS) are input, the resulting array will be of size FS x L. Units must cancel.
@@ -224,3 +197,42 @@ def nusselt(thermCond: npt.NDArray | float, L: npt.NDArray | float, h: float) ->
   thermCond = np.atleast_1d(thermCond).reshape(-1, 1)
   Nu = h * L / thermCond
   return Nu[0] if Nu.size == 1 else Nu
+
+# TODO
+# knudsen == mean_free_path / pore diam
+
+# TODO
+# diffuse_binary_mixture_theory
+# diffuse_wilke_lee
+# diffuse_einstein_stokes
+# diffuse_wilke_chang
+# diffuse_hayduk_aqueous
+# diffuse_hayduk_organic
+# diffuse_nernst_haskell
+
+def diffuse_knudsen(MW: npt.NDArray, r_pore: float, T: float, porous: float | None = None, tort: float | None = None) -> npt.NDArray | float:
+  '''
+  Calculates the knudsen diffusivity of molecules in through porous membranes.  
+  
+  Parameters
+  ----------
+  MW : NDArray | float
+    Molecular weight in g/mol (grams per mole) of each molecule.
+  r_pore : float
+    Average pore radius in cm (centimeters).
+  T : float
+    Environment temperature in K (Kelvin).
+  porous : float | None
+    Membrane porosity, bounded [0., 1.].
+  tort : float | None
+    Membrane porosity, bounded [1., inf).
+  
+  Returns
+  ----------
+  D_eff : NDArray | float
+    Effective knudsen diffusivity in cm**2/s (squared centimeters per second).
+  '''
+  D = 9700. * r_pore * (T / MW)**.5
+  if porous is not None and tort is not None:
+    return D * porous / tort
+  return .25 * D
