@@ -198,21 +198,144 @@ def nusselt(thermCond: npt.NDArray | float, L: npt.NDArray | float, h: float) ->
   Nu = h * L / thermCond
   return Nu[0] if Nu.size == 1 else Nu
 
-# TODO
-# knudsen == mean_free_path / pore diam
+def knudsen(mean_free_path: npt.NDArray | float, L: npt.NDArray | float, h: float) -> npt.NDArray | float:
+  '''
+  Calculates the Knudsen number for a dynamic fluid. If multiple characteristic lengths (L) and mean free path (MFP) are input, the resulting array will be of size MFP x L. Units must cancel.
+  
+  Parameters
+  ----------
+  mean_free_path : NDArray | float
+    Mean free path of the dynamic fluid particles.
+  L : NDArray | float
+    Characteristic length of the system.
+  
+  Returns
+  ----------
+  Kn : NDArray | float
+    Knudsen number of the dynamic fluid (Unitless).
+  '''
+  L = np.atleast_1d(L)
+  mean_free_path = np.atleast_1d(mean_free_path).reshape(-1, 1)
+  Kn = mean_free_path / L
+  return Kn[0] if Kn.size == 1 else Kn
+
+def collision_integral(T: npt.NDArray | float, eps_geo: float) -> npt.NDArray | float:
+  '''
+  Calculates the collision integral of molecules in a binary mixture.
+  
+  Parameters
+  ----------
+  T : npt.NDArray | float
+    Environment temperature in K (Kelvin).
+  eps_geo : float
+    Geometric average of molecular interaction coefficients.
+  
+  Returns
+  ----------
+  omegaD : NDArray | float
+    Collision integral of the binary mixture interaction.
+  '''
+  a = 1.06036; b = .1561
+  c = .193; d = .47635
+  e = 1.03587; f = 1.52996
+  g = 1.76474; h = 3.89411
+  x = T / eps_geo
+  return (a / x**b) + (c / np.e**(d*x)) + (e / np.e**(f*x)) + (g / np.e**(h*x))
+
+# TODO: double check the units on the theoretical binary gas mixture, if ever stated
+def diffuse_binary_mixture_theory(MW: npt.NDArray, collis_diam: npt.NDArray, epsilon: npt.NDArray, T: float, P: float, molar_volume_B: float | None = None, boiling_temp_B: float | None = None):
+  '''
+  Calculates the diffusion of a compound in binary mixture, according to a theoretical estimation (not to be used for real-world applications). The first compound's properties should be A, the minority (solute) compound, while the second compound's properties should be B, the majority (solvent) compound.
+  
+  Parameters
+  ----------
+  MW : NDArray
+    Molecular weight of the minority and majority (solute and solvent) compounds in g/mol (grams per mole). Must be of length 2.
+  collis_diam : NDArray
+    Collision diameter of the minority and majority (solute and solvent) compounds in Å (angstroms). Must be of length 2.
+  epsilon : NDArray
+    Molecular weight of the minority and majority (solute and solvent) compounds in g/mol (grams per mole). Must be of length 2.
+  T : float
+    Environment temperature in K (Kelvin).
+  P : float
+    Environment pressure in bar (bar).
+  molar_volume_B : float (Optional)
+    Molar volume of B in Å^3 (cubic angstroms). Used for an estimate of the overall collision diameter if a compound's collision diameter is unknown.
+  boiling_temp_B : float (Optional)
+    Boiling temperature of B at the given pressure in K (Kelvin). Used for an estimate of the overall molecular interaction if a compound's molecular interaction is unknown.
+  
+  Returns
+  ----------
+  Dab : NDArray | float
+    Diffusivity of the minority compound through the majority compound in cm^2/s (square centimeters per second).
+  '''
+  MW = np.atleast_1d(MW)
+  collis_diam = np.atleast_1d(collis_diam)
+  epsilon = np.atleast_1d(epsilon)
+  
+  MWab = 2. * MW.prod() / MW.sum()
+  Oab = collis_diam.sum() / 2.
+  if molar_volume_B is not None:
+    Oab = 1.18 * molar_volume_B ** (1./3.)
+  Eab = common.geomean(epsilon)
+  if boiling_temp_B is not None:
+    Eab = 1.15 * boiling_temp_B
+  omegaD = collision_integral(T, Eab)
+  
+  return .0026 * T**(3./2.) / (P * np.sqrt(MWab) * np.square(Oab) * omegaD)
+
+def diffuse_wilke_lee(MW: npt.NDArray, collis_diam: npt.NDArray, epsilon: npt.NDArray, T: float, P: float, molar_volume_B: float | None = None, boiling_temp_B: float | None = None):
+  '''
+  Calculates the diffusion of a compound in binary gas mixture using Wilke & Lee's estimation. The first compound's properties should be A, the minority (solute) compound, while the second compound's properties should be B, the majority (solvent) compound.
+  
+  Parameters
+  ----------
+  MW : NDArray
+    Molecular weight of the minority and majority (solute and solvent) compounds in g/mol (grams per mole). Must be of length 2.
+  collis_diam : NDArray
+    Collision diameter of the minority and majority (solute and solvent) compounds in Å (angstroms). Must be of length 2.
+  epsilon : NDArray
+    Molecular weight of the minority and majority (solute and solvent) compounds in g/mol (grams per mole). Must be of length 2.
+  T : float
+    Environment temperature in K (Kelvin).
+  P : float
+    Environment pressure in bar (bar).
+  molar_volume_B : float (Optional)
+    Molar volume of B in Å^3 (cubic angstroms). Used for an estimate of the overall collision diameter if a compound's collision diameter is unknown.
+  boiling_temp_B : float (Optional)
+    Boiling temperature of B at the given pressure in K (Kelvin). Used for an estimate of the overall molecular interaction if a compound's molecular interaction is unknown.
+  
+  Returns
+  ----------
+  Dab : NDArray | float
+    Diffusivity of the minority compound through the majority compound in cm^2/s (square centimeters per second).
+  '''
+  MW = np.atleast_1d(MW)
+  collis_diam = np.atleast_1d(collis_diam)
+  epsilon = np.atleast_1d(epsilon)
+  
+  MWab = 2. * MW.prod() / MW.sum()
+  Oab = collis_diam.sum() / 2.
+  if molar_volume_B is not None:
+    Oab = 1.18 * molar_volume_B ** (1./3.)
+  Eab = common.geomean(epsilon)
+  if boiling_temp_B is not None:
+    Eab = 1.15 * boiling_temp_B
+  omegaD = collision_integral(T, Eab)
+  coeff = (3.03 - .98 / np.sqrt(MWab)) * 10e-3
+  
+  return coeff * T**(3./2.) / (P * np.sqrt(MWab) * np.square(Oab) * omegaD)
 
 # TODO
-# diffuse_binary_mixture_theory
-# diffuse_wilke_lee
 # diffuse_einstein_stokes
 # diffuse_wilke_chang
 # diffuse_hayduk_aqueous
 # diffuse_hayduk_organic
 # diffuse_nernst_haskell
 
-def diffuse_knudsen(MW: npt.NDArray, r_pore: float, T: float, porous: float | None = None, tort: float | None = None) -> npt.NDArray | float:
+def diffuse_knudsen_united(MW: npt.NDArray, r_pore: float, T: float, porous: float | None = None, tort: float | None = None) -> npt.NDArray | float:
   '''
-  Calculates the knudsen diffusivity of molecules in through porous membranes.  
+  Calculates the knudsen diffusivity of molecules in through porous membranes.
   
   Parameters
   ----------
@@ -230,7 +353,7 @@ def diffuse_knudsen(MW: npt.NDArray, r_pore: float, T: float, porous: float | No
   Returns
   ----------
   D_eff : NDArray | float
-    Effective knudsen diffusivity in cm**2/s (squared centimeters per second).
+    Effective knudsen diffusivity in cm^2/s (squared centimeters per second).
   '''
   D = 9700. * r_pore * (T / MW)**.5
   if porous is not None and tort is not None:
