@@ -76,13 +76,13 @@ class LinearEq(Equation):
       if self.x_int == 0.:
         self.b = 0.
       else:
-        self.b = np.NaN
+        self.b = np.nan
     else:
       if b == 0.: # intersects the origin
         self.x_int = 0.
       else:
         if self.m == 0.: # horizontal lines
-          self.x_int = np.NaN
+          self.x_int = np.nan
         else:
           self.x_int = -b/m
   
@@ -94,7 +94,7 @@ class LinearEq(Equation):
   
   def inv(self, y: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     if self.m == 0.: # horizontal line
-      return y * np.NaN
+      return y * np.nan
     else:
       return (y - self.b) / self.m
   
@@ -249,26 +249,42 @@ class EqualibEq(Equation):
   '''
   alpha : float
     Equilibrium ratio (K1 / K2) between two species.
+  azeotrope_colision_x : float
+    Mole fraction of lighter component at which the equalibrium curve meets the unit line. Bounded (0, 1].
   eval : Callable
     Return the output of the function (y) when evaluated at an input (x).
   inv : Callable
     Return the input of the function (x) that evaluates to an output (y).
   '''
-  def __init__(self, alpha: float) -> None:
+  def __init__(self, alpha: float, azeotrope_colision_x: float = None) -> None:
     self.alpha = alpha
+    self.azcolx = 1.
+    if azeotrope_colision_x:
+      self.azcolx = azeotrope_colision_x
   
   def unpack(self) -> npt.NDArray:
     return np.array(list(self.__dict__.values()))
   
   def eval(self, x: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     # breaks if x = -1. / (1. - self.alpha)
-    x = np.minimum(np.ones_like(x), np.maximum(np.zeros_like(x), x))
-    return (self.alpha * x ) / (1. + (self.alpha - 1.) * x)
+    x = np.minimum(np.ones_like(x), np.maximum(np.zeros_like(x), x)) / self.azcolx
+    azeoaccel = 2. / (3.*x + 1.) * (1. - self.azcolx) * np.cos(5.*x) + 1.
+    return azeoaccel * (self.alpha * x ) / (self.azcolx + (self.alpha - self.azcolx) * x) * self.azcolx
   
   def inv(self, y: float | npt.NDArray) -> float | npt.NDArray: # numpy compatible
     # breaks if y = -self.alpha / (1. - self.alpha)
-    y = np.minimum(np.ones_like(y), np.maximum(np.zeros_like(y), y))
-    return y / (self.alpha + y * (1. - self.alpha))
+    yfloat = not isinstance(y, (list, np.ndarray))
+    y = np.minimum(np.ones_like(y), np.maximum(np.zeros_like(y), y)) 
+    x = y / (self.alpha + y / self.azcolx * (self.azcolx - self.alpha)) * self.azcolx
+    if self.azcolx == 1.:
+      return x
+    else:
+      start = np.stack((x/2, x), axis=-1)
+      start[ start > self.azcolx] = self.azcolx
+      def err(x):
+        return np.c_[y] - self.eval(x)
+      x = err_reduc_iterative(err, start)[0]
+      return x[0] if yfloat else x
 
 class PiecewiseEq(Equation):
   '''
@@ -520,7 +536,7 @@ def array_pad(arrs: tuple[npt.NDArray]) -> npt.NDArray:
   '''
   lens = np.array([len(v) for v in arrs])
   mask = lens[:, None] > np.arange(lens.max())
-  out = np.full(mask.shape, np.NaN)
+  out = np.full(mask.shape, np.nan)
   out[mask] = np.concatenate(arrs)
   return out
 
@@ -541,7 +557,7 @@ def geomean(a: npt.NDArray):
 
 # region Geometry
 def vertical_line(x) -> LinearEq:
-  return LinearEq(np.NaN, np.NaN, x)
+  return LinearEq(np.nan, np.nan, x)
 
 def horizontal_line(y) -> LinearEq:
   return LinearEq(0., y)
@@ -561,7 +577,7 @@ def point_conn(point1: npt.NDArray, point2: npt.NDArray, avgmode = False) -> Lin
     b = point1[:, 1][runcalcs] - m * point1[:, 0][runcalcs]
     lines[runcalcs] = [LinearEq(m[i], b[i]) for i in np.arange(len([runcalcs]))]
   if avgmode:
-    # any vertical lines (m = np.NaN) will poison this
+    # any vertical lines (m = np.nan) will poison this
     return LinearEq(np.average([li.m for li in lines]), np.average([li.b for li in lines]))
   return lines[0] if lines.size == 1 else lines
 
@@ -581,12 +597,12 @@ def point_slope(point: npt.NDArray, slope: npt.NDArray) -> LinearEq | npt.NDArra
 
 def linear_intersect(line1: npt.NDArray, line2: LinearEq) -> npt.NDArray | None: #numpy compatible
   '''
-  Calculates the intersection points of between an arbitrary number of straight lines and a second straight line, returning np.NaN if no intersect exists. Uses LinearEq objects.
+  Calculates the intersection points of between an arbitrary number of straight lines and a second straight line, returning np.nan if no intersect exists. Uses LinearEq objects.
   '''
   line1 = np.atleast_1d(line1)
-  sects = np.full((line1.size, 2), np.NaN)
+  sects = np.full((line1.size, 2), np.nan)
   linecoeff = np.vstack([line.unpack() for line in line1]).astype(float)
-  parallel = line2.m == linecoeff[:, 0]
+  parallel: npt.NDArray = line2.m == linecoeff[:, 0]
   if np.isnan(line2.m):
     sects[~parallel, 0] = line2.x_int
     sects[~parallel, 1] = [line.eval(line2.x_int) for line in line1[~parallel]]
@@ -603,7 +619,7 @@ def quadratic_formula(coeff: npt.NDArray) -> npt.NDArray: #numpy compatible
   '''
   coeff = np.atleast_2d(coeff).astype(float)
   descrim = coeff[:, 1]**2 - 4.*coeff[:, 0]*coeff[:, 2]
-  roots = np.full_like(coeff[:, :-1], np.NaN)
+  roots = np.full_like(coeff[:, :-1], np.nan)
   rad = np.c_[np.sqrt(descrim[descrim >= 0.])] * np.array([1., -1.])
   roots[descrim >= 0.] = (np.c_[-coeff[:, 1][descrim >= 0.]] + rad) / (2. * np.c_[coeff[:, 0][descrim >= 0.]])
   return roots[0] if len(roots) == 1 else roots
@@ -768,7 +784,7 @@ def lin_estimate_error(x_pair: npt.NDArray, y_pair: npt.NDArray, tol: float = 1e
   '''
   x_pair = np.atleast_2d(x_pair).reshape(-1, 2); y_pair = np.atleast_2d(y_pair).reshape(-1, 2)
   converged = np.all((y_pair[:, 0] == y_pair[:, 1], y_pair[:, 0] < tol), axis=0)
-  skipeval = x_pair[converged, 0]; y_pair[converged, :] = np.NaN
+  skipeval = x_pair[converged, 0]; y_pair[converged, :] = np.nan
   x_new = x_pair[:, 0] - y_pair[:, 0] * ((x_pair[:, 1] - x_pair[:, 0])/(y_pair[:, 1] - y_pair[:, 0]))
   if np.any(np.isnan(x_new)) and len(skipeval) == 0:
     raise ValueError(f"Cannot minimize error between a point and itself: x == {list(x_pair[np.isnan(x_new), 0])}")

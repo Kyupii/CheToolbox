@@ -1,7 +1,10 @@
 import numpy as np
 from numpy import typing as npt
 import pandas as pd
+from pathlib import Path, PurePath
 from . import common
+
+chedir = PurePath(__file__).parent
 
 def antoine_coeff_query(query: str | npt.NDArray) -> npt.NDArray:
   '''
@@ -30,10 +33,10 @@ def antoine_coeff_query(query: str | npt.NDArray) -> npt.NDArray:
   else: # assume ID
     col = headers[0]
   
-  data = pd.read_csv('datasets/antoine.csv')
+  data = pd.read_csv(chedir / 'datasets/antoine.csv')
   coeff = np.zeros((query.shape[0], 3))
   for i, item in enumerate(query):
-    line = data[data.loc[:, col] == item]
+    line: pd.DataFrame = data[data.loc[:, col] == item]
     if line.empty: raise KeyError(f"Invalid Compound Query: {item}")
     coeff[i] = line.iloc[0, 3:6].to_numpy()
   return coeff
@@ -61,10 +64,10 @@ def k_coeff_query(query: str | npt.NDArray) -> npt.NDArray:
   query = np.atleast_1d(query)
   headers = ["Compound Name", "aT1", "aT2", "aT3", "aP1", "aP2", "aP3", "aw"]
   col = headers[0]
-  data = pd.read_csv('datasets/k_almehaideb.csv')
+  data = pd.read_csv(chedir / 'datasets/k_almehaideb.csv')
   coeff = np.zeros((query.shape[-1], 7))
   for i, item in enumerate(query):
-    line = data[data.loc[:, col] == item]
+    line: pd.DataFrame = data[data.loc[:, col] == item]
     if line.empty: raise KeyError(f"Invalid Compound Query: {item}")
     coeff[i] = line.iloc[0, 1:].to_numpy()
   return coeff
@@ -81,7 +84,7 @@ def critical_props_query(query: str | npt.NDArray) -> npt.NDArray:
   Returns:
   -----------
   props : NDArray
-    Critical point properties of each queried compound: temperature in K (Kelvin), pressure in atm (atmospheres), acentric factor (omega), and volume in cm^3/mol (cubic centimeters per mole). Shape is N x 4, where np.NaN represents an unknown property.
+    Critical point properties of each queried compound: temperature in K (Kelvin), pressure in atm (atmospheres), acentric factor (omega), and volume in cm^3/mol (cubic centimeters per mole). Shape is N x 4, where np.nan represents an unknown property.
   
   Example Usage:
   -----------
@@ -92,10 +95,10 @@ def critical_props_query(query: str | npt.NDArray) -> npt.NDArray:
   query = np.atleast_1d(query)
   headers = ["Name", "Tc (K)", "Pc (atm)", "omega", "Vc (cm^3/mol)"]
   col = headers[0]
-  data = pd.read_csv('datasets/CritTempPressOmega.csv')
+  data = pd.read_csv(chedir / 'datasets/CritTempPressOmega.csv')
   coeff = np.zeros((query.shape[-1], 4))
   for i, item in enumerate(query):
-    line = data[data.loc[:, col] == item]
+    line: pd.DataFrame = data[data.loc[:, col] == item]
     if line.empty: raise KeyError(f"Invalid Compound Query: {item}")
     coeff[i] = line.iloc[0, 1:].to_numpy()
   return coeff
@@ -111,7 +114,7 @@ def convergence_P(T_and_P: npt.NDArray, MWC7p: float, sgC7p: float) -> npt.NDArr
   MWC7p : float
     Molecular weight of the C7+ components in g/mol (grams per mole).
   MWC7p : float
-   Specific gravity of the C7+ components in (unitless).
+    Specific gravity of the C7+ components in (unitless).
   
   Returns:
   -----------
@@ -140,7 +143,7 @@ def acentric_omega(ant_coeff: npt.NDArray, Tc: float | npt.NDArray, Pc: float | 
     Critical temperature of all components in K (Kelvin). Length must be N.
   Pc : float | npt.NDArray
     Critical pressure of all components in atm (atmospheres). Length must be N.
-  
+
   Returns:
   -----------
   omega : npt.NDArray
@@ -196,7 +199,7 @@ def k_whitson(ant_coeff: npt.NDArray, Tc: float | npt.NDArray, Pc: float | npt.N
   MWC7p : float
     Molecular weight of the C7+ components in g/mol (grams per mole).
   MWC7p : float
-   Specific gravity of the C7+ components in (unitless).
+    Specific gravity of the C7+ components in (unitless).
   
   Returns:
   -----------

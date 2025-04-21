@@ -265,27 +265,33 @@ def liq_frac_superheated(Cpv: float, heatvap: float, Tf: float, Td: float) -> fl
   '''
   return -Cpv * (Tf - Td) / heatvap
 
-def eq_curve_estim(points: npt.NDArray, alpha: float = None) -> common.EqualibEq:
+def eq_curve_estim(points: npt.NDArray = None, alpha: float = None, azeotrope_colision_x: float = None) -> common.EqualibEq:
   '''
   Estimates an equilibrium curve for a binary mixture. Assumes constant equilibrium ratio (K1 / K2) between the two species.
   
   Parameters:
   -----------
-  points : NDArray
+  points : NDArray (Optional)
     Points on an equilibrium curve. Bounded (0, 1). Shape must be N x 2.
       Ex) np.array([ [.2, .1], [.3, .23], [.4, .5] ])
   alpha : float (Optional)
     Relative volatility of the two species equilibrium constants (K) (unitless). Takes priority over point-based estimation.
+  azeotrope_colision_x : float (Optional)
+    Mole fraction of lighter component at which the equalibrium curve meets the unit line. Bounded (0, 1].
   
   Returns:
   -----------
   equilibrium_curve : EqualibEq
     Equation for an equilibrium curve of a binary mixture.
   '''
-  points = np.atleast_1d(points).reshape((-1, 2))
+  if points is not None:
+    points = np.atleast_1d(points).reshape((-1, 2))
   if alpha is None:
-    alpha = np.average( points[:, 1] * (1. - points[:, 0]) / (points[:, 0] * (1. - points[:, 1])) )
-  return common.EqualibEq(alpha)
+    azcolx = 1.
+    if azeotrope_colision_x:
+      azcolx = azeotrope_colision_x
+    alpha = np.average( points[:, 1] * (azcolx - points[:, 0]) / (points[:, 0] * (azcolx - points[:, 1])) )
+  return common.EqualibEq(alpha, azeotrope_colision_x)
 
 def mccabe_thiel_feedline(q: float, xf: float) -> common.LinearEq:
   '''
@@ -310,7 +316,7 @@ def mccabe_thiel_feedline(q: float, xf: float) -> common.LinearEq:
     feedline = common.point_slope((xf, xf), m)
   return feedline
 
-def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: float, xb: float, Rmin_mult: float = 1.2) -> common.SolutionObj[common.LinearEq, common.LinearEq, tuple[float, float], float]:
+def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: float, xb: float, Rmin_mult: float = None, R_override: float = None) -> common.SolutionObj[common.LinearEq, common.LinearEq, tuple[float, float], float]:
   '''
   Calculates the rectifying and stripping operating lines of a McCabe Thiel Diagram for a binary mixture distillation column. Assumes equal molar heats of vaporization.
   
@@ -324,8 +330,10 @@ def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: 
     Liquid fraction of the distillate's lower boiling point species (unitless).
   xb : float
     Liquid fraction of the bottoms' lower boiling point species (unitless).
-  Rmin_mult : float
+  Rmin_mult : float (Optional)
     Factor by which to exceed the minimum reflux ratio, Rmin (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf).
+  R_override : float (Optional)
+    Reflux ratio of the rectifying section (unitless). Bounded (0, inf).
   
   Returns:
   -----------
@@ -344,8 +352,11 @@ def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: 
   eq_rectifyline = common.point_conn(eq_feedpoint, (xd, xd))
   
   # "distillate to feedpoint" line
-  Rmin = eq_rectifyline.m / (1. - eq_rectifyline.m)
-  R = Rmin_mult * Rmin
+  R = Rmin = eq_rectifyline.m / (1. - eq_rectifyline.m)
+  if Rmin_mult is not None:
+    R = Rmin_mult * Rmin
+  if R_override is not None:
+    R = R_override
   m = R / (1. + R)
   rectifyline = common.point_slope((xd, xd), m)
   
@@ -356,7 +367,8 @@ def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: 
   stripline = common.point_conn(feedpoint, (xb, xb))
   return common.SolutionObj(rectifyline = rectifyline, stripline = stripline, feedpoint = feedpoint, Rmin = Rmin, R = R)
 
-def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq, xf: float, xd: float, xb: float, Rmin_mult: float = 1.2, tol: float = .00001, PLOTTING_ENABLED = False) -> common.SolutionObj[float, float, float, float]:
+def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq, xf: float, xd: float, xb: float, 
+                          Rmin_mult: float = None, R_override: float = None, tol: float = .00001, PLOTTING_ENABLED = False) -> common.SolutionObj[float, float, float, float]:
   '''
   Calculates the reflux ratio and ideal stages of a binary mixture distillation column, as well as their ideal minimums. Uses a McCabe Thiel diagram and assumes equal molar heats of vaporization.
   
@@ -372,8 +384,10 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
     Liquid fraction of the distillate's lower boiling point species (unitless).
   xb : float
     Liquid fraction of the bottoms' lower boiling point species (unitless).
-  Rmin_mult : float
+  Rmin_mult : float (Optional)
     Factor by which to exceed the minimum reflux ratio, Rmin (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf).
+  R_override : float (Optional)
+    Reflux ratio of the rectifying section (unitless). Bounded (0, inf).
   tol : float
     Largest error value to stop iterating and return.
   
@@ -389,16 +403,16 @@ def mccabe_thiel_full_est(eq_curve: common.EqualibEq, feedline: common.LinearEq,
     Number of ideal stages (includes reboiler and partial condenser if applicable).
   '''
   
-  def err(x):
-    return eq_curve.eval(x) - feedline.eval(x)
   if np.isnan(feedline.m):
     x = xf
   else:
+    def err(x):
+      return eq_curve.eval(x) - feedline.eval(x)
     x, _, _ = common.err_reduc_iterative(err, [xb, xd], tol)
     x = x[0]
   
   eq_feedpoint = (x, eq_curve.eval(x))
-  rectifyline, stripline, feedpoint, Rmin, R = mccabe_thiel_otherlines(feedline, eq_feedpoint, xd, xb, Rmin_mult).unpack()
+  rectifyline, stripline, feedpoint, Rmin, R = mccabe_thiel_otherlines(feedline, eq_feedpoint, xd, xb, Rmin_mult, R_override).unpack()
   
   y_reflect = common.LinearEq(1., 0.)
   min_stages = common.curve_bouncer(eq_curve, y_reflect, xd, xb)
@@ -1202,7 +1216,7 @@ def multicomp_column_full_est(ant_coeff: npt.NDArray, F_i: npt.NDArray, MW: npt.
   x_F = F_i / F_i.sum()
   D_i, B_i = multicomp_feed_split_est(F_i, MW, keys, spec)
   psi = .5; N_min = numplates
-  D_i_old = np.full_like(D_i, np.NaN)
+  D_i_old = np.full_like(D_i, np.nan)
   while not ((np.abs(D_i - D_i_old)) < tol).all():
     while not ((np.abs(D_i - D_i_old)) < tol).all():
       D_i_old = np.copy(D_i)
