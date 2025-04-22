@@ -519,7 +519,8 @@ def ponchon_savarit_enthalpylines(props: npt.NDArray) -> tuple[common.LinearEq, 
   
   return liqlineH, vaplineH
 
-def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq, xf: float, yf: float, xd: float, xb: float, Rmin_mult: float = 1.2) -> common.SolutionObj[common.LinearEq, float, float, float, float]:
+def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq, xf: float, yf: float, xd: float, xb: float, 
+                            Rmin_mult: float = None, R_override: float = None) -> common.SolutionObj[common.LinearEq, float, float, float, float]:
   '''
   Calculates the tieline and Rmin of a Ponchon Savarit diagram for a binary mixture distillation column.
   
@@ -537,8 +538,10 @@ def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq
     Liquid fraction of the lower boiling point species in the distillate (unitless).
   xb : float
     Liquid fraction of the lower boiling point species in the bottoms (unitless).
-  Rmin_mult : float
+  Rmin_mult : float (Optional)
     Factor by which to exceed the minimum reflux ratio, Rmin (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf).
+  R_override : float (Optional)
+    Reflux ratio of the rectifying section (unitless). Bounded (0, inf).
   
   Returns:
   -----------
@@ -558,14 +561,19 @@ def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq
   hv1 = vaplineH.eval(xd)
   eq_hdqcd = eq_tieline.eval(xd)
   Rmin = (eq_hdqcd - hv1) / (hv1 - hd)
-  R = Rmin  * Rmin_mult
+  if Rmin_mult is not None:
+    R = Rmin  * Rmin_mult
+  if R_override is not None:
+    R = R_override
   Hd = R * (hv1 - hd) + hv1
   tieline = common.point_conn((xf, liqlineH.eval(xf)), (xd, Hd)) # tieline for real R, not Rmin
   Hb = tieline.eval(xb)
   
   return common.SolutionObj(tieline = tieline, Rmin = Rmin, R = R, Hd = Hd, Hb = Hb)
 
-def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.LinearEq, vaplineH: common.LinearEq, Fpoint: tuple[float, float], q: bool | float, xd: float, xb: float, Rmin_mult: float, tol: float = .00001, PLOTTING_ENABLED = False) -> common.SolutionObj[common.LinearEq, float, float, float, float]:
+def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.LinearEq, vaplineH: common.LinearEq, Fpoint: tuple[float, float], 
+                             q: bool | float, xd: float, xb: float, Rmin_mult: float = None, R_override: float = None, 
+                             tol: float = .00001, PLOTTING_ENABLED = False) -> common.SolutionObj[common.LinearEq, float, float, float, float]:
   '''
   Calculates the liquid and vapor enthalpy lines on a Ponchon Savarit diagram for a binary mixture distillation column.
   
@@ -585,8 +593,10 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
     Liquid fraction of the lower boiling point species in the distillate (unitless).
   xb : float
     Liquid fraction of the lower boiling point species in the bottoms (unitless).
-  Rmin_mult : float
+  Rmin_mult : float (Optional)
     Factor by which to exceed the minimum reflux ratio, Rmin (unitless). Typical reflux ratios are between 1.05 and 1.3 times Rmin. Bounded (1, inf).
+  R_override : float (Optional)
+    Reflux ratio of the rectifying section (unitless). Bounded (0, inf).
   tol : float
     Largest error value to stop iterating and return.
   
@@ -624,7 +634,7 @@ def ponchon_savarit_full_est(eq_curve: common.EqualibEq, liqlineH: common.Linear
     xf, _ = common.linear_intersect(common.point_slope(Fpoint, tieslope[0]), liqlineH)
     yf = eq_curve.eval(xf)
   
-  tieline, Rmin, R, Hp, Hb = ponchon_savarit_tieline(liqlineH, vaplineH, xf, yf, xd, xb, Rmin_mult).unpack()
+  tieline, Rmin, R, Hp, Hb = ponchon_savarit_tieline(liqlineH, vaplineH, xf, yf, xd, xb, Rmin_mult, R_override).unpack()
   
   def y_transform(y):
     return vaplineH.eval(liqlineH.inv(y))
