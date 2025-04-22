@@ -354,7 +354,7 @@ def mccabe_thiel_otherlines(feedline: common.LinearEq, eq_feedpoint: tuple, xd: 
   # "distillate to feedpoint" line
   R = Rmin = eq_rectifyline.m / (1. - eq_rectifyline.m)
   if Rmin_mult is not None:
-    R = Rmin_mult * Rmin
+    R *= Rmin_mult
   if R_override is not None:
     R = R_override
   m = R / (1. + R)
@@ -560,9 +560,9 @@ def ponchon_savarit_tieline(liqlineH: common.LinearEq, vaplineH: common.LinearEq
   hd = liqlineH.eval(xd)
   hv1 = vaplineH.eval(xd)
   eq_hdqcd = eq_tieline.eval(xd)
-  Rmin = (eq_hdqcd - hv1) / (hv1 - hd)
+  R = Rmin = (eq_hdqcd - hv1) / (hv1 - hd)
   if Rmin_mult is not None:
-    R = Rmin  * Rmin_mult
+    R *= Rmin_mult
   if R_override is not None:
     R = R_override
   Hd = R * (hv1 - hd) + hv1
